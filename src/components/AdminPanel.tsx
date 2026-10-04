@@ -2864,38 +2864,44 @@ export const AdminPanel: React.FC = () => {
           </div>
 
           {/* Bulk Price Adjuster Panel */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-orange-500" />
-              <span className="font-semibold text-slate-700">Масова зміна цін:</span>
-              <input
-                type="number"
-                value={bulkPercent}
-                onChange={(e) => setBulkPercent(Number(e.target.value))}
-                className="w-16 px-2 py-1 border border-slate-300 rounded font-mono text-center bg-white"
-              />
-              <span className="text-slate-500">%</span>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-wrap items-center gap-2.5 text-xs shadow-2xs">
+            {/* Label + Input + % directly grouped */}
+            <div className="flex items-center gap-2 shrink-0 whitespace-nowrap">
+              <Sparkles className="w-4 h-4 text-orange-500 shrink-0" />
+              <span className="font-bold text-slate-800">Масова зміна цін:</span>
+              <div className="inline-flex items-center bg-white border border-slate-300 rounded-lg overflow-hidden focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 shadow-2xs">
+                <input
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={bulkPercent}
+                  onChange={(e) => setBulkPercent(Number(e.target.value))}
+                  className="w-12 sm:w-14 px-1.5 py-1 font-mono font-bold text-center text-slate-900 outline-none text-xs"
+                />
+                <span className="pr-2 text-slate-600 font-extrabold text-xs select-none">%</span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Action Buttons directly NEXT to the input */}
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => bulkAdjustPrices(Math.abs(bulkPercent))}
-                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-all shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
               >
                 +{bulkPercent}% до всіх цін
               </button>
               <button
                 type="button"
                 onClick={() => bulkAdjustPrices(-Math.abs(bulkPercent))}
-                className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold transition-all shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
               >
                 -{bulkPercent}% (Знижка)
               </button>
               <button
                 type="button"
                 onClick={() => roundAllPricesToIntegers()}
-                className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold transition-colors cursor-pointer shadow-xs"
+                className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold transition-all shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
                 title="Заокруглити ціни всіх товарів каталогу до цілих гривень (без копійок)"
               >
                 🎯 Заокруглити всі ціни
@@ -2904,69 +2910,48 @@ export const AdminPanel: React.FC = () => {
           </div>
 
           {/* Products Table */}
-          {/* Batch Selection Action Bar */}
+          {/* Batch Selection Action Bar - Sleek Modern Floating Toolbar */}
           {selectedProductIds.length > 0 && (
-            <div className="bg-slate-900 text-white rounded-2xl p-4 mb-4 shadow-xl flex flex-wrap items-center justify-between gap-4 sticky top-4 z-20 animate-in fade-in border border-slate-700">
-              <div className="flex items-center gap-3">
-                <span className="w-8 h-8 rounded-xl bg-orange-500 text-slate-950 font-black flex items-center justify-center text-xs shadow-sm">
-                  {selectedProductIds.length}
-                </span>
-                <div>
-                  <div className="text-xs font-bold text-white">Обрано товарів</div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedProductIds([]);
-                      setShowBatchDeleteConfirm(false);
-                    }}
-                    className="text-[11px] text-slate-400 hover:text-white underline cursor-pointer"
-                  >
-                    Зняти виділення
-                  </button>
+            <div className="bg-slate-900/95 backdrop-blur-md text-white rounded-2xl p-3 sm:p-3.5 mb-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 sticky top-3 z-30 animate-in fade-in zoom-in-95 duration-150 border border-slate-700/80 ring-1 ring-white/10">
+              {/* Left Badge: Count & Clear selection */}
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 text-slate-950 font-black px-2.5 sm:px-3 py-1.5 rounded-xl shadow-xs text-xs select-none">
+                  <Sparkles className="w-3.5 h-3.5 text-slate-950 fill-slate-950 shrink-0" />
+                  <span className="font-extrabold text-[12px] uppercase tracking-wide">Обрано:</span>
+                  <span className="bg-slate-950 text-white font-black text-xs px-2 py-0.5 rounded-lg tabular-nums">
+                    {selectedProductIds.length}
+                  </span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedProductIds([]);
+                    setShowBatchDeleteConfirm(false);
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 active:bg-slate-600 px-2.5 py-1.5 rounded-xl transition-all cursor-pointer border border-slate-700/70"
+                  title="Зняти виділення"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Зняти</span>
+                </button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 text-xs">
-                {/* Set Stock */}
-                <div className="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
-                  <span className="text-slate-300 font-semibold">Склад:</span>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Кількість"
-                    value={batchStockInput}
-                    onChange={(e) => setBatchStockInput(e.target.value)}
-                    className="w-20 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-white font-mono text-center outline-none focus:border-orange-500"
-                  />
-                  <span className="text-slate-400">шт</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const s = parseInt(String(batchStockInput), 10);
-                      if (!isNaN(s)) {
-                        batchUpdateSelectedProducts(selectedProductIds, { stock: s });
-                        setBatchStockInput('');
-                      }
-                    }}
-                    className="px-2.5 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded font-bold cursor-pointer transition-colors shadow-xs"
-                  >
-                    Призначити склад
-                  </button>
-                </div>
-
-                {/* Set Price */}
-                <div className="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
-                  <span className="text-slate-300 font-semibold">Ціна:</span>
+              {/* Right Action Tools Cluster */}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {/* 1. Set Exact Price */}
+                <div className="flex items-center bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl p-1 gap-1 transition-colors shadow-2xs">
+                  <Tag className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-1.5" />
                   <input
                     type="number"
                     min="0"
                     step="any"
-                    placeholder="Нова ціна"
+                    placeholder="Ціна"
                     value={batchPriceInput}
                     onChange={(e) => setBatchPriceInput(e.target.value)}
-                    className="w-24 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-white font-mono text-center outline-none focus:border-orange-500"
+                    className="w-16 sm:w-20 px-1.5 py-1 bg-slate-950 text-white font-mono text-center rounded-lg text-xs outline-none focus:ring-1 focus:ring-emerald-500 border border-slate-700/60 font-semibold"
                   />
-                  <span className="text-slate-400">грн</span>
+                  <span className="text-[11px] text-slate-400 font-medium select-none pr-0.5">грн</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -2976,37 +2961,97 @@ export const AdminPanel: React.FC = () => {
                         setBatchPriceInput('');
                       }
                     }}
-                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold cursor-pointer transition-colors shadow-xs"
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-lg font-bold cursor-pointer transition-all shadow-xs active:scale-95 whitespace-nowrap"
                   >
-                    Призначити ціну
+                    Задати
                   </button>
                 </div>
 
-                {/* Auto-classify selected */}
-                <button
-                  type="button"
-                  onClick={() => autoClassifyProducts(selectedProductIds)}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
-                  title="Автоматично розподілити обрані товари за категоріями на основі їхніх назв"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Авто-категорії</span>
-                </button>
+                {/* 2. Set Exact Stock */}
+                <div className="flex items-center bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl p-1 gap-1 transition-colors shadow-2xs">
+                  <Boxes className="w-3.5 h-3.5 text-orange-400 shrink-0 ml-1.5" />
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Склад"
+                    value={batchStockInput}
+                    onChange={(e) => setBatchStockInput(e.target.value)}
+                    className="w-14 sm:w-16 px-1.5 py-1 bg-slate-950 text-white font-mono text-center rounded-lg text-xs outline-none focus:ring-1 focus:ring-orange-500 border border-slate-700/60 font-semibold"
+                  />
+                  <span className="text-[11px] text-slate-400 font-medium select-none pr-0.5">шт</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const s = parseInt(String(batchStockInput), 10);
+                      if (!isNaN(s)) {
+                        batchUpdateSelectedProducts(selectedProductIds, { stock: s });
+                        setBatchStockInput('');
+                      }
+                    }}
+                    className="px-2.5 py-1 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-lg font-bold cursor-pointer transition-all shadow-xs active:scale-95 whitespace-nowrap"
+                  >
+                    Задати
+                  </button>
+                </div>
 
-                {/* Round selected prices */}
+                {/* 3. Adjust Price by % */}
+                <div className="flex items-center bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl p-1 gap-1 transition-colors shadow-2xs">
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    placeholder="%"
+                    value={bulkPercent}
+                    onChange={(e) => setBulkPercent(Number(e.target.value))}
+                    className="w-11 sm:w-12 px-1 py-1 bg-slate-950 border border-slate-700/60 rounded-lg text-white font-mono text-center outline-none focus:ring-1 focus:ring-amber-500 font-bold text-xs"
+                  />
+                  <span className="text-slate-400 font-bold text-xs select-none pr-0.5">%</span>
+                  <button
+                    type="button"
+                    onClick={() => bulkAdjustPrices(Math.abs(bulkPercent), selectedProductIds)}
+                    className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-lg font-bold cursor-pointer transition-all shadow-xs active:scale-95 text-xs whitespace-nowrap"
+                    title={`Збільшити ціни ${selectedProductIds.length} вибраних товарів на +${bulkPercent}%`}
+                  >
+                    +{bulkPercent}%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => bulkAdjustPrices(-Math.abs(bulkPercent), selectedProductIds)}
+                    className="px-2 py-1 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white rounded-lg font-bold cursor-pointer transition-all shadow-xs active:scale-95 text-xs whitespace-nowrap"
+                    title={`Зменшити ціни ${selectedProductIds.length} вибраних товарів на -${bulkPercent}%`}
+                  >
+                    -{bulkPercent}%
+                  </button>
+                </div>
+
+                {/* 4. Tools: Round Prices */}
                 <button
                   type="button"
                   onClick={() => roundAllPricesToIntegers(selectedProductIds)}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
-                  title="Заокруглити ціни обраних товарів до цілих гривень (без копійок)"
+                  className="px-2.5 sm:px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500 active:bg-amber-600 text-amber-300 hover:text-slate-950 font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 border border-amber-500/40 active:scale-95 shadow-2xs whitespace-nowrap"
+                  title="Заокруглити ціни обраних товарів до цілих гривень"
                 >
                   <span>🎯 Заокруглити</span>
                 </button>
 
-                {/* Delete Selected with Confirmation */}
+                {/* 5. Tools: Auto-classify */}
+                <button
+                  type="button"
+                  onClick={() => autoClassifyProducts(selectedProductIds)}
+                  className="px-2.5 sm:px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-600 active:bg-indigo-700 text-indigo-300 hover:text-white font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 border border-indigo-500/40 active:scale-95 shadow-2xs whitespace-nowrap"
+                  title="Автоматично розподілити обрані товари за категоріями"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="hidden sm:inline">Авто-категорії</span>
+                  <span className="sm:hidden">Категорії</span>
+                </button>
+
+                {/* 6. Delete Selected with In-Place Confirmation */}
                 {showBatchDeleteConfirm ? (
-                  <div className="flex items-center gap-2 bg-rose-950/90 px-3 py-1.5 rounded-xl border border-rose-500 animate-in fade-in">
-                    <span className="text-rose-200 text-xs font-bold">Точно видалити ({selectedProductIds.length})?</span>
+                  <div className="flex items-center gap-1.5 bg-rose-950 border border-rose-500 px-2.5 py-1 rounded-xl animate-in fade-in shadow-lg">
+                    <span className="text-rose-200 text-xs font-bold whitespace-nowrap">
+                      Видалити {selectedProductIds.length}?
+                    </span>
                     <button
                       type="button"
                       onClick={() => {
@@ -3014,14 +3059,14 @@ export const AdminPanel: React.FC = () => {
                         setSelectedProductIds([]);
                         setShowBatchDeleteConfirm(false);
                       }}
-                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-xs cursor-pointer shadow-xs"
+                      className="px-2 py-0.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs cursor-pointer shadow-xs active:scale-95"
                     >
                       Так
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowBatchDeleteConfirm(false)}
-                      className="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded text-xs cursor-pointer"
+                      className="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-lg text-xs cursor-pointer active:scale-95"
                     >
                       Ні
                     </button>
@@ -3030,7 +3075,8 @@ export const AdminPanel: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowBatchDeleteConfirm(true)}
-                    className="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+                    className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-600 active:bg-rose-700 text-rose-300 hover:text-white font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 border border-rose-500/40 active:scale-95 shadow-2xs whitespace-nowrap"
+                    title={`Видалити ${selectedProductIds.length} вибраних товарів`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Видалити</span>

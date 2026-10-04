@@ -119,7 +119,7 @@ interface StoreContextType {
   clearAllProductPhotos: () => void;
   updateProductStock: (productId: string, newStock: number) => void;
   updateProductPrice: (productId: string, newPrice: number) => void;
-  bulkAdjustPrices: (percentDelta: number) => void;
+  bulkAdjustPrices: (percentDelta: number, targetProductIds?: string[]) => void;
   roundAllPricesToIntegers: (targetProductIds?: string[]) => void;
   bulkAdjustStock: (newStockForAll: number) => void;
   bulkAdjustZeroStock: (newStockForZeroItems: number) => void;
@@ -1615,15 +1615,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const bulkAdjustPrices = (percentDelta: number) => {
+  const bulkAdjustPrices = (percentDelta: number, targetProductIds?: string[]) => {
     const factor = 1 + (percentDelta / 100);
-    const next = products.map((p) => ({
-      ...p,
-      price: Math.max(1, Math.round(p.price * factor))
-    }));
+    const idSet = targetProductIds && targetProductIds.length > 0 ? new Set(targetProductIds) : null;
+    let modifiedCount = 0;
+    const next = products.map((p) => {
+      if (!idSet || idSet.has(p.id)) {
+        modifiedCount++;
+        return {
+          ...p,
+          price: Math.max(1, Math.round(p.price * factor))
+        };
+      }
+      return p;
+    });
     setProducts(next);
     localStorage.setItem('iskra_products_react_v4', JSON.stringify(next));
-    showToast(`Ціни всіх товарів змінено на ${percentDelta > 0 ? '+' : ''}${percentDelta}% та заокруглено`, 'success');
+    const scopeMsg = idSet ? `для ${modifiedCount} вибраних товарів` : 'для всіх товарів';
+    showToast(`Ціни ${scopeMsg} змінено на ${percentDelta > 0 ? '+' : ''}${percentDelta}% та заокруглено`, 'success');
     if (firebaseConfig.enabled) {
       pushStoreToFirebase(firebaseConfig, { products: next, lastSyncTimestamp: Date.now() });
     }
