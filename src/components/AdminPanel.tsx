@@ -1369,7 +1369,7 @@ export const AdminPanel: React.FC = () => {
   const openAddReviewModal = (presetProductId?: string) => {
     setEditingReviewId(null);
     setRAuthor('');
-    setRCity('с. Оратів');
+    setRCity('с-ще. Оратів');
     setRRating(5);
     setRProductId(presetProductId || '');
     setRComment('');
@@ -1404,7 +1404,7 @@ export const AdminPanel: React.FC = () => {
     if (editingReviewId) {
       updateReview(editingReviewId, {
         author: rAuthor.trim() || 'Покупець ISKRA',
-        city: rCity.trim() || 'с. Оратів',
+        city: rCity.trim() || 'с-ще. Оратів',
         rating: rRating,
         productId: rProductId,
         comment: rComment.trim(),
@@ -1416,7 +1416,7 @@ export const AdminPanel: React.FC = () => {
     } else {
       addReview({
         author: rAuthor.trim() || 'Покупець ISKRA',
-        city: rCity.trim() || 'с. Оратів',
+        city: rCity.trim() || 'с-ще. Оратів',
         rating: rRating,
         productId: rProductId,
         comment: rComment.trim(),
@@ -1469,7 +1469,7 @@ export const AdminPanel: React.FC = () => {
           </table>
           <p class="total">Разом до сплати: ${order.total.toFixed(2)} грн</p>
           <hr style="margin-top: 30px;" />
-          <p style="font-size: 11px; color: #64748b;">Дякуємо за покупку в магазині ISKRA! (с. Оратів, тел: ${siteSettings.phone})</p>
+          <p style="font-size: 11px; color: #64748b;">Дякуємо за покупку в магазині ISKRA! (с-ще. Оратів, вул. Котляревського, 7, тел: ${siteSettings.phone})</p>
         </body>
       </html>
     `);
@@ -4588,7 +4588,7 @@ export const AdminPanel: React.FC = () => {
                       </label>
                       <input
                         type="text"
-                        placeholder="с. Оратів, Вінниця..."
+                        placeholder="с-ще. Оратів, Вінниця..."
                         value={clientForm.city || ''}
                         onChange={(e) => setClientForm({ ...clientForm, city: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-orange-500"
@@ -5738,7 +5738,7 @@ export const AdminPanel: React.FC = () => {
                               <span>{rev.author}</span>
                             </div>
                             <div className="text-[11px] text-slate-400 mt-0.5">
-                              {rev.city || 'с. Оратів'} • {rev.date}
+                              {rev.city || 'с-ще. Оратів'} • {rev.date}
                             </div>
                           </td>
 
@@ -5867,7 +5867,7 @@ export const AdminPanel: React.FC = () => {
                       </label>
                       <input
                         type="text"
-                        placeholder="с. Оратів"
+                        placeholder="с-ще. Оратів"
                         value={rCity}
                         onChange={(e) => setRCity(e.target.value)}
                         className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:border-red-500"
@@ -6091,7 +6091,7 @@ export const AdminPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="с. Оратів, Вінницька обл."
+                    placeholder="с-ще. Оратів, Вінницька обл."
                     value={designForm.heroCity || ''}
                     onChange={(e) => setDesignForm({ ...designForm, heroCity: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
@@ -6820,7 +6820,7 @@ export const AdminPanel: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      placeholder="Україна, 22600, Вінницька обл., с. Оратів, вул. Героїв Майдану, 14"
+                      placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7"
                       value={settingsForm.fopRegistrationAddress || ''}
                       onChange={(e) => setSettingsForm({ ...settingsForm, fopRegistrationAddress: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
@@ -6833,7 +6833,7 @@ export const AdminPanel: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      placeholder="Україна, 22600, Вінницька обл., с. Оратів, вул. Героїв Майдану, 14"
+                      placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7"
                       value={settingsForm.fopActualAddress || ''}
                       onChange={(e) => setSettingsForm({ ...settingsForm, fopActualAddress: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
@@ -7017,7 +7017,7 @@ export const AdminPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="Україна, 22600, Вінницька обл., с. Оратів, вул. Героїв Майдану, 14"
+                    placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7"
                     value={settingsForm.fopRegistrationAddress || ''}
                     onChange={(e) => setSettingsForm({ ...settingsForm, fopRegistrationAddress: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
@@ -7030,7 +7030,7 @@ export const AdminPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="Україна, 22600, Вінницька обл., с. Оратів, вул. Героїв Майдану, 14"
+                    placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7"
                     value={settingsForm.fopActualAddress || ''}
                     onChange={(e) => setSettingsForm({ ...settingsForm, fopActualAddress: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
@@ -7082,7 +7082,7 @@ export const AdminPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="с. Оратів, вул. Героїв Майдану, 14"
+                    placeholder="с-ще. Оратів, вул. Котляревського, 7"
                     value={settingsForm.fopStoreAddress || ''}
                     onChange={(e) => setSettingsForm({ ...settingsForm, fopStoreAddress: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
@@ -7284,7 +7284,7 @@ export const AdminPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="с. Оратів"
+                    placeholder="с-ще. Оратів"
                     value={settingsForm.returnsReceiverCity || ''}
                     onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverCity: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600"

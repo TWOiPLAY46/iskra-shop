@@ -154,13 +154,22 @@ export const Footer: React.FC = () => {
           </div>
 
           {/* Col 4: Map Box */}
-          <div className="rounded-2xl overflow-hidden border border-slate-800 bg-slate-900 h-52 relative">
+          <div className="rounded-2xl overflow-hidden border border-slate-800 bg-slate-900 h-52 relative group">
             <iframe
-              title="Розташування магазину ISKRA"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2618.5!2d29.54!3d49.23!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zT3JhdGl2!5e0!3m2!1suk!2sua!4v1650000000000!5m2!1suk!2sua"
+              title="Розташування магазину ISKRA (вул. Котляревського, 7, Оратів, Вінницька область, 22601)"
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(`${siteSettings.address || 'вул. Котляревського, 7'}, ${siteSettings.city || 'с-ще. Оратів'}, Вінницька область, 22601`)}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
               className="w-full h-full border-0 filter grayscale contrast-125 opacity-80 hover:opacity-100 hover:filter-none transition-all duration-300"
               loading="lazy"
             />
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${siteSettings.address || 'вул. Котляревського, 7'}, ${siteSettings.city || 'с-ще. Оратів'}, Вінницька область, 22601`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute bottom-2 right-2 bg-slate-900/90 hover:bg-red-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg border border-slate-700 shadow-sm transition-all opacity-90 hover:opacity-100 flex items-center gap-1"
+            >
+              <MapPin className="w-3 h-3 text-red-400 group-hover:text-white" />
+              <span>Маршрут на карті</span>
+            </a>
           </div>
 
         </div>

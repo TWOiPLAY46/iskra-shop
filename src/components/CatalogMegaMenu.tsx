@@ -194,7 +194,7 @@ export const CatalogMegaMenu: React.FC<CatalogMegaMenuProps> = ({ isOpen, onClos
           <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2 text-slate-600">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>Швидка доставка по Україні або самовивіз у с. Оратів</span>
+              <span>Швидка доставка по Україні або самовивіз у с-ще. Оратів</span>
             </div>
 
             <button

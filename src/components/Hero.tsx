@@ -26,9 +26,9 @@ export const Hero: React.FC = () => {
 
   const rawHeroCity = !isGarbage(headerDesign.heroCity)
     ? headerDesign.heroCity
-    : (siteSettings.city ? `${siteSettings.city}, Вінницька обл.` : "с. Оратів, Вінницька обл.");
+    : (siteSettings.city ? `${siteSettings.city}, Вінницька обл.` : "с-ще. Оратів, Вінницька обл.");
 
-  const heroCity = rawHeroCity.replace(/смт\.\s*Оратів/g, 'с. Оратів').replace(/смт\./g, 'с.');
+  const heroCity = rawHeroCity.replace(/смт\.\s*Оратів/g, 'с-ще. Оратів').replace(/с\.\s*Оратів/g, 'с-ще. Оратів');
 
   return (
     <div className="relative bg-slate-950 text-white overflow-hidden border-b border-slate-800">

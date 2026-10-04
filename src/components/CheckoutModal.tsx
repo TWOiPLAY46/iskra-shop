@@ -254,8 +254,8 @@ export const CheckoutModal: React.FC = () => {
 
     setIsSubmitting(true);
 
-    let deliveryString = 'Самовивіз з магазину (с. Оратів, вул. Героїв Майдану, 14)';
-    let orderCity = 'с. Оратів';
+    let deliveryString = `Самовивіз з магазину (${siteSettings.city || 'с-ще. Оратів'}, ${siteSettings.address || 'вул. Котляревського, 7'})`;
+    let orderCity = siteSettings.city || 'с-ще. Оратів';
 
     if (deliveryType === 'novaposhta') {
       const cName = selectedCity ? `${selectedCity.name} (${selectedCity.area})` : cityInput;
@@ -564,7 +564,7 @@ export const CheckoutModal: React.FC = () => {
                   >
                     <MapPin className="w-4 h-4 mx-auto mb-1 text-red-600" />
                     <span className="text-xs block">Самовивіз</span>
-                    <span className="text-[10px] text-slate-400 font-normal">с. Оратів</span>
+                    <span className="text-[10px] text-slate-400 font-normal">с-ще. Оратів</span>
                   </button>
 
                   <button
@@ -956,7 +956,7 @@ export const CheckoutModal: React.FC = () => {
                       <MapPin className="w-3.5 h-3.5 text-red-600" />
                       <span>Магазин сантехніки та електротоварів «ISKRA»</span>
                     </div>
-                    <div>Вінницька обл., с. Оратів, вул. Героїв Майдану, 14.</div>
+                    <div>Вінницька обл., {siteSettings.city || 'с-ще. Оратів'}, {siteSettings.address || 'вул. Котляревського, 7'}.</div>
                     <div className="text-slate-500 text-[11px]">Графік: Пн-Пт 08:00–18:00, Сб 08:00–15:00. Самовивіз безкоштовний.</div>
                   </div>
                 )}
@@ -970,7 +970,7 @@ export const CheckoutModal: React.FC = () => {
                     <input
                       type="text"
                       required
-                      placeholder="напр., с. Оратів, вул. Центральна, 15"
+                      placeholder="напр., с-ще. Оратів, вул. Центральна, 15"
                       value={streetAddress}
                       onChange={(e) => setStreetAddress(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white outline-none"

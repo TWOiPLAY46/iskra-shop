@@ -8,7 +8,7 @@ export const StoreBenefitsSection: React.FC = () => {
       iconBg: "bg-gradient-to-br from-orange-500 to-amber-600 shadow-md shadow-orange-500/20",
       badge: "Швидка доставка",
       title: "Відправка день у день",
-      desc: "Замовлення відправляємо Новою Поштою по всій Україні або видаємо у магазині в смт. Оратів без затримок."
+      desc: "Замовлення відправляємо Новою Поштою по всій Україні або видаємо у магазині в с-ще. Оратів без затримок."
     },
     {
       icon: <ShieldCheck className="w-6 h-6 text-white" />,

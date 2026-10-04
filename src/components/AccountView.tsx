@@ -311,7 +311,7 @@ export const AccountView: React.FC = () => {
         <body>
           <div class="header">
             <h2>Магазин електромонтажу та сантехніки «ІСКРА»</h2>
-            <div>${siteSettings.city || 'с. Оратів'}, ${siteSettings.address || 'Вінницька обл.'} · Тел: ${siteSettings.phone}</div>
+            <div>${siteSettings.city || 'с-ще. Оратів'}, ${siteSettings.address || 'вул. Котляревського, 7'} · Тел: ${siteSettings.phone}</div>
           </div>
           <div class="meta">
             <div><b>Замовлення №:</b> ${order.id}</div>
@@ -382,7 +382,7 @@ export const AccountView: React.FC = () => {
           <div className="flex items-center gap-2 text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-slate-500 hidden sm:inline">Служба доставки ISKRA</span>
-            <span className="font-bold text-slate-800">{siteSettings.city || 'с. Оратів'}</span>
+            <span className="font-bold text-slate-800">{siteSettings.city || 'с-ще. Оратів'}</span>
           </div>
 
         </div>
@@ -1683,7 +1683,7 @@ export const AccountView: React.FC = () => {
                     type="text"
                     value={profileCity}
                     onChange={(e) => setProfileCity(e.target.value)}
-                    placeholder="с. Оратів, Вінницька обл."
+                    placeholder="с-ще. Оратів, Вінницька обл."
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-sm"
                   />
                 </div>

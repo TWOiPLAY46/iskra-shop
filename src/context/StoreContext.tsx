@@ -462,8 +462,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try { 
         const parsed = JSON.parse(saved); 
         let city = parsed.city || initialSiteSettings.city;
-        if (city && city.includes('смт. Оратів')) {
-          city = city.replace(/смт\.\s*Оратів/g, 'с. Оратів');
+        if (city && (city.includes('смт. Оратів') || city.includes('с. Оратів') || city === 'Оратів')) {
+          city = 'с-ще. Оратів';
+        }
+        let address = parsed.address || initialSiteSettings.address;
+        if (!address || address.includes('Героїв Майдану') || address.includes('Котляревського, 2')) {
+          address = initialSiteSettings.address;
+        }
+        let fopRegistrationAddress = parsed.fopRegistrationAddress;
+        if (!fopRegistrationAddress || fopRegistrationAddress.includes('Героїв Майдану') || fopRegistrationAddress.includes('с. Оратів') || fopRegistrationAddress.includes('Котляревського, 2') || fopRegistrationAddress.includes('22600')) {
+          fopRegistrationAddress = initialSiteSettings.fopRegistrationAddress;
+        }
+        let fopActualAddress = parsed.fopActualAddress;
+        if (!fopActualAddress || fopActualAddress.includes('Героїв Майдану') || fopActualAddress.includes('с. Оратів') || fopActualAddress.includes('Котляревського, 2') || fopActualAddress.includes('22600')) {
+          fopActualAddress = initialSiteSettings.fopActualAddress;
+        }
+        let fopStoreAddress = parsed.fopStoreAddress;
+        if (!fopStoreAddress || fopStoreAddress.includes('Героїв Майдану') || fopStoreAddress.includes('с. Оратів') || fopStoreAddress.includes('Котляревського, 2')) {
+          fopStoreAddress = initialSiteSettings.fopStoreAddress;
+        }
+        let returnsReceiverCity = parsed.returnsReceiverCity;
+        if (!returnsReceiverCity || returnsReceiverCity.includes('с. Оратів') || returnsReceiverCity.includes('смт. Оратів')) {
+          returnsReceiverCity = initialSiteSettings.returnsReceiverCity;
         }
         let fopName = parsed.fopName;
         if (!fopName || fopName.includes('Іскра Олександр') || fopName.includes('Іскра О.В.')) {
@@ -477,6 +497,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           ...initialSiteSettings,
           ...parsed,
           city,
+          address,
+          fopRegistrationAddress,
+          fopActualAddress,
+          fopStoreAddress,
+          returnsReceiverCity,
           fopName,
           returnsReceiverName,
           features: { ...initialSiteSettings.features, ...(parsed.features || {}) }
@@ -490,9 +515,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const cleanHeaderDesign = (d: any): HeaderDesign => {
     if (!d) return initialHeaderDesign;
     const isGarbage = (v?: string) => !v || /^#?[fF0-9]{6,8}$/i.test(String(v).trim()) || /^f+$/i.test(String(v).trim());
-    let heroCity = isGarbage(d.heroCity) ? "с. Оратів, Вінницька обл." : String(d.heroCity).trim();
-    if (heroCity.includes('смт. Оратів') || heroCity.includes('смт.')) {
-      heroCity = heroCity.replace(/смт\.\s*Оратів/g, 'с. Оратів').replace(/смт\./g, 'с.');
+    let heroCity = isGarbage(d.heroCity) ? "с-ще. Оратів, Вінницька обл." : String(d.heroCity).trim();
+    if (heroCity.includes('смт. Оратів') || heroCity.includes('с. Оратів') || heroCity.includes('смт.') || heroCity === 'Оратів') {
+      heroCity = "с-ще. Оратів, Вінницька обл.";
     }
     const logoBadge = (!d.logoBadge || isGarbage(d.logoBadge)) ? 'ISKRA' : d.logoBadge;
     const logoText = (!d.logoText || isGarbage(d.logoText)) ? 'МАГАЗИН' : d.logoText;
@@ -504,7 +529,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       logoText,
       logoSubtitle,
       heroCity,
-      heroAddress: isGarbage(d.heroAddress) ? "вул. Героїв Майдану, 14" : d.heroAddress,
+      heroAddress: isGarbage(d.heroAddress) || (d.heroAddress && (d.heroAddress.includes('Героїв Майдану') || d.heroAddress.includes('Котляревського, 2'))) ? "вул. Котляревського, 7" : d.heroAddress,
       heroBadge: isGarbage(d.heroBadge) ? "ІНТЕРНЕТ-МАГАЗИН" : d.heroBadge
     };
   };
@@ -1105,7 +1130,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       fio: orderData.fio,
       phone: orderData.phone,
       delivery: orderData.delivery,
-      city: orderData.city || 'с. Оратів',
+      city: orderData.city || 'с-ще. Оратів',
       items: cart.map((i) => ({
         name: i.name,
         qty: i.qty,

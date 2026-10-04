@@ -167,7 +167,7 @@ export const LiveTrackingWidget: React.FC<LiveTrackingWidgetProps> = ({
           <div>
             <span className="text-slate-400 block text-[10px]">Маршрут:</span>
             <span className="font-semibold text-slate-800">
-              {trackingData.citySender || 'с. Оратів'} ➔ {trackingData.cityRecipient || order.city || 'Ваше місто'}
+              {trackingData.citySender || 'с-ще. Оратів'} ➔ {trackingData.cityRecipient || order.city || 'Ваше місто'}
             </span>
           </div>
 

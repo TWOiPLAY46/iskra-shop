@@ -34,12 +34,12 @@ export const AboutSellerPage: React.FC = () => {
   };
 
   const fopName = siteSettings.fopName || 'ФОП Тарасова Ірина Анатоліївна';
-  const fopRegistrationAddress = siteSettings.fopRegistrationAddress || 'Україна, 22600, Вінницька обл., Вінницький р-н, с. Оратів, вул. Героїв Майдану, 14';
-  const fopActualAddress = siteSettings.fopActualAddress || 'Україна, 22600, Вінницька обл., Вінницький р-н, с. Оратів, вул. Героїв Майдану, 14';
+  const fopRegistrationAddress = siteSettings.fopRegistrationAddress || 'Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7';
+  const fopActualAddress = siteSettings.fopActualAddress || 'Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7';
   const fopRnokpp = siteSettings.fopRnokpp || '3298412839';
   const fopEmail = siteSettings.fopEmail || 'iskra.shop.ua@gmail.com';
   const fopPhone = siteSettings.fopPhone || siteSettings.phone || '+38 (096) 647-36-67';
-  const storeAddress = siteSettings.fopStoreAddress || `${siteSettings.city}, ${siteSettings.address}`;
+  const storeAddress = siteSettings.fopStoreAddress || `${siteSettings.city || 'с-ще. Оратів'}, ${siteSettings.address || 'вул. Котляревського, 7'}`;
   const websiteUrl = siteSettings.websiteUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://iskra-shop.ua');
   const licenseInfo = siteSettings.licenseInfo || "Роздрібна торгівля побутовими електротоварами, сантехнікою, акумуляторами, інверторами та ручним/електроінструментом згідно зі ст. 7 Закону України «Про ліцензування видів господарської діяльності» не підлягає обов'язковому ліцензуванню. Вся реалізована продукція сертифікована в Україні та супроводжується офіційною гарантією виробника.";
   const taxInfo = siteSettings.taxInfo || "Фізична особа-підприємець (ФОП), платник єдиного податку 2-ї групи (без сплати ПДВ). Усі ціни, зазначені в каталозі на сайті, є кінцевими, актуальними та включають усі передбачені законодавством України податки і обов'язкові платежі.";
@@ -489,13 +489,22 @@ export const AboutSellerPage: React.FC = () => {
             </div>
 
             {/* Interactive Embedded Map */}
-            <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 h-56 relative shadow-inner">
+            <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 h-64 relative shadow-inner group">
               <iframe
-                title="Розташування магазину ISKRA"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2618.5!2d29.54!3d49.23!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zT3JhdGl2!5e0!3m2!1suk!2sua!4v1650000000000!5m2!1suk!2sua"
+                title="Розташування магазину ISKRA (вул. Котляревського, 7, Оратів, Вінницька область, 22601)"
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(`${siteSettings.address || 'вул. Котляревського, 7'}, ${siteSettings.city || 'с-ще. Оратів'}, Вінницька область, 22601`)}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
                 className="w-full h-full border-0 filter contrast-105"
                 loading="lazy"
               />
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${siteSettings.address || 'вул. Котляревського, 7'}, ${siteSettings.city || 'с-ще. Оратів'}, Вінницька область, 22601`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-3 right-3 bg-slate-900/90 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-700 shadow-md transition-all opacity-95 hover:opacity-100 flex items-center gap-1.5"
+              >
+                <MapPin className="w-3.5 h-3.5 text-red-400 group-hover:text-white" />
+                <span>Відкрити в Google Maps</span>
+              </a>
             </div>
           </div>
         </div>

@@ -21,7 +21,7 @@ export const StoreReviewsSection: React.FC = () => {
 
   // Form states
   const [author, setAuthor] = useState(currentClient?.name || '');
-  const [city, setCity] = useState(currentClient ? 'с. Оратів' : '');
+  const [city, setCity] = useState(currentClient ? 'с-ще. Оратів' : '');
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -139,7 +139,7 @@ export const StoreReviewsSection: React.FC = () => {
                     )}
                   </div>
                   <div className="text-[11px] text-slate-400 font-medium">
-                    {rev.city || 'с. Оратів'} · {rev.date || 'Нещодавно'}
+                    {rev.city || 'с-ще. Оратів'} · {rev.date || 'Нещодавно'}
                   </div>
                 </div>
 
@@ -243,7 +243,7 @@ export const StoreReviewsSection: React.FC = () => {
                   <label className="font-bold text-slate-700">Місто / Село:</label>
                   <input
                     type="text"
-                    placeholder="с. Оратів"
+                    placeholder="с-ще. Оратів"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs outline-none focus:border-red-600"

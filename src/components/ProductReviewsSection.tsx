@@ -25,7 +25,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
   
   // New review form states
   const [author, setAuthor] = useState(currentClient?.name || '');
-  const [city, setCity] = useState(currentClient ? 'с. Оратів' : '');
+  const [city, setCity] = useState(currentClient ? 'с-ще. Оратів' : '');
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -73,7 +73,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
     addReview({
       productId: product.id,
       author: author.trim() || 'Покупець ISKRA',
-      city: city.trim() || 'с. Оратів',
+      city: city.trim() || 'с-ще. Оратів',
       rating,
       comment: comment.trim(),
       verifiedPurchase: true,
@@ -189,7 +189,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({ pr
               </label>
               <input
                 type="text"
-                placeholder="с. Оратів"
+                placeholder="с-ще. Оратів"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"

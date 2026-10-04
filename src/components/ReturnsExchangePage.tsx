@@ -39,7 +39,7 @@ export const ReturnsExchangePage: React.FC = () => {
   };
 
   const storePhone = siteSettings.returnsReceiverPhone || siteSettings.fopPhone || siteSettings.phone || '+38 (096) 647-36-67';
-  const storeCity = siteSettings.returnsReceiverCity || siteSettings.city || 'с. Оратів';
+  const storeCity = siteSettings.returnsReceiverCity || siteSettings.city || 'с-ще. Оратів';
   const storeWarehouse = siteSettings.returnsReceiverWarehouse || 'Відділення №1';
   const receiverName = siteSettings.returnsReceiverName || siteSettings.fopName || 'Тарасова Ірина Анатоліївна';
   const returnsDays = siteSettings.returnsDays || 14;
