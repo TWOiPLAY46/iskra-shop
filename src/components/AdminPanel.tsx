@@ -1638,161 +1638,125 @@ export const AdminPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
-            <span>Товари на складі</span>
-            <Package className="w-4 h-4 text-orange-500" />
-          </div>
-          <div className="text-2xl font-black font-display text-slate-900 tabular-nums">
-            {totalProducts}
-          </div>
-          <div className="text-[10px] mt-0.5 flex flex-wrap items-center gap-1.5">
-            {totalCriticalStockCount > 0 ? (
+      {/* Compact Top KPI Strip */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs mb-3 text-xs">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-1.5">
+            <Package className="w-4 h-4 text-amber-500" />
+            <span className="text-slate-500">Товари:</span>
+            <span className="font-bold text-slate-900 font-mono text-sm">{totalProducts}</span>
+            {totalCriticalStockCount > 0 && (
               <button
                 type="button"
-                onClick={() => {
-                  setActiveTab('products');
-                  setProductFilterStock('low_stock');
-                }}
-                className="text-amber-700 font-bold bg-amber-50 hover:bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200 transition-colors cursor-pointer"
+                onClick={() => { setActiveTab('products'); setProductFilterStock('low_stock'); }}
+                className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded border border-amber-300/60 hover:bg-amber-200 transition-colors cursor-pointer"
+                title={`Закінчуються: ${lowStockCount}, Немає: ${outOfStockCount}`}
               >
-                ⚠️ {totalCriticalStockCount} {
-                  (() => {
-                    const n = totalCriticalStockCount;
-                    const m10 = n % 10;
-                    const m100 = n % 100;
-                    const pos = (m10 === 1 && m100 !== 11) ? 'позиція' : (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) ? 'позиції' : 'позицій';
-                    const verb = (m10 === 1 && m100 !== 11) ? 'потребує' : 'потребують';
-                    return `${pos} ${verb}`;
-                  })()
-                } закупки
+                ⚠️ {totalCriticalStockCount} дефіцит
               </button>
-            ) : (
-              <span className="text-emerald-600 font-medium">✓ Всі в достатній кількості</span>
             )}
           </div>
-        </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
-            <span>Замовлень</span>
+          <div className="flex items-center gap-1.5">
             <ShoppingCart className="w-4 h-4 text-sky-500" />
+            <span className="text-slate-500">Замовлень:</span>
+            <span className="font-bold text-slate-900 font-mono text-sm">{totalOrders}</span>
           </div>
-          <div className="text-2xl font-black font-display text-slate-900 tabular-nums">
-            {totalOrders}
-          </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
-            Сер. чек: {averageOrderValue.toFixed(0)} грн
-          </div>
-        </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
-            <span>Сума продажів</span>
+          <div className="flex items-center gap-1.5">
             <DollarSign className="w-4 h-4 text-emerald-500" />
+            <span className="text-slate-500">Оборот:</span>
+            <span className="font-bold text-emerald-600 font-mono text-sm">{totalSalesSum.toFixed(0)} грн</span>
           </div>
-          <div className="text-2xl font-black font-display text-emerald-600 tabular-nums">
-            {totalSalesSum.toFixed(0)} грн
-          </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
-            Обороти за весь період
+
+          <div className="flex items-center gap-1.5">
+            <Database className="w-4 h-4 text-indigo-500" />
+            <span className="text-slate-500">БД:</span>
+            <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${firebaseConfig.enabled ? 'text-emerald-700' : 'text-slate-500'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${firebaseConfig.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+              {firebaseConfig.enabled ? 'RTDB Онлайн' : 'Офлайн'}
+            </span>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
-            <span>Хмарна БД</span>
-            <Database className="w-4 h-4 text-indigo-500" />
-          </div>
-          <div className="text-2xl font-black font-display text-indigo-600">
-            {firebaseConfig.enabled ? 'Активна' : 'Офлайн'}
-          </div>
-          <div className="text-[10px] text-slate-400 mt-0.5 truncate">
-            {firebaseConfig.databaseURL ? 'RTDB підключено' : 'Потрібне налаштування'}
-          </div>
+        <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+          <span>ФОП:</span>
+          <span className="font-bold text-slate-800">{siteSettings.fopName || 'Тарасова Ірина Анатоліївна'}</span>
         </div>
       </div>
 
-      {/* Grouped Admin Navigation Hub */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-3 sm:p-4 mb-6 space-y-3.5">
-        
-        {/* Hub Header: Categories Filter & Quick Search */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
-          
-          {/* Segmented Filter Pills */}
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl">
+      {/* Compact Tabs Navigation */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-2 mb-4 space-y-2">
+        {/* Filter Pills Header */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1">
             <button
               type="button"
               onClick={() => setAdminNavGroup('all')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
                 adminNavGroup === 'all'
-                  ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/10'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
-              Всі розділи (16)
+              Всі (16)
             </button>
 
             <button
               type="button"
               onClick={() => setAdminNavGroup('sales')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                 adminNavGroup === 'sales'
-                  ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/10'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
-              <span>🛍️ Каталог та Продажі</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-200/80 text-slate-700 font-mono">7</span>
-              {totalCriticalStockCount > 0 && (
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Є товари в дефіциті" />
-              )}
+              <span>🛍️ Продажі</span>
+              <span className={`text-[10px] px-1 py-0.2 rounded font-mono ${adminNavGroup === 'sales' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>7</span>
+              {totalCriticalStockCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
             </button>
 
             <button
               type="button"
               onClick={() => setAdminNavGroup('services')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                 adminNavGroup === 'services'
-                  ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/10'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
-              <span>⚡ Інтеграції та БД</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-200/80 text-slate-700 font-mono">5</span>
+              <span>⚡ Сервіси</span>
+              <span className={`text-[10px] px-1 py-0.2 rounded font-mono ${adminNavGroup === 'services' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>5</span>
             </button>
 
             <button
               type="button"
               onClick={() => setAdminNavGroup('settings')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                 adminNavGroup === 'settings'
-                  ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/10'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
-              <span>🏢 Налаштування сайту</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-200/80 text-slate-700 font-mono">4</span>
+              <span>🏢 Налаштування</span>
+              <span className={`text-[10px] px-1 py-0.2 rounded font-mono ${adminNavGroup === 'settings' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>4</span>
             </button>
           </div>
 
-          {/* Search Tab Input */}
-          <div className="relative min-w-[180px] sm:w-56">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <div className="relative w-44">
+            <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Знайти вкладку..."
+              placeholder="Пошук вкладки..."
               value={adminTabSearch}
               onChange={(e) => setAdminTabSearch(e.target.value)}
-              className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-red-500 transition-all placeholder:text-slate-400"
+              className="w-full pl-6 pr-6 py-1 text-[11px] bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-red-500 transition-all placeholder:text-slate-400"
             />
             {adminTabSearch && (
               <button
                 type="button"
                 onClick={() => setAdminTabSearch('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -1800,534 +1764,272 @@ export const AdminPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Tab Groups Container */}
-        <div className="space-y-4">
+        {/* Compact Tabs Strip */}
+        <div className="flex flex-wrap gap-1 pt-1 border-t border-slate-100">
           
           {/* GROUP 1: Каталог та Продажі */}
-          {(adminNavGroup === 'all' || adminNavGroup === 'sales') && (!adminTabSearch || ['товар', 'акці', 'тижн', 'замовл', 'категор', 'відгук', 'клієнт', 'очіку', 'лист', 'stock'].some(k => k.includes(adminTabSearch.toLowerCase()) || adminTabSearch.toLowerCase().includes(k))) && (
-            <div className="space-y-2">
-              {adminNavGroup === 'all' && (
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
-                  <span>🛍️ Каталог, Замовлення та Клієнти</span>
-                </div>
+          {(adminNavGroup === 'all' || adminNavGroup === 'sales') && (
+            <>
+              {(!adminTabSearch || 'товари products наявність склад'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('products')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'products'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <Package className={`w-3.5 h-3.5 ${activeTab === 'products' ? 'text-amber-300' : 'text-amber-600'}`} />
+                  <span>Товари ({products.length})</span>
+                  {totalCriticalStockCount > 0 && (
+                    <span className={`text-[10px] px-1 py-0.2 rounded font-black ${activeTab === 'products' ? 'bg-amber-400 text-slate-950' : 'bg-amber-500 text-white'}`}>
+                      ⚠️ {totalCriticalStockCount}
+                    </span>
+                  )}
+                </button>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
-                
-                {/* 1. Товари */}
-                {(!adminTabSearch || 'товари products наявність склад'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('products')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'products'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'products' ? 'bg-white/10 text-amber-300' : 'bg-amber-50 text-amber-600'}`}>
-                        <Package className="w-4 h-4" />
-                      </div>
-                      <span className={`text-[11px] font-black font-mono px-1.5 py-0.5 rounded-md ${
-                        activeTab === 'products' ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700'
-                      }`}>
-                        {products.length}
-                      </span>
-                    </div>
+              {(!adminTabSearch || 'замовлення orders покупки клієнт чек'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('orders')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'orders'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <ShoppingCart className={`w-3.5 h-3.5 ${activeTab === 'orders' ? 'text-sky-300' : 'text-sky-600'}`} />
+                  <span>Замовлення ({orders.length})</span>
+                  {orders.filter(o => o.status === 'Створено').length > 0 && (
+                    <span className="text-[10px] px-1 py-0.2 rounded font-black bg-red-600 text-white animate-pulse">
+                      +{orders.filter(o => o.status === 'Створено').length}
+                    </span>
+                  )}
+                </button>
+              )}
 
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Товари</div>
-                      {totalCriticalStockCount > 0 ? (
-                        <div className="mt-1">
-                          <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.2 rounded-md ${
-                            activeTab === 'products' ? 'bg-amber-400 text-slate-950' : 'bg-amber-100 text-amber-800 border border-amber-300/60'
-                          }`}>
-                            <span>⚠️</span>
-                            <span>{totalCriticalStockCount} дефіцит</span>
-                          </span>
-                        </div>
-                      ) : (
-                        <div className={`text-[10px] mt-0.5 ${activeTab === 'products' ? 'text-white/60' : 'text-slate-400'}`}>
-                          Склад в нормі
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                )}
+              {(!adminTabSearch || 'категорії categories розділи каталог'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('categories')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'categories'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <FolderPlus className={`w-3.5 h-3.5 ${activeTab === 'categories' ? 'text-indigo-300' : 'text-indigo-600'}`} />
+                  <span>Категорії</span>
+                </button>
+              )}
 
-                {/* 2. Замовлення */}
-                {(!adminTabSearch || 'замовлення orders покупки клієнт чек'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('orders')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'orders'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'orders' ? 'bg-white/10 text-sky-300' : 'bg-sky-50 text-sky-600'}`}>
-                        <ShoppingCart className="w-4 h-4" />
-                      </div>
-                      <span className={`text-[11px] font-black font-mono px-1.5 py-0.5 rounded-md ${
-                        activeTab === 'orders' ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700'
-                      }`}>
-                        {orders.length}
-                      </span>
-                    </div>
+              {(!adminTabSearch || 'акція тижня weekly deal знижка промо'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('weekly_deal')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'weekly_deal'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <Flame className={`w-3.5 h-3.5 ${weeklyDeal.enabled ? 'text-red-500 fill-current' : 'text-slate-400'}`} />
+                  <span>Акція тижня</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                    weeklyDeal.enabled
+                      ? (activeTab === 'weekly_deal' ? 'bg-red-500/30 text-red-200' : 'bg-red-100 text-red-700 font-bold')
+                      : 'text-slate-400'
+                  }`}>
+                    {weeklyDeal.enabled ? 'Увімкнено' : 'Вимкнено'}
+                  </span>
+                </button>
+              )}
 
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Замовлення</div>
-                      {orders.filter(o => o.status === 'Створено').length > 0 ? (
-                        <div className="mt-1">
-                          <span className="inline-flex items-center text-[10px] font-black px-1.5 py-0.2 rounded-md bg-red-600 text-white animate-pulse">
-                            +{orders.filter(o => o.status === 'Створено').length} нових
-                          </span>
-                        </div>
-                      ) : (
-                        <div className={`text-[10px] mt-0.5 ${activeTab === 'orders' ? 'text-white/60' : 'text-slate-400'}`}>
-                          Оброблено
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                )}
+              {(!adminTabSearch || 'відгуки reviews оцінки зірки коментарі'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('reviews')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'reviews'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <Star className={`w-3.5 h-3.5 ${activeTab === 'reviews' ? 'text-amber-300 fill-amber-300' : 'text-amber-500'}`} />
+                  <span>Відгуки ({reviews.length})</span>
+                </button>
+              )}
 
-                {/* 3. Категорії */}
-                {(!adminTabSearch || 'категорії categories розділи каталог'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('categories')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'categories'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'categories' ? 'bg-white/10 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
-                        <FolderPlus className="w-4 h-4" />
-                      </div>
-                    </div>
+              {(!adminTabSearch || 'клієнти clients покупці база телефони'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('clients')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'clients'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <Users className={`w-3.5 h-3.5 ${activeTab === 'clients' ? 'text-violet-300' : 'text-violet-600'}`} />
+                  <span>Клієнти ({Object.keys(clients).length})</span>
+                </button>
+              )}
 
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Категорії</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'categories' ? 'text-white/60' : 'text-slate-400'}`}>
-                        Дерево каталогу
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 4. Акція тижня */}
-                {(!adminTabSearch || 'акція тижня weekly deal знижка промо'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('weekly_deal')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'weekly_deal'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${
-                        activeTab === 'weekly_deal' 
-                          ? 'bg-white/10 text-red-400' 
-                          : weeklyDeal.enabled ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-400'
-                      }`}>
-                        <Flame className={`w-4 h-4 ${weeklyDeal.enabled ? 'fill-current' : ''}`} />
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                        weeklyDeal.enabled 
-                          ? (activeTab === 'weekly_deal' ? 'bg-red-500/30 text-red-200 border border-red-400/40' : 'bg-red-100 text-red-700 font-black')
-                          : (activeTab === 'weekly_deal' ? 'bg-white/10 text-white/50' : 'bg-slate-100 text-slate-500')
-                      }`}>
-                        {weeklyDeal.enabled ? 'Увімкнено' : 'Вимкнено'}
-                      </span>
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Акція тижня</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'weekly_deal' ? 'text-white/60' : 'text-slate-400'}`}>
-                        {weeklyDeal.enabled ? 'Промо-банер діє' : 'Неактивна'}
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 5. Відгуки */}
-                {(!adminTabSearch || 'відгуки reviews оцінки зірки коментарі'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('reviews')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'reviews'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'reviews' ? 'bg-white/10 text-amber-300' : 'bg-amber-50 text-amber-500'}`}>
-                        <Star className={`w-4 h-4 ${reviews.length > 0 ? 'fill-amber-400 text-amber-400' : ''}`} />
-                      </div>
-                      <span className={`text-[11px] font-black font-mono px-1.5 py-0.5 rounded-md ${
-                        activeTab === 'reviews' ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700'
-                      }`}>
-                        {reviews.length}
-                      </span>
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Відгуки</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'reviews' ? 'text-white/60' : 'text-slate-400'}`}>
-                        Модерація та рейтинг
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 6. Клієнти */}
-                {(!adminTabSearch || 'клієнти clients покупці база телефони'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('clients')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'clients'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'clients' ? 'bg-white/10 text-violet-300' : 'bg-violet-50 text-violet-600'}`}>
-                        <Users className="w-4 h-4" />
-                      </div>
-                      <span className={`text-[11px] font-black font-mono px-1.5 py-0.5 rounded-md ${
-                        activeTab === 'clients' ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700'
-                      }`}>
-                        {Object.keys(clients).length}
-                      </span>
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Клієнти</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'clients' ? 'text-white/60' : 'text-slate-400'}`}>
-                        Історія покупок
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 7. Очікують товар */}
-                {(!adminTabSearch || 'очікують товар stock alerts сповіщення лист очікування'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => {
-                      setStockAlertFilterProduct('');
-                      handleTabChange('stock_alerts');
-                    }}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'stock_alerts'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'stock_alerts' ? 'bg-white/10 text-amber-300' : 'bg-amber-50 text-amber-600'}`}>
-                        <Bell className="w-4 h-4" />
-                      </div>
-                      {pendingStockAlertsCount > 0 ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-black bg-amber-500 text-slate-950 animate-pulse">
-                          {pendingStockAlertsCount}
-                        </span>
-                      ) : (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                          activeTab === 'stock_alerts' ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          0
-                        </span>
-                      )}
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Очікують товар</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'stock_alerts' ? 'text-white/60' : 'text-slate-400'}`}>
-                        {pendingStockAlertsCount > 0 ? 'Є активні заявки' : 'Лист очікування'}
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-              </div>
-            </div>
+              {(!adminTabSearch || 'очікують товар stock alerts сповіщення лист очікування'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => {
+                    setStockAlertFilterProduct('');
+                    handleTabChange('stock_alerts');
+                  }}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'stock_alerts'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <Bell className={`w-3.5 h-3.5 ${activeTab === 'stock_alerts' ? 'text-amber-300' : 'text-amber-600'}`} />
+                  <span>Очікують товар</span>
+                  {pendingStockAlertsCount > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black bg-amber-500 text-slate-950 animate-pulse">
+                      {pendingStockAlertsCount}
+                    </span>
+                  )}
+                </button>
+              )}
+            </>
           )}
 
           {/* GROUP 2: Інтеграції та Системи */}
-          {(adminNavGroup === 'all' || adminNavGroup === 'services') && (!adminTabSearch || ['бд', 'база', 'даних', 'хмара', 'аналіт', 'модул', 'достав', 'пошт', 'оплат', 'wayforpay', 'mono'].some(k => k.includes(adminTabSearch.toLowerCase()) || adminTabSearch.toLowerCase().includes(k))) && (
-            <div className="space-y-2">
-              {adminNavGroup === 'all' && (
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1 pt-1">
-                  <span>⚡ Хмарні інтеграції, Платежі та Аналітика</span>
-                </div>
+          {(adminNavGroup === 'all' || adminNavGroup === 'services') && (
+            <>
+              {(!adminTabSearch || 'база даних бд firebase cloud rtdb синхронізація'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('database')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'database'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <Database className={`w-3.5 h-3.5 ${activeTab === 'database' ? 'text-emerald-300' : 'text-emerald-600'}`} />
+                  <span>База даних (БД)</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${firebaseConfig.enabled ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                </button>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                
-                {/* 1. База даних (БД) */}
-                {(!adminTabSearch || 'база даних бд firebase cloud rtdb синхронізація'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('database')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'database'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'database' ? 'bg-white/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-                        <Database className="w-4 h-4" />
-                      </div>
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                        firebaseConfig.enabled 
-                          ? (activeTab === 'database' ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40' : 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200')
-                          : (activeTab === 'database' ? 'bg-white/10 text-white/50' : 'bg-slate-100 text-slate-500')
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${firebaseConfig.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                        <span>{firebaseConfig.enabled ? 'RTDB' : 'Офлайн'}</span>
-                      </span>
-                    </div>
+              {(!adminTabSearch || 'аналітика analytics звіти продажі прибуток'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('analytics')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'analytics'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <TrendingUp className={`w-3.5 h-3.5 ${activeTab === 'analytics' ? 'text-cyan-300' : 'text-cyan-600'}`} />
+                  <span>Аналітика</span>
+                </button>
+              )}
 
-                    <div>
-                      <div className="text-xs font-bold leading-snug">База даних (БД)</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'database' ? 'text-white/60' : 'text-slate-400'}`}>
-                        Firebase синхронізація
-                      </div>
-                    </div>
-                  </button>
-                )}
+              {(!adminTabSearch || 'модулі сайту features функції перемикачі'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('features')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'features'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <Sliders className={`w-3.5 h-3.5 ${activeTab === 'features' ? 'text-slate-300' : 'text-slate-600'}`} />
+                  <span>Модулі сайту</span>
+                </button>
+              )}
 
-                {/* 2. Аналітика */}
-                {(!adminTabSearch || 'аналітика analytics звіти продажі прибуток'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('analytics')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'analytics'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'analytics' ? 'bg-white/10 text-cyan-300' : 'bg-cyan-50 text-cyan-600'}`}>
-                        <TrendingUp className="w-4 h-4" />
-                      </div>
-                    </div>
+              {(!adminTabSearch || 'доставка delivery нова пошта укрпошта ттн'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('delivery')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'delivery'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <Truck className={`w-3.5 h-3.5 ${activeTab === 'delivery' ? 'text-orange-300' : 'text-orange-600'}`} />
+                  <span>Доставка (НП/УП)</span>
+                </button>
+              )}
 
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Аналітика</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'analytics' ? 'text-white/60' : 'text-slate-400'}`}>
-                        Обороти та графіки
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 3. Модулі сайту */}
-                {(!adminTabSearch || 'модулі сайту features функції перемикачі'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('features')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'features'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'features' ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
-                        <Sliders className="w-4 h-4" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Модулі сайту</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'features' ? 'text-white/60' : 'text-slate-400'}`}>
-                        Кнопки дзвінка, опції
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 4. Доставка (НП/Укрпошта) */}
-                {(!adminTabSearch || 'доставка delivery нова пошта укрпошта ттн'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('delivery')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'delivery'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'delivery' ? 'bg-white/10 text-orange-300' : 'bg-orange-50 text-orange-600'}`}>
-                        <Truck className="w-4 h-4" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Доставка (НП / УП)</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'delivery' ? 'text-white/60' : 'text-slate-400'}`}>
-                        API ключі перевізників
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 5. Онлайн-оплата */}
-                {(!adminTabSearch || 'онлайн оплата payments wayforpay monobank картка'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('payments')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'payments'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'payments' ? 'bg-white/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-                        <CreditCard className="w-4 h-4" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Онлайн-оплата</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'payments' ? 'text-white/60' : 'text-slate-400'}`}>
-                        WayForPay & Monobank
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-              </div>
-            </div>
+              {(!adminTabSearch || 'онлайн оплата payments wayforpay monobank картка'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('payments')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'payments'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <CreditCard className={`w-3.5 h-3.5 ${activeTab === 'payments' ? 'text-emerald-300' : 'text-emerald-600'}`} />
+                  <span>Онлайн-оплата</span>
+                </button>
+              )}
+            </>
           )}
 
           {/* GROUP 3: Юридичні сторінки та Налаштування */}
-          {(adminNavGroup === 'all' || adminNavGroup === 'settings') && (!adminTabSearch || ['дизайн', 'про нас', 'реквізит', 'фоп', 'повернен', 'обмін', 'контакт', 'bot', 'sms', 'телефон'].some(k => k.includes(adminTabSearch.toLowerCase()) || adminTabSearch.toLowerCase().includes(k))) && (
-            <div className="space-y-2">
-              {adminNavGroup === 'all' && (
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1 pt-1">
-                  <span>🏢 Офіційні сторінки магазину, Дизайн та Сповіщення</span>
-                </div>
+          {(adminNavGroup === 'all' || adminNavGroup === 'settings') && (
+            <>
+              {(!adminTabSearch || 'дизайн design кольори шапка логотип банер'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('design')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'design'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <Palette className={`w-3.5 h-3.5 ${activeTab === 'design' ? 'text-purple-300' : 'text-purple-600'}`} />
+                  <span>Дизайн</span>
+                </button>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2">
-                
-                {/* 1. Дизайн */}
-                {(!adminTabSearch || 'дизайн design кольори шапка логотип банер'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('design')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'design'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'design' ? 'bg-white/10 text-purple-300' : 'bg-purple-50 text-purple-600'}`}>
-                        <Palette className="w-4 h-4" />
-                      </div>
-                    </div>
+              {(!adminTabSearch || 'про нас реквізити фоп тарасова ірина анатоліївна юр дані iban'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('about_settings')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'about_settings'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <Building2 className={`w-3.5 h-3.5 ${activeTab === 'about_settings' ? 'text-red-300' : 'text-red-600'}`} />
+                  <span>Про нас / Реквізити</span>
+                </button>
+              )}
 
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Дизайн сайту</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'design' ? 'text-white/60' : 'text-slate-400'}`}>
-                        Кольори, шапка, контакти
-                      </div>
-                    </div>
-                  </button>
-                )}
+              {(!adminTabSearch || 'повернення обмін returns гарантія 14 днів нова пошта'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('returns_settings')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'returns_settings'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 ${activeTab === 'returns_settings' ? 'text-teal-300' : 'text-teal-600'}`} />
+                  <span>Повернення та обмін</span>
+                </button>
+              )}
 
-                {/* 2. Про нас / Реквізити */}
-                {(!adminTabSearch || 'про нас реквізити фоп тарасова ірина анатоліївна юр дані iban'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('about_settings')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'about_settings'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'about_settings' ? 'bg-white/10 text-red-300' : 'bg-red-50 text-red-600'}`}>
-                        <Building2 className="w-4 h-4" />
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                        activeTab === 'about_settings' ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        ФОП
-                      </span>
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Про нас / Реквізити</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'about_settings' ? 'text-white/60' : 'text-slate-400'}`}>
-                        Юридичні дані ФОП
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 3. Повернення та обмін */}
-                {(!adminTabSearch || 'повернення обмін returns гарантія 14 днів нова пошта'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('returns_settings')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'returns_settings'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'returns_settings' ? 'bg-white/10 text-teal-300' : 'bg-teal-50 text-teal-600'}`}>
-                        <RotateCcw className="w-4 h-4" />
-                      </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                        activeTab === 'returns_settings' ? 'bg-white/15 text-white' : 'bg-emerald-50 text-emerald-700'
-                      }`}>
-                        14 днів
-                      </span>
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Повернення та обмін</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'returns_settings' ? 'text-white/60' : 'text-slate-400'}`}>
-                        Правила та адреса НП
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 4. Контакти, Bot & SMS */}
-                {(!adminTabSearch || 'контакти bot sms telegram пароль сповіщення'.includes(adminTabSearch.toLowerCase())) && (
-                  <button
-                    onClick={() => handleTabChange('settings')}
-                    className={`p-2.5 rounded-xl text-left transition-all border flex flex-col justify-between gap-2 relative group cursor-pointer ${
-                      activeTab === 'settings'
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 w-full">
-                      <div className={`p-1.5 rounded-lg ${activeTab === 'settings' ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>
-                        <Settings className="w-4 h-4" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-bold leading-snug">Контакти, Bot & SMS</div>
-                      <div className={`text-[10px] mt-0.5 truncate ${activeTab === 'settings' ? 'text-white/60' : 'text-slate-400'}`}>
-                        Telegram бот, SMS шлюз
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-              </div>
-            </div>
+              {(!adminTabSearch || 'контакти bot sms telegram пароль сповіщення'.includes(adminTabSearch.toLowerCase())) && (
+                <button
+                  onClick={() => handleTabChange('settings')}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === 'settings'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
+                  }`}
+                >
+                  <Settings className={`w-3.5 h-3.5 ${activeTab === 'settings' ? 'text-slate-300' : 'text-slate-700'}`} />
+                  <span>Контакти, Bot & SMS</span>
+                </button>
+              )}
+            </>
           )}
 
         </div>
