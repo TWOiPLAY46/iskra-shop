@@ -228,7 +228,8 @@ export const CheckoutModal: React.FC = () => {
   if (!isCheckoutModalOpen) return null;
 
   const minSum = siteSettings.features?.minOrderSum ?? 50;
-  const isFreeShipping = discountedCartSum >= (siteSettings.features?.freeShippingThreshold ?? 3000);
+  const freeShippingThreshold = siteSettings.features?.freeShippingThreshold ?? 3000;
+  const isFreeShipping = discountedCartSum >= freeShippingThreshold;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -516,7 +517,7 @@ export const CheckoutModal: React.FC = () => {
                   {isFreeShipping && (
                     <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-emerald-600" />
-                      Безкоштовна доставка від 3000 грн!
+                      Безкоштовна доставка від {freeShippingThreshold.toLocaleString('uk-UA')} грн!
                     </span>
                   )}
                 </div>

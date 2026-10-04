@@ -10,6 +10,7 @@ import {
   MapPin,
   Sparkles
 } from 'lucide-react';
+import { useStore } from '../context/StoreContext';
 
 interface FaqItem {
   question: string;
@@ -18,7 +19,12 @@ interface FaqItem {
 }
 
 export const StoreFaqSection: React.FC = () => {
+  const { siteSettings } = useStore();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  const threshold = siteSettings.features?.freeShippingThreshold ?? 3000;
+  const storeCity = siteSettings.city || 'с-ще. Оратів';
+  const storeAddress = siteSettings.address || 'вул. Котляревського, 7';
 
   const faqs: FaqItem[] = [
     {
@@ -28,7 +34,9 @@ export const StoreFaqSection: React.FC = () => {
     },
     {
       question: "Як отримати безкоштовну доставку?",
-      answer: "При замовленні на суму від 3000 грн доставка у будь-яке відділення Нової Пошти по всій Україні — повністю БЕЗКОШТОВНА за рахунок магазину ISKRA!",
+      answer: threshold > 0 
+        ? `При замовленні на суму від ${threshold.toLocaleString('uk-UA')} грн доставка у будь-яке відділення Нової Пошти по всій Україні — повністю БЕЗКОШТОВНА за рахунок магазину ISKRA!`
+        : `Доставка у будь-яке відділення Нової Пошти по всій Україні — повністю БЕЗКОШТОВНА за рахунок магазину ISKRA!`,
       icon: <Sparkles className="w-4 h-4 text-amber-500" />
     },
     {
@@ -38,7 +46,7 @@ export const StoreFaqSection: React.FC = () => {
     },
     {
       question: "Чи можу я забрати замовлення самовивозом?",
-      answer: "Так! Ви можете безкоштовно забрати своє замовлення безпосередньо у нашому фізичному магазині за адресою: вул. Котляревського, 7, с-ще. Оратів, Вінницька область, 22601. Ми зберемо та підготуємо замовлення до вашого приїзду.",
+      answer: `Так! Ви можете безкоштовно забрати своє замовлення безпосередньо у нашому фізичному магазині за адресою: ${storeAddress}, ${storeCity}, Вінницька область, 22601. Ми зберемо та підготуємо замовлення до вашого приїзду.`,
       icon: <MapPin className="w-4 h-4 text-red-500" />
     },
     {
