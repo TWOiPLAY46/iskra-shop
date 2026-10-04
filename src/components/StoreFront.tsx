@@ -1,10 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Hero } from './Hero';
 import { ProductCard } from './ProductCard';
 import { WeeklyDealSection } from './WeeklyDealSection';
 import { ProductFilters } from './ProductFilters';
 import { SubcategoryDirectory } from './SubcategoryDirectory';
+import { StoreAboutSection } from './StoreAboutSection';
+import { StoreReviewsSection } from './StoreReviewsSection';
+import { StoreFaqSection } from './StoreFaqSection';
 import { getProductBrand, matchProductSearch } from '../utils/brandHelper';
 import { 
   Flame, 
@@ -25,6 +28,9 @@ import {
   LayoutGrid,
   Layers,
   ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
   ArrowRight,
   Sparkles,
   Check,
@@ -47,6 +53,10 @@ export const StoreFront: React.FC = () => {
     siteSettings 
   } = useStore();
 
+  // Pagination State (30 items per page by default)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(30);
+
   // Price & Brand filter states
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
@@ -54,6 +64,22 @@ export const StoreFront: React.FC = () => {
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [selectedLeafTag, setSelectedLeafTag] = useState<string | null>(null);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Reset pagination to page 1 whenever any filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    activeCategory, 
+    selectedSubCategory, 
+    selectedLeafTag, 
+    searchQuery, 
+    minPrice, 
+    maxPrice, 
+    selectedBrands, 
+    sortOption, 
+    showWishlistOnly,
+    pageSize
+  ]);
 
   // Distinct Bestseller products ("Хіти продажу")
   const hitsProducts = useMemo(() => {
@@ -164,6 +190,50 @@ export const StoreFront: React.FC = () => {
 
     return list;
   }, [scopeProducts, minPrice, maxPrice, selectedBrands, sortOption]);
+
+  // Pagination computations
+  const effectivePageSize = pageSize === -1 ? (displayProducts.length || 1) : pageSize;
+  const totalPages = Math.max(1, Math.ceil(displayProducts.length / effectivePageSize));
+  const currentSafePage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedProducts = useMemo(() => {
+    if (pageSize === -1) return displayProducts;
+    const startIndex = (currentSafePage - 1) * pageSize;
+    return displayProducts.slice(startIndex, startIndex + pageSize);
+  }, [displayProducts, currentSafePage, pageSize]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    setCurrentPage(newPage);
+    setTimeout(() => {
+      const el = document.getElementById('catalog-products-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+  };
+
+  const getPaginationRange = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const delta = 1;
+    const range: (number | string)[] = [];
+    for (let i = Math.max(2, currentSafePage - delta); i <= Math.min(totalPages - 1, currentSafePage + delta); i++) {
+      range.push(i);
+    }
+    if (currentSafePage - delta > 2) {
+      range.unshift('...');
+    }
+    if (currentSafePage + delta < totalPages - 1) {
+      range.push('...');
+    }
+    range.unshift(1);
+    if (totalPages > 1) {
+      range.push(totalPages);
+    }
+    return range;
+  };
 
   const hasPriceFilter = minPrice !== '' || maxPrice !== '';
   const hasBrandFilter = selectedBrands.length > 0;
@@ -523,7 +593,7 @@ export const StoreFront: React.FC = () => {
                   )}
                 </div>
                 <span className="text-xs text-slate-500 font-medium">
-                  {displayProducts.length} позицій знайдено
+                  {displayProducts.length} позицій знайдено {totalPages > 1 && `(сторінка ${currentSafePage} з ${totalPages})`}
                 </span>
               </div>
             </div>
@@ -703,10 +773,116 @@ export const StoreFront: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-3.5 sm:gap-5">
-                  {displayProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
+                <div className="space-y-6">
+                  {/* Product Cards Grid (30 items per page) */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-3.5 sm:gap-5">
+                    {paginatedProducts.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+
+                  {/* Pagination Bar (When items exist) */}
+                  {displayProducts.length > 0 && (
+                    <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+                      
+                      {/* Left: Summary Info */}
+                      <div className="text-xs text-slate-500 font-medium text-center md:text-left flex items-center gap-2">
+                        <span className="p-1.5 bg-slate-100 rounded-lg text-slate-700">
+                          <Package className="w-3.5 h-3.5" />
+                        </span>
+                        <span>
+                          Показано <b className="text-slate-900 font-bold">{pageSize === -1 ? 1 : (currentSafePage - 1) * pageSize + 1}</b>
+                          –<b className="text-slate-900 font-bold">{pageSize === -1 ? displayProducts.length : Math.min(currentSafePage * pageSize, displayProducts.length)}</b> із <b className="text-slate-900 font-bold">{displayProducts.length}</b> товарів
+                          {totalPages > 1 && (
+                            <span className="text-slate-400 ml-1.5">
+                              (Сторінка {currentSafePage} з {totalPages})
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Center: Numeric & Arrow Pagination Buttons */}
+                      {totalPages > 1 && (
+                        <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                          {/* Previous button */}
+                          <button
+                            type="button"
+                            onClick={() => handlePageChange(currentSafePage - 1)}
+                            disabled={currentSafePage === 1}
+                            className={`inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                              currentSafePage === 1
+                                ? 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
+                                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-2xs'
+                            }`}
+                            aria-label="Попередня сторінка"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                            <span className="hidden sm:inline">Попередня</span>
+                          </button>
+
+                          {/* Page numbers */}
+                          {getPaginationRange().map((p, idx) => {
+                            if (p === '...') {
+                              return (
+                                <span key={`ellipsis-${idx}`} className="px-2 text-xs text-slate-400 font-mono">
+                                  ...
+                                </span>
+                              );
+                            }
+                            const pageNum = Number(p);
+                            const isActive = pageNum === currentSafePage;
+
+                            return (
+                              <button
+                                key={`page-${pageNum}`}
+                                type="button"
+                                onClick={() => handlePageChange(pageNum)}
+                                className={`w-8 sm:w-9 h-8 sm:h-9 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
+                                  isActive
+                                    ? 'bg-red-600 text-white shadow-md shadow-red-600/30 scale-105'
+                                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-2xs'
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+
+                          {/* Next button */}
+                          <button
+                            type="button"
+                            onClick={() => handlePageChange(currentSafePage + 1)}
+                            disabled={currentSafePage === totalPages}
+                            className={`inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                              currentSafePage === totalPages
+                                ? 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
+                                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-2xs'
+                            }`}
+                            aria-label="Наступна сторінка"
+                          >
+                            <span className="hidden sm:inline">Наступна</span>
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Right: Page Size Selector */}
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-slate-400 hidden sm:inline">На сторінці:</span>
+                        <select
+                          value={pageSize}
+                          onChange={(e) => setPageSize(Number(e.target.value))}
+                          className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 font-bold text-xs text-slate-800 outline-none focus:border-red-600 cursor-pointer"
+                        >
+                          <option value={30}>30 товарів</option>
+                          <option value={60}>60 товарів</option>
+                          <option value={90}>90 товарів</option>
+                          <option value={-1}>Всі товари</option>
+                        </select>
+                      </div>
+
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -714,6 +890,15 @@ export const StoreFront: React.FC = () => {
           </div>
 
         </section>
+
+        {/* 3. About ISKRA Store Section */}
+        {!showWishlistOnly && <StoreAboutSection />}
+
+        {/* 4. Customer Reviews Section */}
+        {!showWishlistOnly && <StoreReviewsSection />}
+
+        {/* 5. Frequently Asked Questions & Delivery/Payment Policy */}
+        {!showWishlistOnly && <StoreFaqSection />}
 
       </main>
     </div>

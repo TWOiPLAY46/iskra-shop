@@ -9,7 +9,9 @@ import {
   Sparkles,
   Flame,
   Search,
-  LayoutGrid
+  LayoutGrid,
+  Building2,
+  RotateCcw
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -203,14 +205,52 @@ export const Header: React.FC = () => {
             </div>
 
             {/* Right Action Icons Group */}
-            <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               
+              {/* About Seller Button (Про нас / Реквізити) */}
+              <button
+                onClick={() => {
+                  setActiveView(activeView === 'about' ? 'store' : 'about');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                  activeView === 'about'
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800'
+                }`}
+                title="Інформація про продавця та реквізити"
+              >
+                <Building2 className={`w-3.5 h-3.5 ${activeView === 'about' ? 'text-red-400' : 'text-red-600'}`} />
+                <span className="font-medium text-[10px] sm:text-xs">Про нас</span>
+              </button>
+
+              {/* Returns & Exchange Button (Повернення та обмін) - visible on tablet/desktop */}
+              <button
+                onClick={() => {
+                  setActiveView(activeView === 'returns' ? 'store' : 'returns');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`hidden lg:inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                  activeView === 'returns'
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800'
+                }`}
+                title="Умови повернення та обміну товару (14 днів)"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${activeView === 'returns' ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                <span className="font-medium text-[10px] sm:text-xs">Повернення</span>
+              </button>
+
               {/* Account Profile Button */}
               <button
                 onClick={() => setActiveView(activeView === 'account' ? 'store' : 'account')}
-                className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                className={`inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-colors cursor-pointer ${
+                  activeView === 'account'
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800'
+                }`}
               >
-                <span className="text-slate-800 font-medium text-[10px] sm:text-xs">
+                <span className={`font-medium text-[10px] sm:text-xs ${activeView === 'account' ? 'text-white' : 'text-slate-800'}`}>
                   {currentClient ? (currentClient.name || 'Кабінет').split(' ')[0] : 'Кабінет'}
                 </span>
                 {currentClient?.discount ? (
@@ -410,6 +450,32 @@ export const Header: React.FC = () => {
               >
                 <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                 <span>Хіти продажу</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveView('about');
+                  setIsMobileMenuOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 ${
+                  activeView === 'about' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'
+                }`}
+              >
+                <Building2 className={`w-3.5 h-3.5 ${activeView === 'about' ? 'text-red-400' : 'text-red-600'}`} />
+                <span>Про нас / Реквізити</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveView('returns');
+                  setIsMobileMenuOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 ${
+                  activeView === 'returns' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'
+                }`}
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${activeView === 'returns' ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                <span>Повернення та обмін</span>
               </button>
               <button
                 onClick={() => {

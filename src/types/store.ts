@@ -114,6 +114,30 @@ export interface SiteSettings {
   companyEdrpou?: string;
   companyIban?: string;
   companyBank?: string;
+  // Seller / FOP Requisites & Legal Info
+  fopName?: string;
+  fopRegistrationAddress?: string;
+  fopActualAddress?: string;
+  fopRnokpp?: string;
+  fopEmail?: string;
+  fopPhone?: string;
+  fopStoreAddress?: string;
+  websiteUrl?: string;
+  licenseInfo?: string;
+  taxInfo?: string;
+  aboutTitle?: string;
+  aboutStory?: string;
+  // Returns & Exchange Settings
+  returnsDays?: number;
+  returnsWhoPaysGood?: string;
+  returnsWhoPaysDefect?: string;
+  returnsReceiverName?: string;
+  returnsReceiverPhone?: string;
+  returnsReceiverCity?: string;
+  returnsReceiverWarehouse?: string;
+  returnsRefundDays?: string;
+  returnsWarrantyInfo?: string;
+  returnsNotes?: string;
   // SMS Notification Gateway (TurboSMS, SMS-Fly, AlphaSMS, manual)
   smsGateway?: 'none' | 'turbosms' | 'smsfly' | 'alphasms';
   smsApiKey?: string;

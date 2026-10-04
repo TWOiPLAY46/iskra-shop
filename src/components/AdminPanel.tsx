@@ -72,6 +72,7 @@ import {
   Phone,
   Copy,
   MessageCircle,
+  RotateCcw,
   X
 } from 'lucide-react';
 import { 
@@ -635,11 +636,11 @@ export const AdminPanel: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'products' | 'weekly_deal' | 'categories' | 'orders' | 'reviews' | 'clients' | 'stock_alerts' | 'analytics' | 'features' | 'database' | 'delivery' | 'payments' | 'design' | 'settings'
+    'products' | 'weekly_deal' | 'categories' | 'orders' | 'reviews' | 'clients' | 'stock_alerts' | 'analytics' | 'features' | 'database' | 'delivery' | 'payments' | 'design' | 'about_settings' | 'returns_settings' | 'settings'
   >(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('iskra_admin_tab');
-      const validTabs = ['products', 'weekly_deal', 'categories', 'orders', 'reviews', 'clients', 'stock_alerts', 'analytics', 'features', 'database', 'delivery', 'payments', 'design', 'settings'];
+      const validTabs = ['products', 'weekly_deal', 'categories', 'orders', 'reviews', 'clients', 'stock_alerts', 'analytics', 'features', 'database', 'delivery', 'payments', 'design', 'about_settings', 'returns_settings', 'settings'];
       if (saved && validTabs.includes(saved)) {
         return saved as any;
       }
@@ -1861,6 +1862,26 @@ export const AdminPanel: React.FC = () => {
         >
           <Palette className="w-4 h-4" />
           <span>Дизайн</span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange('about_settings')}
+          className={`py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'about_settings' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Building2 className="w-4 h-4 text-red-600" />
+          <span>Про нас / Реквізити</span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange('returns_settings')}
+          className={`py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'returns_settings' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <RotateCcw className="w-4 h-4 text-emerald-600" />
+          <span>Повернення та обмін</span>
         </button>
 
         <button
@@ -6618,6 +6639,122 @@ export const AdminPanel: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* FOP Seller Legal Requisites for "Про нас" page */}
+              <div className="pt-4 border-t border-slate-200 mt-4 space-y-3">
+                <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-red-600" />
+                  <span>Юридичні дані ФОП для сторінки «Про нас / Реквізити» та захисту споживачів:</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      ФОП: ПІБ суб'єкта підприємницької діяльності
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ФОП Тарасова Ірина Анатоліївна"
+                      value={settingsForm.fopName || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, fopName: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      РНОКПП (ІПН платника)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="3298412839"
+                      value={settingsForm.fopRnokpp || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, fopRnokpp: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Місце державної реєстрації ФОП
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Україна, 22600, Вінницька обл., с. Оратів, вул. Героїв Майдану, 14"
+                      value={settingsForm.fopRegistrationAddress || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, fopRegistrationAddress: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Фактичне місце проживання / склад
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Україна, 22600, Вінницька обл., с. Оратів, вул. Героїв Майдану, 14"
+                      value={settingsForm.fopActualAddress || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, fopActualAddress: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Офіційний e-mail для звернень покупців
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="iskra.shop.ua@gmail.com"
+                      value={settingsForm.fopEmail || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, fopEmail: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Офіційний телефон ФОП
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="+38 (096) 647-36-67"
+                      value={settingsForm.fopPhone || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, fopPhone: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Інформація про оподаткування та включення податків у ціну
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={settingsForm.taxInfo || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, taxInfo: e.target.value })}
+                      placeholder="ФОП платник єдиного податку 2-ї групи (без сплати ПДВ). Усі ціни є кінцевими..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Інформація про ліцензії та сертифікацію
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={settingsForm.licenseInfo || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, licenseInfo: e.target.value })}
+                      placeholder="Роздрібна торгівля не підлягає обов'язковому ліцензуванню згідно ст. 7 ЗУ..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -6626,6 +6763,451 @@ export const AdminPanel: React.FC = () => {
             className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm cursor-pointer"
           >
             Зберегти налаштування оплати та реквізитів
+          </button>
+        </form>
+      )}
+
+      {/* TAB: ABOUT US & LEGAL FOP REQUISITES */}
+      {activeTab === 'about_settings' && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            updateSiteSettings(settingsForm);
+            showToast('Дані «Про нас та Реквізити ФОП» успішно збережено в базі даних!', 'success');
+          }}
+          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 max-w-4xl"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-red-50 text-red-600 rounded-xl">
+                  <Building2 className="w-5 h-5" />
+                </span>
+                <h3 className="text-base font-bold text-slate-900">
+                  Налаштування сторінки «Про нас / Реквізити ФОП»
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Ці дані відображаються клієнтам на окремій публічній сторінці «Про нас / Реквізити», у футері та договорах
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+            >
+              <Check className="w-4 h-4" />
+              <span>Зберегти в базу даних</span>
+            </button>
+          </div>
+
+          <div className="space-y-4 text-xs">
+            
+            {/* Page Title & Story */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
+                1. Презентація та опис магазину
+              </span>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Головний заголовок сторінки
+                </label>
+                <input
+                  type="text"
+                  placeholder="Про магазин «ISKRA» та офіційні реквізити продавця"
+                  value={settingsForm.aboutTitle || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, aboutTitle: e.target.value })}
+                  className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Історія, місія та опис діяльності (розділяйте абзаци порожнім рядком)
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder="Магазин «ISKRA» засновано з метою надати українським родинам..."
+                  value={settingsForm.aboutStory || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, aboutStory: e.target.value })}
+                  className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 text-xs leading-relaxed"
+                />
+              </div>
+            </div>
+
+            {/* Official FOP Identification Requisites */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
+                2. Офіційні реквізити продавця (ФОП)
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    ФОП: ПІБ підприємця *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ФОП Тарасова Ірина Анатоліївна"
+                    value={settingsForm.fopName || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, fopName: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    РНОКПП (ІПН платника податків) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="3298412839"
+                    value={settingsForm.fopRnokpp || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, fopRnokpp: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Місце державної реєстрації ФОП
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Україна, 22600, Вінницька обл., с. Оратів, вул. Героїв Майдану, 14"
+                    value={settingsForm.fopRegistrationAddress || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, fopRegistrationAddress: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Фактичне місце проживання / склад
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Україна, 22600, Вінницька обл., с. Оратів, вул. Героїв Майдану, 14"
+                    value={settingsForm.fopActualAddress || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, fopActualAddress: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Офіційний телефон ФОП
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="+38 (096) 647-36-67"
+                    value={settingsForm.fopPhone || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, fopPhone: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Офіційний e-mail для замовлень та звернень
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="iskra.shop.ua@gmail.com"
+                    value={settingsForm.fopEmail || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, fopEmail: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Адреса сайту (Домен)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://iskra-shop.ua"
+                    value={settingsForm.websiteUrl || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, websiteUrl: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Адреса точки видачі / магазину
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="с. Оратів, вул. Героїв Майдану, 14"
+                    value={settingsForm.fopStoreAddress || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, fopStoreAddress: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Tax & License */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
+                3. Інформація про оподаткування та ліцензування
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Оподаткування та податки в ціні
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="ФОП платник єдиного податку 2-ї групи (без сплати ПДВ)..."
+                    value={settingsForm.taxInfo || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, taxInfo: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Ліцензії та сертифікація товару
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Роздрібна торгівля не підлягає обов'язковому ліцензуванню згідно ст. 7 ЗУ..."
+                    value={settingsForm.licenseInfo || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, licenseInfo: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bank details */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
+                4. Банківські реквізити IBAN
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Номер рахунку IBAN
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="UA213052990000026007894561230"
+                    value={settingsForm.companyIban || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, companyIban: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Банк одержувача та МФО
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="АТ КБ «ПриватБанк» (МФО 305299)"
+                    value={settingsForm.companyBank || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, companyBank: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
+                  />
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <button
+            type="submit"
+            className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-red-600/20 cursor-pointer"
+          >
+            Зберегти всі зміни в базу даних
+          </button>
+        </form>
+      )}
+
+      {/* TAB: RETURNS & EXCHANGE SETTINGS */}
+      {activeTab === 'returns_settings' && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            updateSiteSettings(settingsForm);
+            showToast('Умови та правила повернення успішно збережено в базі даних!', 'success');
+          }}
+          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 max-w-4xl"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <RotateCcw className="w-5 h-5" />
+                </span>
+                <h3 className="text-base font-bold text-slate-900">
+                  Налаштування сторінки «Повернення та обмін»
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Керуйте строками повернення, адресою відділення Нової Пошти, умовами оплати доставки та сервісу
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+            >
+              <Check className="w-4 h-4" />
+              <span>Зберегти в базу даних</span>
+            </button>
+          </div>
+
+          <div className="space-y-4 text-xs">
+            
+            {/* Key Timelines */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
+                1. Строки повернення та виплати
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Строк повернення товару (календарних днів)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={90}
+                    placeholder="14"
+                    value={settingsForm.returnsDays || 14}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsDays: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Строк повернення коштів на картку/рахунок
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="1–3 робочих днів"
+                    value={settingsForm.returnsRefundDays || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsRefundDays: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Shipping Receiver Address */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
+                2. Реквізити одержувача для повернень «Новою Поштою»
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    ПІБ одержувача посилки
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Тарасова Ірина Анатоліївна"
+                    value={settingsForm.returnsReceiverName || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverName: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Телефон одержувача посилки
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="+38 (096) 647-36-67"
+                    value={settingsForm.returnsReceiverPhone || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverPhone: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Населений пункт (Місто / Село)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="с. Оратів"
+                    value={settingsForm.returnsReceiverCity || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverCity: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Відділення «Нова Пошта»
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Відділення №1"
+                    value={settingsForm.returnsReceiverWarehouse || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverWarehouse: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Who pays delivery */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
+                3. Умови оплати логістики при поверненні
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Повернення товару належної якості (не підійшов колір/розмір)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Послуги пересилання оплачує покупець за тарифами перевізника..."
+                    value={settingsForm.returnsWhoPaysGood || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsWhoPaysGood: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Повернення бракованого товару / помилка складу
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Усі витрати на доставку в обидві сторони повністю оплачує магазин ISKRA..."
+                    value={settingsForm.returnsWhoPaysDefect || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsWhoPaysDefect: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <button
+            type="submit"
+            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-emerald-600/20 cursor-pointer"
+          >
+            Зберегти всі зміни в базу даних
           </button>
         </form>
       )}

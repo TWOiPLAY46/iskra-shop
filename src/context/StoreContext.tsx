@@ -71,8 +71,8 @@ interface StoreContextType {
   setSearchQuery: (query: string) => void;
   sortOption: 'default' | 'price-asc' | 'price-desc' | 'name-asc';
   setSortOption: (sort: 'default' | 'price-asc' | 'price-desc' | 'name-asc') => void;
-  activeView: 'store' | 'account' | 'admin';
-  setActiveView: (view: 'store' | 'account' | 'admin') => void;
+  activeView: 'store' | 'account' | 'admin' | 'about' | 'returns';
+  setActiveView: (view: 'store' | 'account' | 'admin' | 'about' | 'returns') => void;
   
   // Modals & Panels
   isCartDrawerOpen: boolean;
@@ -465,10 +465,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (city && city.includes('смт. Оратів')) {
           city = city.replace(/смт\.\s*Оратів/g, 'с. Оратів');
         }
+        let fopName = parsed.fopName;
+        if (!fopName || fopName.includes('Іскра Олександр') || fopName.includes('Іскра О.В.')) {
+          fopName = initialSiteSettings.fopName;
+        }
+        let returnsReceiverName = parsed.returnsReceiverName;
+        if (!returnsReceiverName || returnsReceiverName.includes('Іскра Олександр') || returnsReceiverName.includes('Іскра О.В.')) {
+          returnsReceiverName = initialSiteSettings.returnsReceiverName;
+        }
         return {
           ...initialSiteSettings,
           ...parsed,
           city,
+          fopName,
+          returnsReceiverName,
           features: { ...initialSiteSettings.features, ...(parsed.features || {}) }
         };
       } catch (e) { console.error(e); }
@@ -547,7 +557,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Navigation & session lifecycle:
   // When the user closes the site completely and enters anew, always load the main home page ('store').
-  const [activeView, setActiveView] = useState<'store' | 'account' | 'admin'>(() => {
+  const [activeView, setActiveView] = useState<'store' | 'account' | 'admin' | 'about' | 'returns'>(() => {
     if (typeof window !== 'undefined') {
       const isNewSession = !sessionStorage.getItem('iskra_session_active');
       localStorage.removeItem('iskra_active_view');
@@ -565,8 +575,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       // If page was merely refreshed (F5) within the same open tab session
       const saved = sessionStorage.getItem('iskra_active_view');
-      if (saved === 'admin' || saved === 'account' || saved === 'store') {
-        return saved;
+      if (saved === 'admin' || saved === 'account' || saved === 'store' || saved === 'about' || saved === 'returns') {
+        return saved as 'store' | 'account' | 'admin' | 'about' | 'returns';
       }
     }
     return 'store';

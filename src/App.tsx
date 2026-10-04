@@ -4,6 +4,8 @@ import { Header } from './components/Header';
 import { StoreFront } from './components/StoreFront';
 import { AccountView } from './components/AccountView';
 import { AdminPanel } from './components/AdminPanel';
+import { AboutSellerPage } from './components/AboutSellerPage';
+import { ReturnsExchangePage } from './components/ReturnsExchangePage';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { ProductDetailModal } from './components/ProductDetailModal';
@@ -28,6 +30,8 @@ const AppContent: React.FC = () => {
         {activeView === 'store' && <StoreFront />}
         {activeView === 'account' && <AccountView />}
         {activeView === 'admin' && <AdminPanel />}
+        {activeView === 'about' && <AboutSellerPage />}
+        {activeView === 'returns' && <ReturnsExchangePage />}
       </div>
 
       {/* Floating Pulsating Consultation Widget */}
