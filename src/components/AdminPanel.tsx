@@ -73,6 +73,16 @@ import {
   Copy,
   MessageCircle,
   RotateCcw,
+  BarChart3,
+  Activity,
+  Calendar,
+  TrendingDown,
+  Layers,
+  Award,
+  Download,
+  CircleDollarSign,
+  Coins,
+  Zap,
   X
 } from 'lucide-react';
 import { 
@@ -847,6 +857,10 @@ export const AdminPanel: React.FC = () => {
   const [confirmClearAllOrders, setConfirmClearAllOrders] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [addOrderItemId, setAddOrderItemId] = useState<string>('');
+
+  // Analytics states
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<'all' | '30d' | '7d' | 'today'>('all');
+  const [analyticsMetric, setAnalyticsMetric] = useState<'revenue' | 'orders'>('revenue');
 
   // Client edit/add modal state
   const [clientModalOpen, setClientModalOpen] = useState(false);
@@ -3081,9 +3095,10 @@ export const AdminPanel: React.FC = () => {
                   siteSettings.features?.ordersEnabled ?? true,
                   siteSettings.features?.loyaltyEnabled ?? true,
                   siteSettings.features?.reviewsEnabled ?? true,
+                  siteSettings.features?.personalDiscountEnabled ?? true,
                   siteSettings.features?.showExactStock ?? true,
                   siteSettings.features?.floatingCallBtn ?? true,
-                ].filter(Boolean).length} з 5 модулів
+                ].filter(Boolean).length} з 6 модулів
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                 <Database className="w-3.5 h-3.5 text-emerald-600" />
@@ -3097,7 +3112,7 @@ export const AdminPanel: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
                 <span>🚀 Ключові модулі вітрини та конверсії</span>
-                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">5 модулів</span>
+                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">6 модулів</span>
               </h4>
             </div>
 
@@ -3157,7 +3172,7 @@ export const AdminPanel: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        Вмикає нарахування кешбеку на баланс за покупки, історію замовлень та персональні знижки за телефоном.
+                        Вмикає нарахування кешбеку на баланс за покупки, історію замовлень та збереження профілю покупця.
                       </p>
                     </div>
                   </div>
@@ -3178,7 +3193,45 @@ export const AdminPanel: React.FC = () => {
                 </div>
               </div>
 
-              {/* 3. Відгуки та оцінки покупців на сайті */}
+              {/* 3. Персональна знижка покупців */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Percent className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <b className="text-xs sm:text-sm font-bold text-slate-900">Персональна знижка клієнтів</b>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          (siteSettings.features?.personalDiscountEnabled ?? true) ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          {(siteSettings.features?.personalDiscountEnabled ?? true) ? 'Знижки активні' : 'Вимкнено'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Дозволяє покупцям накопичувати та використовувати індивідуальні знижки в кошику за номером телефону або рівнем клієнта.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => updateSiteFeatures({ personalDiscountEnabled: !(siteSettings.features?.personalDiscountEnabled ?? true) })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                      (siteSettings.features?.personalDiscountEnabled ?? true) ? 'bg-rose-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (siteSettings.features?.personalDiscountEnabled ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. Відгуки та оцінки покупців на сайті */}
               <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
@@ -3216,7 +3269,7 @@ export const AdminPanel: React.FC = () => {
                 </div>
               </div>
 
-              {/* 4. Відображення точної кількості */}
+              {/* 5. Відображення точної кількості */}
               <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
@@ -3254,8 +3307,8 @@ export const AdminPanel: React.FC = () => {
                 </div>
               </div>
 
-              {/* 5. Плаваюча кнопка швидкого дзвінка */}
-              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3 md:col-span-2">
+              {/* 6. Плаваюча кнопка швидкого дзвінка */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
@@ -3291,6 +3344,388 @@ export const AdminPanel: React.FC = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Section 2: Dedicated Personal Discount & Loyalty Program Configuration */}
+          <div className="p-5 sm:p-6 bg-gradient-to-br from-rose-50/90 via-white to-purple-50/50 border border-rose-200/90 rounded-2xl shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-rose-200/70">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-pink-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                  <Percent className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-slate-900 text-sm uppercase tracking-wider text-rose-950">
+                      Налаштування персональних знижок та програми лояльності
+                    </h4>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                      (siteSettings.features?.personalDiscountEnabled ?? true) ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {(siteSettings.features?.personalDiscountEnabled ?? true) ? 'Модуль увімкнено' : 'Вимкнено'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Гнучкі правила нарахування індивідуальних знижок покупцям, накопичувальні рівні та сумісність із промокодами
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('clients')}
+                  className="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 border border-rose-200 text-xs text-rose-700 font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                >
+                  <Users className="w-3.5 h-3.5 text-rose-600" />
+                  <span>База клієнтів ({Object.keys(clients).length})</span>
+                  <ArrowLeft className="w-3 h-3 rotate-180" />
+                </button>
+              </div>
+            </div>
+
+            {/* Grid of Key Personal Discount Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
+              {/* 1. Default Personal Discount % */}
+              <div className="p-4 bg-white rounded-xl border border-rose-100 shadow-2xs space-y-2.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+                      Базовий % для нових клієнтів
+                    </label>
+                    <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md">
+                      {siteSettings.features?.defaultPersonalDiscountPercent ?? 3}%
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-normal">
+                    Автоматично призначається новому покупцеві при оформленні замовлення або реєстрації.
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={siteSettings.features?.defaultPersonalDiscountPercent ?? 3}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          if (raw === '') return;
+                          const val = Math.max(0, Math.min(50, parseInt(raw, 10) || 0));
+                          updateSiteFeatures({ defaultPersonalDiscountPercent: val });
+                        }}
+                        className="w-20 px-2.5 py-1.5 border border-slate-300 rounded-lg font-bold font-mono text-center bg-white text-slate-900 text-sm shadow-2xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                      />
+                      <span className="absolute inset-y-0 right-2 flex items-center text-slate-400 font-bold">%</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      {[0, 3, 5, 7, 10].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => updateSiteFeatures({ defaultPersonalDiscountPercent: pct })}
+                          className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                            (siteSettings.features?.defaultPersonalDiscountPercent ?? 3) === pct
+                              ? 'bg-rose-500 text-white shadow-2xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Max Discount Limit (Safety Cap) */}
+              <div className="p-4 bg-white rounded-xl border border-rose-100 shadow-2xs space-y-2.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
+                      Максимальний ліміт знижки (%)
+                    </label>
+                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                      макс. {siteSettings.features?.maxPersonalDiscountPercent ?? 20}%
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-normal">
+                    Захист маржинальності: знижка клієнта в кошику ніколи не перевищить цей поріг.
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="5"
+                        max="70"
+                        value={siteSettings.features?.maxPersonalDiscountPercent ?? 20}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          if (raw === '') return;
+                          const val = Math.max(5, Math.min(70, parseInt(raw, 10) || 5));
+                          updateSiteFeatures({ maxPersonalDiscountPercent: val });
+                        }}
+                        className="w-20 px-2.5 py-1.5 border border-slate-300 rounded-lg font-bold font-mono text-center bg-white text-slate-900 text-sm shadow-2xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                      <span className="absolute inset-y-0 right-2 flex items-center text-slate-400 font-bold">%</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      {[10, 15, 20, 25, 30].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => updateSiteFeatures({ maxPersonalDiscountPercent: pct })}
+                          className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                            (siteSettings.features?.maxPersonalDiscountPercent ?? 20) === pct
+                              ? 'bg-indigo-600 text-white shadow-2xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Min Order Sum for Personal Discount */}
+              <div className="p-4 bg-white rounded-xl border border-rose-100 shadow-2xs space-y-2.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Coins className="w-3.5 h-3.5 text-amber-500" />
+                      Мін. сума кошика для знижки
+                    </label>
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+                      {(siteSettings.features?.minOrderSumForPersonalDiscount ?? 0) > 0 
+                        ? `від ${siteSettings.features?.minOrderSumForPersonalDiscount} грн` 
+                        : 'Без обмежень'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-normal">
+                    Персональна знижка спрацьовує, якщо сума замовлення перевищує вказаний поріг.
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        step="50"
+                        value={siteSettings.features?.minOrderSumForPersonalDiscount ?? 0}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          if (raw === '') return;
+                          const val = Math.max(0, parseInt(raw, 10) || 0);
+                          updateSiteFeatures({ minOrderSumForPersonalDiscount: val });
+                        }}
+                        className="w-24 px-2.5 py-1.5 border border-slate-300 rounded-lg font-bold font-mono text-center bg-white text-slate-900 text-sm shadow-2xs outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                      />
+                      <span className="absolute inset-y-0 right-2 flex items-center text-slate-400 font-bold text-[11px]">грн</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      {[0, 200, 500, 1000].map((sum) => (
+                        <button
+                          key={sum}
+                          type="button"
+                          onClick={() => updateSiteFeatures({ minOrderSumForPersonalDiscount: sum })}
+                          className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                            (siteSettings.features?.minOrderSumForPersonalDiscount ?? 0) === sum
+                              ? 'bg-amber-500 text-white shadow-2xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {sum === 0 ? '0 грн' : `${sum}₴`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sub-row: Combine with Promo Codes + Cashback % */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Combine with promo codes toggle */}
+              <div className="p-4 bg-white rounded-xl border border-rose-100 shadow-2xs flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <b className="text-xs font-bold text-slate-900">Суміщення з промокодами</b>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                      siteSettings.features?.combinePersonalDiscountWithPromo ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
+                    }`}>
+                      {siteSettings.features?.combinePersonalDiscountWithPromo ? 'Сумувати знижки' : 'Обирати найбільшу'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    {siteSettings.features?.combinePersonalDiscountWithPromo 
+                      ? 'Персональна знижка клієнта та промокод підсумовуються (до макс. ліміту).' 
+                      : 'Застосовується виключно вигідніша для покупця знижка (або персональна, або промокод).'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => updateSiteFeatures({ combinePersonalDiscountWithPromo: !siteSettings.features?.combinePersonalDiscountWithPromo })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                    siteSettings.features?.combinePersonalDiscountWithPromo ? 'bg-emerald-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      siteSettings.features?.combinePersonalDiscountWithPromo ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Cashback % */}
+              <div className="p-4 bg-white rounded-xl border border-purple-100 shadow-2xs flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <b className="text-xs font-bold text-slate-900">Бонусний кешбек на баланс</b>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                      +{siteSettings.features?.cashbackPercent ?? 2}% за кожну покупку
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Відсоток від суми замовлення повертається на особистий рахунок покупця для наступних оплат.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="30"
+                      value={siteSettings.features?.cashbackPercent ?? 2}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === '') return;
+                        const val = Math.max(0, Math.min(30, parseInt(raw, 10) || 0));
+                        updateSiteFeatures({ cashbackPercent: val });
+                      }}
+                      className="w-16 px-2 py-1.5 border border-slate-300 rounded-lg font-bold font-mono text-center bg-white text-slate-900 text-xs shadow-2xs outline-none focus:border-purple-500"
+                    />
+                    <span className="absolute inset-y-0 right-2 flex items-center text-slate-400 font-bold text-xs">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2.3: Cumulative Loyalty Tier Levels Info */}
+            <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-amber-500" />
+                  <h5 className="font-bold text-xs text-slate-900">
+                    Накопичувальні дисконтні рівні покупців магазину
+                  </h5>
+                </div>
+                <span className="text-[11px] font-semibold text-slate-500">
+                  Автоматичне підвищення знижки від суми покупок
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                <div className="p-2.5 rounded-xl border border-amber-200/70 bg-amber-50/40 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-amber-900 flex items-center gap-1">🥉 Бронза</span>
+                    <span className="font-extrabold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded text-[11px]">{siteSettings.features?.defaultPersonalDiscountPercent ?? 3}%</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">При першому замовленні (від 0 грн)</p>
+                </div>
+
+                <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800 flex items-center gap-1">🥈 Срібло</span>
+                    <span className="font-extrabold text-slate-700 bg-slate-200 px-1.5 py-0.5 rounded text-[11px]">5%</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Сума замовлень від 3 000 грн</p>
+                </div>
+
+                <div className="p-2.5 rounded-xl border border-yellow-200/90 bg-yellow-50/50 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-yellow-900 flex items-center gap-1">🥇 Золото</span>
+                    <span className="font-extrabold text-yellow-800 bg-yellow-100 px-1.5 py-0.5 rounded text-[11px]">7%</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Сума замовлень від 10 000 грн</p>
+                </div>
+
+                <div className="p-2.5 rounded-xl border border-purple-200/90 bg-purple-50/50 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-purple-900 flex items-center gap-1">💎 Платина / VIP</span>
+                    <span className="font-extrabold text-purple-800 bg-purple-100 px-1.5 py-0.5 rounded text-[11px]">10%</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Сума замовлень від 25 000 грн</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Interactive Simulator */}
+            <div className="p-4 bg-slate-900 text-white rounded-xl shadow-xs space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-rose-400" />
+                  <span className="font-bold text-slate-200 uppercase tracking-wider text-[11px]">
+                    Інтерактивний симулятор розрахунку вигоди клієнта в кошику
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-rose-300 bg-rose-950/80 px-2 py-0.5 rounded-md border border-rose-800/60">
+                  ● Живий перерахунок
+                </span>
+              </div>
+
+              {(() => {
+                const testSum = 2000;
+                const isPDEnabled = siteSettings.features?.personalDiscountEnabled ?? true;
+                const minOrder = siteSettings.features?.minOrderSumForPersonalDiscount ?? 0;
+                const maxCap = siteSettings.features?.maxPersonalDiscountPercent ?? 20;
+                const basePct = isPDEnabled && testSum >= minOrder
+                  ? Math.min(maxCap, siteSettings.features?.defaultPersonalDiscountPercent ?? 3)
+                  : 0;
+                const discountVal = (testSum * basePct) / 100;
+                const toPay = testSum - discountVal;
+                const isLoyaltyEnabled = siteSettings.features?.loyaltyEnabled ?? true;
+                const cPct = isLoyaltyEnabled ? (siteSettings.features?.cashbackPercent ?? 2) : 0;
+                const bonusVal = Math.round((toPay * cPct) / 100);
+
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs pt-1">
+                    <div className="p-2.5 bg-slate-800/90 rounded-lg border border-slate-700/80">
+                      <span className="text-[10px] text-slate-400 block">Сума замовлення:</span>
+                      <span className="font-bold text-white text-sm">2 000.00 грн</span>
+                    </div>
+                    <div className="p-2.5 bg-rose-950/50 rounded-lg border border-rose-900/60">
+                      <span className="text-[10px] text-rose-300 block">Персональна знижка ({basePct}%):</span>
+                      <span className="font-bold text-rose-400 text-sm">-{discountVal.toFixed(2)} грн</span>
+                    </div>
+                    <div className="p-2.5 bg-emerald-950/50 rounded-lg border border-emerald-900/60">
+                      <span className="text-[10px] text-emerald-300 block">Разом до сплати:</span>
+                      <span className="font-black text-emerald-400 text-sm">{toPay.toFixed(2)} грн</span>
+                    </div>
+                    <div className="p-2.5 bg-purple-950/50 rounded-lg border border-purple-900/60">
+                      <span className="text-[10px] text-purple-300 block">Бонусний кешбек (+{cPct}%):</span>
+                      <span className="font-bold text-purple-400 text-sm">+{bonusVal} грн</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -3560,67 +3995,796 @@ export const AdminPanel: React.FC = () => {
       )}
 
       {/* TAB: ANALYTICS & REPORTS */}
-      {activeTab === 'analytics' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-emerald-600" />
-              <span>Аналітика продажів та активність магазину</span>
-            </h3>
-            <p className="text-xs text-slate-500">
-              Показники виручки, ефективність категорій та розподіл статусів
-            </p>
-          </div>
+      {activeTab === 'analytics' && (() => {
+        // --- 1. PERIOD FILTERING & CALCULATION ---
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const sevenDaysAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+        const thirtyDaysAgo = now.getTime() - 30 * 24 * 60 * 60 * 1000;
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
-                Розподіл за статусами:
-              </h4>
-              <div className="space-y-2 text-xs">
-                {['Створено', 'Оплачено', 'Збирається', 'Відправлено', 'Доставлено'].map((st) => {
-                  const count = orders.filter((o) => o.status === st).length;
-                  const percent = orders.length > 0 ? Math.round((count / orders.length) * 100) : 0;
-                  return (
-                    <div key={st} className="space-y-1">
-                      <div className="flex justify-between font-medium">
-                        <span>{st}</span>
-                        <span className="font-bold">{count} ({percent}%)</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-orange-500 rounded-full"
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
+        const filteredOrders = orders.filter((o) => {
+          if (analyticsPeriod === 'all') return true;
+          // Attempt parsing order date
+          let orderTime = 0;
+          if (o.date) {
+            const parts = o.date.split('.');
+            if (parts.length === 3) {
+              const day = parseInt(parts[0], 10);
+              const month = parseInt(parts[1], 10) - 1;
+              const year = parseInt(parts[2], 10);
+              orderTime = new Date(year, month, day).getTime();
+            } else {
+              orderTime = new Date(o.date).getTime();
+            }
+          }
+          if (isNaN(orderTime) || orderTime <= 0) return true; // Include if date format unparsed
+
+          if (analyticsPeriod === 'today') return orderTime >= startOfToday;
+          if (analyticsPeriod === '7d') return orderTime >= sevenDaysAgo;
+          if (analyticsPeriod === '30d') return orderTime >= thirtyDaysAgo;
+          return true;
+        });
+
+        // Financial KPIs
+        const totalRevenue = filteredOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+        const completedOrders = filteredOrders.filter((o) => o.status === 'Доставлено' || o.status === 'Оплачено' || o.status === 'Відправлено');
+        const completedRevenue = completedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+        const pendingOrders = filteredOrders.filter((o) => o.status === 'Створено' || o.status === 'Збирається');
+        const pendingRevenue = pendingOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+        const ordersCount = filteredOrders.length;
+        const avgOrderValue = ordersCount > 0 ? totalRevenue / ordersCount : 0;
+        
+        // Total Items Sold in Filtered Orders
+        let totalItemsSold = 0;
+        const productSalesMap: Record<string, { qty: number; revenue: number; product?: Product }> = {};
+        const categorySalesMap: Record<string, { revenue: number; count: number }> = {};
+
+        filteredOrders.forEach((o) => {
+          if (Array.isArray(o.items)) {
+            o.items.forEach((item) => {
+              const qty = item.qty || 1;
+              const price = item.price || 0;
+              const itemTotal = price * qty;
+              totalItemsSold += qty;
+
+              // Aggregate by Product
+              const pId = item.name;
+              if (!productSalesMap[pId]) {
+                const foundProduct = products.find(p => p.name === item.name || (item.sku && p.sku === item.sku));
+                productSalesMap[pId] = {
+                  qty: 0,
+                  revenue: 0,
+                  product: foundProduct || {
+                    id: 'p_' + pId,
+                    name: item.name,
+                    price: item.price,
+                    image: item.image || '',
+                    category: 'Товари',
+                    badge: '',
+                    sku: item.sku || '—',
+                    desc: '',
+                    stock: 10,
+                    unit: item.unit || 'шт'
+                  }
+                };
+              }
+              productSalesMap[pId].qty += qty;
+              productSalesMap[pId].revenue += itemTotal;
+
+              // Aggregate by Category
+              const cat = productSalesMap[pId].product?.category || 'Товари';
+              if (!categorySalesMap[cat]) {
+                categorySalesMap[cat] = { revenue: 0, count: 0 };
+              }
+              categorySalesMap[cat].revenue += itemTotal;
+              categorySalesMap[cat].count += qty;
+            });
+          }
+        });
+
+        // Top Bestseller Products
+        const sortedBestsellers = Object.values(productSalesMap)
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 6);
+
+        // Top Categories
+        const sortedCategories = Object.entries(categorySalesMap)
+          .map(([name, data]) => ({
+            name,
+            revenue: data.revenue,
+            count: data.count,
+            percent: totalRevenue > 0 ? Math.round((data.revenue / totalRevenue) * 100) : 0
+          }))
+          .sort((a, b) => b.revenue - a.revenue);
+
+        // Deliveries Breakdown
+        const deliveryMap: Record<string, number> = {
+          'Нова Пошта (Відділення)': 0,
+          'Нова Пошта (Поштомат)': 0,
+          'Укрпошта': 0,
+          'Самовивіз': 0
+        };
+        filteredOrders.forEach((o) => {
+          const d = o.delivery || '';
+          if (d.includes('Поштомат')) deliveryMap['Нова Пошта (Поштомат)']++;
+          else if (d.includes('Нова Пошта')) deliveryMap['Нова Пошта (Відділення)']++;
+          else if (d.includes('Укрпошта')) deliveryMap['Укрпошта']++;
+          else deliveryMap['Самовивіз']++;
+        });
+
+        // Payments Breakdown
+        const paymentMap: Record<string, number> = {
+          'Онлайн-оплата карткою': 0,
+          'Післяплата (при отриманні)': 0,
+          'Безготівковий розрахунок': 0
+        };
+        filteredOrders.forEach((o) => {
+          const p = (o.paymentMethod || '') + ' ' + (o.delivery || '');
+          if (o.paymentMethod === 'card_online' || p.includes('картк') || p.includes('LiqPay') || p.includes('Mono')) {
+            paymentMap['Онлайн-оплата карткою']++;
+          } else if (o.paymentMethod === 'bank_invoice' || p.includes('Безготівк') || p.includes('IBAN')) {
+            paymentMap['Безготівковий розрахунок']++;
+          } else {
+            paymentMap['Післяплата (при отриманні)']++;
+          }
+        });
+
+        // Client activity & bonuses
+        const totalClientsCount = Object.keys(clients).length;
+        const totalCashbackLiability = Object.values(clients).reduce((sum, c) => sum + (c.balance || 0), 0);
+
+        // 14-Day Activity Bar Chart Data Generation
+        const daysCount = 14;
+        const dailyTimeline: Array<{ dayLabel: string; dateStr: string; revenue: number; ordersCount: number }> = [];
+        for (let i = daysCount - 1; i >= 0; i--) {
+          const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+          const dayFormatted = d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+          const dateMatch = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+          
+          let dayRev = 0;
+          let dayOrders = 0;
+          orders.forEach((o) => {
+            if (o.date && o.date.includes(dateMatch)) {
+              dayRev += o.total || 0;
+              dayOrders++;
+            }
+          });
+
+          dailyTimeline.push({
+            dayLabel: dayFormatted,
+            dateStr: dateMatch,
+            revenue: dayRev,
+            ordersCount: dayOrders
+          });
+        }
+
+        const maxDailyRev = Math.max(...dailyTimeline.map(t => t.revenue), 1000);
+
+        return (
+          <div className="space-y-6 max-w-6xl">
+            
+            {/* 1. Header & Period Filter Bar */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-bold text-slate-900 leading-tight">
+                        Аналітика продажів та активність магазину
+                      </h3>
+                      <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Live Дані
+                      </span>
                     </div>
-                  );
-                })}
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Виручка, середній чек, динаміка замовлень, популярні категорії та активність клієнтів
+                    </p>
+                  </div>
+                </div>
+
+                {/* Period Segmented Control */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
+                    {[
+                      { id: 'today', label: 'Сьогодні' },
+                      { id: '7d', label: '7 днів' },
+                      { id: '30d', label: '30 днів' },
+                      { id: 'all', label: 'Весь час' }
+                    ].map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setAnalyticsPeriod(p.id as any)}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                          analyticsPeriod === p.id
+                            ? 'bg-slate-900 text-white shadow-sm'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.print();
+                    }}
+                    className="p-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl transition-all shadow-2xs cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+                    title="Роздрукувати звіт"
+                  >
+                    <Printer className="w-4 h-4 text-slate-500" />
+                    <span className="hidden sm:inline">Друк</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Period Summary Badge */}
+              <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <span>
+                    Аналіз за період: <strong className="text-slate-800">
+                      {analyticsPeriod === 'today' && 'Сьогодні'}
+                      {analyticsPeriod === '7d' && 'Останні 7 календарних днів'}
+                      {analyticsPeriod === '30d' && 'Останні 30 календарних днів'}
+                      {analyticsPeriod === 'all' && 'Увесь період роботи магазину'}
+                    </strong>
+                  </span>
+                  <span>·</span>
+                  <span>Враховано замовлень: <strong className="text-slate-900">{ordersCount}</strong></span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-emerald-600 font-medium">
+                    Виконано & Оплачено: <b>{completedRevenue.toFixed(2)} грн</b>
+                  </span>
+                  {pendingRevenue > 0 && (
+                    <>
+                      <span>·</span>
+                      <span className="text-amber-600 font-medium">
+                        В обробці: <b>{pendingRevenue.toFixed(2)} грн</b>
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 md:col-span-2">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
-                Останні транзакції та продажі:
-              </h4>
-              <div className="divide-y divide-slate-200 text-xs">
-                {orders.slice(0, 5).map((o) => (
-                  <div key={o.id} className="py-2.5 flex justify-between items-center">
-                    <div>
-                      <b className="text-slate-900">№{o.id}</b> · {o.fio}
-                      <div className="text-[11px] text-slate-400">{o.date} · {o.delivery}</div>
+            {/* 2. Primary KPI Executive Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Total Revenue */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-300 transition-all">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Загальний Оборот
+                    </span>
+                    <div className="text-2xl font-black font-display text-slate-900 leading-tight">
+                      {totalRevenue.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <span className="text-sm font-semibold text-slate-500 ml-1">грн</span>
                     </div>
-                    <div className="text-right">
-                      <span className="font-bold text-emerald-600 text-sm">{o.total.toFixed(2)} грн</span>
-                      <div className="text-[10px] text-slate-500">{o.status}</div>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Виконано замовлень:</span>
+                  <span className="font-bold text-emerald-600">{completedOrders.length} із {ordersCount}</span>
+                </div>
+              </div>
+
+              {/* Card 2: Orders Count */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-orange-300 transition-all">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Кількість Замовлень
+                    </span>
+                    <div className="text-2xl font-black font-display text-slate-900 leading-tight">
+                      {ordersCount}
+                      <span className="text-sm font-semibold text-slate-500 ml-1">замовл.</span>
+                    </div>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 border border-orange-100">
+                    <ShoppingCart className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Товарів продано:</span>
+                  <span className="font-bold text-orange-600">{totalItemsSold} од.</span>
+                </div>
+              </div>
+
+              {/* Card 3: Average Order Value (AOV) */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-sky-300 transition-all">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Середній Чек (AOV)
+                    </span>
+                    <div className="text-2xl font-black font-display text-slate-900 leading-tight">
+                      {avgOrderValue.toFixed(2)}
+                      <span className="text-sm font-semibold text-slate-500 ml-1">грн</span>
+                    </div>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 border border-sky-100">
+                    <CircleDollarSign className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Асортимент вітрини:</span>
+                  <span className="font-bold text-sky-600">{products.length} товарів</span>
+                </div>
+              </div>
+
+              {/* Card 4: Clients & Loyalty Program */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-purple-300 transition-all">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Клієнти та Лояльність
+                    </span>
+                    <div className="text-2xl font-black font-display text-slate-900 leading-tight">
+                      {totalClientsCount}
+                      <span className="text-sm font-semibold text-slate-500 ml-1">покупців</span>
+                    </div>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
+                    <Users className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Кешбек-баланс:</span>
+                  <span className="font-bold text-purple-600">{totalCashbackLiability.toFixed(2)} грн</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Visual 14-Day Activity & Sales Bar Chart */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-emerald-600" />
+                    <span>Динаміка виручки та активності за останні 14 днів</span>
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Щоденний обсяг продажів та кількість оформлених замовлень
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                    <span className="w-3 h-3 rounded-sm bg-gradient-to-t from-emerald-600 to-teal-400" />
+                    <span>Виручка (грн)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-orange-500" />
+                    <span>Замовлення</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Interactive Bar Chart Strip */}
+              <div className="pt-4 pb-2">
+                <div className="grid grid-cols-14 gap-1.5 sm:gap-3 items-end h-48 sm:h-56 px-1">
+                  {dailyTimeline.map((item, idx) => {
+                    const heightPercent = maxDailyRev > 0 ? Math.min(100, Math.max(6, Math.round((item.revenue / maxDailyRev) * 100))) : 6;
+                    const isToday = idx === dailyTimeline.length - 1;
+
+                    return (
+                      <div
+                        key={item.dateStr + idx}
+                        className="flex flex-col items-center justify-end h-full group relative"
+                      >
+                        {/* Hover Tooltip */}
+                        <div className="absolute -top-12 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-150 transform -translate-y-1 bg-slate-900 text-white text-[11px] font-semibold py-1 px-2.5 rounded-lg shadow-xl whitespace-nowrap">
+                          <div>{item.dayLabel}: <b>{item.revenue.toFixed(2)} грн</b></div>
+                          <div className="text-[10px] text-slate-300">{item.ordersCount} замовлень</div>
+                          <div className="w-2 h-2 bg-slate-900 rotate-45 mx-auto -mb-2 transform translate-y-1" />
+                        </div>
+
+                        {/* Top dot for orders count */}
+                        {item.ordersCount > 0 && (
+                          <span className="text-[10px] font-bold text-orange-600 mb-1 opacity-80 group-hover:opacity-100">
+                            {item.ordersCount}
+                          </span>
+                        )}
+
+                        {/* Bar Pillar */}
+                        <div className="w-full max-w-[36px] bg-slate-100 rounded-t-lg overflow-hidden flex flex-col justify-end transition-all group-hover:bg-slate-200">
+                          <div
+                            className={`w-full rounded-t-lg transition-all duration-500 ${
+                              item.revenue > 0
+                                ? isToday
+                                  ? 'bg-gradient-to-t from-emerald-600 via-teal-500 to-emerald-400 shadow-sm'
+                                  : 'bg-gradient-to-t from-emerald-600 to-teal-400 group-hover:from-emerald-500 group-hover:to-teal-300'
+                                : 'bg-slate-200'
+                            }`}
+                            style={{ height: `${heightPercent}%` }}
+                          />
+                        </div>
+
+                        {/* Date Label */}
+                        <div className="mt-2 text-center">
+                          <span className={`text-[10px] sm:text-[11px] font-medium block truncate max-w-[40px] ${
+                            isToday ? 'text-emerald-700 font-bold' : 'text-slate-500'
+                          }`}>
+                            {isToday ? 'Сьогодні' : item.dayLabel.split(' ')[0]}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Two-Column Deep Breakdown: Categories & Status Funnel */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Left Col: Category Share & Leaderboard */}
+              <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-purple-600" />
+                    <span>Частка категорій у продажах</span>
+                  </h4>
+                  <span className="text-xs text-slate-400">За вибраний період</span>
+                </div>
+
+                {sortedCategories.length > 0 ? (
+                  <div className="space-y-3 text-xs">
+                    {sortedCategories.map((cat, idx) => {
+                      const colors = [
+                        'bg-red-500',
+                        'bg-orange-500',
+                        'bg-amber-500',
+                        'bg-emerald-500',
+                        'bg-sky-500',
+                        'bg-indigo-500',
+                        'bg-purple-500'
+                      ];
+                      const color = colors[idx % colors.length];
+
+                      return (
+                        <div key={cat.name} className="space-y-1.5 p-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-900 truncate max-w-[200px]">
+                              {cat.name}
+                            </span>
+                            <div className="text-right">
+                              <span className="font-bold text-slate-900">{cat.revenue.toFixed(2)} грн</span>
+                              <span className="text-slate-400 ml-1.5">({cat.percent}%)</span>
+                            </div>
+                          </div>
+                          
+                          {/* Progress bar */}
+                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${color} rounded-full transition-all duration-500`}
+                              style={{ width: `${Math.max(4, cat.percent)}%` }}
+                            />
+                          </div>
+                          <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                            <span>{cat.count} од. продано</span>
+                            <span>{cat.percent}% обороту</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-slate-400 text-xs">
+                    Немає даних про продажі категорій за вибраний період
+                  </div>
+                )}
+              </div>
+
+              {/* Right Col: Order Status Funnel & Payment/Delivery */}
+              <div className="lg:col-span-6 space-y-6">
+                
+                {/* Status Pipeline Card */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-orange-600" />
+                      <span>Воронка статусів замовлень</span>
+                    </h4>
+                    <span className="text-xs text-slate-400">Всього: {ordersCount}</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {[
+                      { status: 'Створено', color: 'bg-amber-50 border-amber-200 text-amber-900', barColor: 'bg-amber-500', icon: Clock },
+                      { status: 'Оплачено', color: 'bg-emerald-50 border-emerald-200 text-emerald-900', barColor: 'bg-emerald-500', icon: CheckCircle2 },
+                      { status: 'Збирається', color: 'bg-indigo-50 border-indigo-200 text-indigo-900', barColor: 'bg-indigo-500', icon: Package },
+                      { status: 'Відправлено', color: 'bg-sky-50 border-sky-200 text-sky-900', barColor: 'bg-sky-500', icon: Truck },
+                      { status: 'Доставлено', color: 'bg-teal-50 border-teal-200 text-teal-900', barColor: 'bg-teal-600', icon: Award },
+                      { status: 'Скасовано', color: 'bg-rose-50 border-rose-200 text-rose-900', barColor: 'bg-rose-500', icon: AlertTriangle }
+                    ].map((item) => {
+                      const stOrders = filteredOrders.filter(o => o.status === item.status);
+                      const stCount = stOrders.length;
+                      const stSum = stOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+                      const stPercent = ordersCount > 0 ? Math.round((stCount / ordersCount) * 100) : 0;
+                      const IconComp = item.icon;
+
+                      return (
+                        <div key={item.status} className={`p-3 rounded-xl border ${item.color} flex flex-col justify-between space-y-2`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 font-bold">
+                              <IconComp className="w-3.5 h-3.5 shrink-0" />
+                              <span>{item.status}</span>
+                            </div>
+                            <span className="font-extrabold text-sm">{stCount}</span>
+                          </div>
+
+                          <div>
+                            <div className="w-full h-1.5 bg-black/10 rounded-full overflow-hidden mb-1">
+                              <div className={`h-full ${item.barColor} rounded-full`} style={{ width: `${stPercent}%` }} />
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] opacity-80">
+                              <span>{stPercent}%</span>
+                              <span className="font-semibold">{stSum.toFixed(2)} грн</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Delivery & Payment Distribution Card */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                  <h4 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-sky-600" />
+                    <span>Служби доставки та способи оплати</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    {/* Delivery List */}
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Доставка:
+                      </span>
+                      {Object.entries(deliveryMap).map(([name, count]) => (
+                        <div key={name} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
+                          <span className="text-slate-700 truncate pr-2">{name}</span>
+                          <span className="font-bold text-slate-900 shrink-0">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Payment List */}
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Оплата:
+                      </span>
+                      {Object.entries(paymentMap).map(([name, count]) => (
+                        <div key={name} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
+                          <span className="text-slate-700 truncate pr-2">{name}</span>
+                          <span className="font-bold text-slate-900 shrink-0">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* 5. Top Bestsellers Leaderboard */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xs">
+                    <Flame className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">
+                      Хіти продажів та найпопулярніші товари (Leaderboard)
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Товари, які генерують найбільшу виручку та кількість замовлень
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('products')}
+                  className="text-xs text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                >
+                  <span>Весь каталог товарів</span>
+                  <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
+                </button>
+              </div>
+
+              {sortedBestsellers.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                        <th className="py-2.5 px-3">Ранг</th>
+                        <th className="py-2.5 px-3">Товар</th>
+                        <th className="py-2.5 px-3">Категорія</th>
+                        <th className="py-2.5 px-3 text-right">Ціна за од.</th>
+                        <th className="py-2.5 px-3 text-center">Продано</th>
+                        <th className="py-2.5 px-3 text-right">Сума продажів</th>
+                        <th className="py-2.5 px-3 text-right">Залишок на складі</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {sortedBestsellers.map((item, idx) => {
+                        const p = item.product;
+                        const rankColors = [
+                          'bg-amber-100 text-amber-800 border-amber-300 font-black',
+                          'bg-slate-200 text-slate-800 border-slate-300 font-bold',
+                          'bg-orange-100 text-orange-800 border-orange-300 font-bold'
+                        ];
+                        const rankBadge = rankColors[idx] || 'bg-slate-50 text-slate-600 border-slate-200 font-medium';
+
+                        return (
+                          <tr key={p?.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                            {/* Rank */}
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs border ${rankBadge}`}>
+                                #{idx + 1}
+                              </span>
+                            </td>
+
+                            {/* Product Info */}
+                            <td className="py-3 px-3 min-w-[220px]">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                                  {p?.image ? (
+                                    <img src={getSafeImageUrl(p.image)} alt={p.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Package className="w-5 h-5 text-slate-400" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-bold text-slate-900 truncate max-w-[280px]">
+                                    {p?.name || 'Товар'}
+                                  </div>
+                                  <div className="text-[11px] text-slate-400 font-mono">
+                                    Арт: {p?.sku || p?.id || '—'}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Category */}
+                            <td className="py-3 px-3 text-slate-600 font-medium whitespace-nowrap">
+                              {p?.category || '—'}
+                            </td>
+
+                            {/* Unit Price */}
+                            <td className="py-3 px-3 text-right font-semibold text-slate-800 whitespace-nowrap">
+                              {p?.price?.toFixed(2) || '0.00'} грн
+                            </td>
+
+                            {/* Qty Sold */}
+                            <td className="py-3 px-3 text-center whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1 font-extrabold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md">
+                                <Zap className="w-3 h-3 text-orange-500 fill-current" />
+                                {item.qty} {p?.unit || 'од.'}
+                              </span>
+                            </td>
+
+                            {/* Total Revenue */}
+                            <td className="py-3 px-3 text-right font-black text-emerald-600 text-sm whitespace-nowrap">
+                              {item.revenue.toFixed(2)} грн
+                            </td>
+
+                            {/* Stock */}
+                            <td className="py-3 px-3 text-right whitespace-nowrap">
+                              {p && (
+                                <span className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded text-[11px] ${
+                                  p.stock <= 0
+                                    ? 'bg-rose-100 text-rose-800'
+                                    : p.stock <= 3
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : 'bg-emerald-100 text-emerald-800'
+                                }`}>
+                                  {p.stock} {p.unit || 'од.'}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-slate-400 text-xs">
+                  Замовлень із товарами у вибраний період не знайдено
+                </div>
+              )}
+            </div>
+
+            {/* 6. Interactive Recent Transactions Stream */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-emerald-600" />
+                  <span>Останні замовлення та активність покупців</span>
+                </h4>
+
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('orders')}
+                  className="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Усі замовлення ({orders.length})</span>
+                  <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
+                </button>
+              </div>
+
+              <div className="divide-y divide-slate-100 text-xs">
+                {orders.slice(0, 7).map((o) => (
+                  <div
+                    key={o.id}
+                    onClick={() => {
+                      setEditingOrder(o);
+                      handleTabChange('orders');
+                    }}
+                    className="py-3 px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50 rounded-xl transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 group-hover:bg-emerald-50 text-slate-700 group-hover:text-emerald-600 flex items-center justify-center font-black font-mono text-xs shrink-0 transition-colors">
+                        #{o.id.slice(-4)}
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+                          {o.fio} <span className="font-normal text-slate-400">({o.phone})</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
+                          <span>{o.date}</span>
+                          <span>·</span>
+                          <span>{o.delivery || 'Самовивіз'}</span>
+                          {o.items && (
+                            <>
+                              <span>·</span>
+                              <span>{o.items.length} поз.</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3 self-end sm:self-auto w-full sm:w-auto">
+                      <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+                        o.status === 'Доставлено' || o.status === 'Оплачено'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : o.status === 'Відправлено'
+                          ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                          : o.status === 'Збирається'
+                          ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        {o.status}
+                      </span>
+                      <span className="font-black text-slate-900 text-sm">
+                        {o.total?.toFixed(2)} грн
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
+
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* TAB: PRODUCTS */}
       {activeTab === 'products' && (

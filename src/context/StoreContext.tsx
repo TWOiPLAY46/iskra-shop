@@ -1099,8 +1099,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const discountedCartSum = useMemo(() => {
     if (totalCartSum <= 0) return 0;
     
-    // Loyalty discount
-    const loyaltyDiscountPct = (currentClient && currentClient.discount) ? currentClient.discount : 0;
+    // Loyalty personal discount
+    const isPersonalDiscountEnabled = siteSettings.features?.personalDiscountEnabled ?? true;
+    const minOrderSumForDiscount = siteSettings.features?.minOrderSumForPersonalDiscount ?? 0;
+    const maxDiscountCap = siteSettings.features?.maxPersonalDiscountPercent ?? 50;
+    
+    let loyaltyDiscountPct = 0;
+    if (isPersonalDiscountEnabled && currentClient && currentClient.discount && totalCartSum >= minOrderSumForDiscount) {
+      loyaltyDiscountPct = Math.min(maxDiscountCap, Math.max(0, currentClient.discount));
+    }
     const loyaltyAmount = (totalCartSum * loyaltyDiscountPct) / 100;
     
     // Promo discount
@@ -1115,10 +1122,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
     
-    // Apply the most beneficial discount for buyer (loyalty vs promo, or combined)
-    const effectiveDiscount = Math.min(totalCartSum, Math.max(loyaltyAmount, promoAmount));
+    // Check if combine personal discount with promo
+    const combineWithPromo = siteSettings.features?.combinePersonalDiscountWithPromo ?? false;
+    let effectiveDiscount = 0;
+    if (combineWithPromo) {
+      effectiveDiscount = Math.min(totalCartSum, loyaltyAmount + promoAmount);
+    } else {
+      effectiveDiscount = Math.min(totalCartSum, Math.max(loyaltyAmount, promoAmount));
+    }
+    
     return Math.max(0, Math.round((totalCartSum - effectiveDiscount) * 100) / 100);
-  }, [totalCartSum, currentClient, appliedPromo]);
+  }, [totalCartSum, currentClient, appliedPromo, siteSettings.features]);
 
   const applyPromoCode = (inputCode: string) => {
     const clean = inputCode.trim().toUpperCase();
@@ -1294,14 +1308,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // Auto-create / update client profile and bonus points
     const cleanPhone = orderData.phone.trim();
-    const bonusEarned = Math.round(discountedCartSum * 0.02); // 2% cashback bonus
+    const cashbackPct = (siteSettings.features?.cashbackPercent ?? 2) / 100;
+    const bonusEarned = (siteSettings.features?.loyaltyEnabled ?? true) ? Math.round(discountedCartSum * cashbackPct) : 0;
+    const isPersonalDiscountEnabled = siteSettings.features?.personalDiscountEnabled ?? true;
+    const defaultDiscount = siteSettings.features?.defaultPersonalDiscountPercent ?? 3;
     const existing = clients[cleanPhone];
     const nextClients = {
       ...clients,
       [cleanPhone]: {
         name: existing?.name || orderData.fio,
         balance: (existing?.balance || 0) + bonusEarned,
-        discount: existing?.discount || 0
+        discount: existing?.discount !== undefined ? existing.discount : (isPersonalDiscountEnabled ? defaultDiscount : 0)
       }
     };
     setClients(nextClients);
@@ -2176,10 +2193,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const nextClients = { ...clients };
     if (!nextClients[cleanPhone]) {
+      const isPersonalDiscountEnabled = siteSettings.features?.personalDiscountEnabled ?? true;
+      const defaultDiscount = siteSettings.features?.defaultPersonalDiscountPercent ?? 3;
       const newClientData: ClientData = {
         name: name || 'Покупець',
         balance: 0,
-        discount: 3
+        discount: isPersonalDiscountEnabled ? defaultDiscount : 0
       };
       nextClients[cleanPhone] = newClientData;
       setClients(nextClients);

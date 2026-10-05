@@ -83,6 +83,13 @@ export interface SiteFeatures {
   ordersEnabled: boolean;
   loyaltyEnabled: boolean;
   reviewsEnabled?: boolean;
+  personalDiscountEnabled?: boolean;
+  defaultPersonalDiscountPercent?: number;
+  maxPersonalDiscountPercent?: number;
+  minOrderSumForPersonalDiscount?: number;
+  combinePersonalDiscountWithPromo?: boolean;
+  autoTierDiscountEnabled?: boolean;
+  cashbackPercent?: number;
   showExactStock: boolean;
   floatingCallBtn: boolean;
   minOrderSum: number;
