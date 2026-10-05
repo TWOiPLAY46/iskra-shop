@@ -364,6 +364,9 @@ export async function pushStoreToFirebase(config: FirebaseConnectionConfig, stor
       if (storeData.weeklyDeal !== undefined) {
         await set(ref(db, 'store/weeklyDeal'), storeData.weeklyDeal);
       }
+      if (storeData.promoCodes !== undefined) {
+        await set(ref(db, 'store/promoCodes'), storeData.promoCodes);
+      }
       if (storeData.stockAlerts !== undefined) {
         const alertsMap: Record<string, any> = {};
         if (Array.isArray(storeData.stockAlerts)) {
@@ -470,6 +473,13 @@ export async function pushStoreToFirebase(config: FirebaseConnectionConfig, stor
           body: JSON.stringify(storeData.weeklyDeal)
         });
       }
+      if (storeData.promoCodes !== undefined) {
+        await fetch(`${baseUrl}/store/promoCodes.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(storeData.promoCodes)
+        });
+      }
       if (storeData.stockAlerts !== undefined) {
         const alertsMap: Record<string, any> = {};
         if (Array.isArray(storeData.stockAlerts)) {
@@ -546,6 +556,18 @@ export async function pushStoreToFirebase(config: FirebaseConnectionConfig, stor
       if (storeData.weeklyDeal) {
         try {
           await setDoc(doc(firestore, 'settings', 'weeklyDeal'), storeData.weeklyDeal);
+        } catch {
+          // Ignore
+        }
+      }
+
+      // Sync promo codes
+      if (storeData.promoCodes && Array.isArray(storeData.promoCodes)) {
+        try {
+          await setDoc(doc(firestore, 'settings', 'promoCodes'), {
+            list: storeData.promoCodes,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
         } catch {
           // Ignore
         }

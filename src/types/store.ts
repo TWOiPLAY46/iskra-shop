@@ -82,6 +82,7 @@ export interface WeeklyDealConfig {
 export interface SiteFeatures {
   ordersEnabled: boolean;
   loyaltyEnabled: boolean;
+  reviewsEnabled?: boolean;
   showExactStock: boolean;
   floatingCallBtn: boolean;
   minOrderSum: number;
@@ -200,3 +201,17 @@ export interface FirebaseConnectionConfig {
   enabled: boolean;
   autoSync: boolean;
 }
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  discountType: 'percent' | 'fixed';
+  discountValue: number;
+  minOrderSum?: number;
+  expiresAt?: string;
+  usageCount: number;
+  usageLimit?: number;
+  isActive: boolean;
+  notes?: string;
+}
+

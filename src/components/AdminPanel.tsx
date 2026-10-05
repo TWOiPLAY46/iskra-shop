@@ -875,6 +875,10 @@ export const AdminPanel: React.FC = () => {
   const [designForm, setDesignForm] = useState(headerDesign);
   const [dbConfigForm, setDbConfigForm] = useState<FirebaseConnectionConfig>(firebaseConfig);
   const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showBotToken, setShowBotToken] = useState(false);
+  const [showSmsApiKey, setShowSmsApiKey] = useState(false);
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
@@ -1638,40 +1642,34 @@ export const AdminPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Compact Top KPI Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs mb-3 text-xs">
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-          <div className="flex items-center gap-1.5">
-            <Package className="w-4 h-4 text-amber-500" />
-            <span className="text-slate-500">Товари:</span>
-            <span className="font-bold text-slate-900 font-mono text-sm">{totalProducts}</span>
-            {totalCriticalStockCount > 0 && (
-              <button
-                type="button"
-                onClick={() => { setActiveTab('products'); setProductFilterStock('low_stock'); }}
-                className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded border border-amber-300/60 hover:bg-amber-200 transition-colors cursor-pointer"
-                title={`Закінчуються: ${lowStockCount}, Немає: ${outOfStockCount}`}
-              >
-                ⚠️ {totalCriticalStockCount} дефіцит
-              </button>
-            )}
+      {/* Compact Improved KPI Strip */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-white rounded-xl border border-slate-200/90 shadow-2xs mb-3 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Товари */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/70">
+            <Package className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-slate-500 text-[11px]">Товари:</span>
+            <span className="font-bold text-slate-900 font-mono text-xs">{totalProducts}</span>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <ShoppingCart className="w-4 h-4 text-sky-500" />
-            <span className="text-slate-500">Замовлень:</span>
-            <span className="font-bold text-slate-900 font-mono text-sm">{totalOrders}</span>
+          {/* Замовлень */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/70">
+            <ShoppingCart className="w-3.5 h-3.5 text-sky-500" />
+            <span className="text-slate-500 text-[11px]">Замовлень:</span>
+            <span className="font-bold text-slate-900 font-mono text-xs">{totalOrders}</span>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-emerald-500" />
-            <span className="text-slate-500">Оборот:</span>
-            <span className="font-bold text-emerald-600 font-mono text-sm">{totalSalesSum.toFixed(0)} грн</span>
+          {/* Оборот */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/70">
+            <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="text-slate-500 text-[11px]">Оборот:</span>
+            <span className="font-bold text-emerald-600 font-mono text-xs">{totalSalesSum.toFixed(0)} грн</span>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <Database className="w-4 h-4 text-indigo-500" />
-            <span className="text-slate-500">БД:</span>
+          {/* БД */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/70">
+            <Database className="w-3.5 h-3.5 text-indigo-500" />
+            <span className="text-slate-500 text-[11px]">БД:</span>
             <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${firebaseConfig.enabled ? 'text-emerald-700' : 'text-slate-500'}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${firebaseConfig.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
               {firebaseConfig.enabled ? 'RTDB Онлайн' : 'Офлайн'}
@@ -1679,359 +1677,542 @@ export const AdminPanel: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
-          <span>ФОП:</span>
+        {/* ФОП */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/70 text-[11px]">
+          <Building2 className="w-3.5 h-3.5 text-slate-400" />
+          <span className="text-slate-500">ФОП:</span>
           <span className="font-bold text-slate-800">{siteSettings.fopName || 'Тарасова Ірина Анатоліївна'}</span>
         </div>
       </div>
 
-      {/* Compact Tabs Navigation */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-2 mb-4 space-y-2">
-        {/* Filter Pills Header */}
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setAdminNavGroup('all')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-                adminNavGroup === 'all'
-                  ? 'bg-slate-900 text-white shadow-2xs'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-              }`}
-            >
-              Всі (16)
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setAdminNavGroup('sales')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                adminNavGroup === 'sales'
-                  ? 'bg-slate-900 text-white shadow-2xs'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-              }`}
-            >
-              <span>🛍️ Продажі</span>
-              <span className={`text-[10px] px-1 py-0.2 rounded font-mono ${adminNavGroup === 'sales' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>7</span>
-              {totalCriticalStockCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setAdminNavGroup('services')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                adminNavGroup === 'services'
-                  ? 'bg-slate-900 text-white shadow-2xs'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-              }`}
-            >
-              <span>⚡ Сервіси</span>
-              <span className={`text-[10px] px-1 py-0.2 rounded font-mono ${adminNavGroup === 'services' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>5</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setAdminNavGroup('settings')}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                adminNavGroup === 'settings'
-                  ? 'bg-slate-900 text-white shadow-2xs'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-              }`}
-            >
-              <span>🏢 Налаштування</span>
-              <span className={`text-[10px] px-1 py-0.2 rounded font-mono ${adminNavGroup === 'settings' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>4</span>
-            </button>
+      {/* Quick Action Blocks (Operations & Settings) */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 mb-5 space-y-4">
+        {/* БЛОК 1: Операції, товари та продажі */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Операції, товари та продажі</h3>
+            </div>
+            <span className="text-[11px] font-semibold text-slate-400">8 розділів</span>
           </div>
 
-          <div className="relative w-44">
-            <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Пошук вкладки..."
-              value={adminTabSearch}
-              onChange={(e) => setAdminTabSearch(e.target.value)}
-              className="w-full pl-6 pr-6 py-1 text-[11px] bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-red-500 transition-all placeholder:text-slate-400"
-            />
-            {adminTabSearch && (
-              <button
-                type="button"
-                onClick={() => setAdminTabSearch('')}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2">
+            {/* 1. Товари */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('products')}
+              className={`p-2 sm:p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'products'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'products' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs shadow-amber-500/40' : 'bg-amber-100 text-amber-700'
+                }`}>
+                  <Package className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'products' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Товари
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'products' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    {products.length} шт
+                  </div>
+                </div>
+              </div>
+              {totalCriticalStockCount > 0 ? (
+                <span className={`inline-flex items-center gap-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-md leading-none shrink-0 ${
+                  activeTab === 'products'
+                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                    : 'bg-amber-100 text-amber-900 border border-amber-300/80'
+                }`}>
+                  <AlertTriangle className={`w-3 h-3 stroke-[2.5] shrink-0 ${
+                    activeTab === 'products' ? 'text-slate-950 fill-slate-950/20' : 'text-amber-800 fill-amber-800/20'
+                  }`} />
+                  <span>{totalCriticalStockCount}</span>
+                </span>
+              ) : activeTab === 'products' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              )}
+            </button>
+
+            {/* 2. Замовлення */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('orders')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'orders'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'orders' ? 'bg-sky-400 text-slate-950 font-bold shadow-xs shadow-sky-400/40' : 'bg-sky-100 text-sky-700'
+                }`}>
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'orders' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Замовлення
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'orders' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    {orders.length} шт
+                  </div>
+                </div>
+              </div>
+              {orders.filter(o => o.status === 'Створено').length > 0 ? (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-rose-500 text-white animate-pulse shrink-0 shadow-xs">
+                  +{orders.filter(o => o.status === 'Створено').length}
+                </span>
+              ) : activeTab === 'orders' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              )}
+            </button>
+
+            {/* 3. Категорії */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('categories')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'categories'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'categories' ? 'bg-indigo-400 text-slate-950 font-bold shadow-xs shadow-indigo-400/40' : 'bg-indigo-100 text-indigo-700'
+                }`}>
+                  <FolderPlus className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'categories' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Категорії
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'categories' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    Каталог
+                  </div>
+                </div>
+              </div>
+              {activeTab === 'categories' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              )}
+            </button>
+
+            {/* 4. Акція тижня */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('weekly_deal')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'weekly_deal'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'weekly_deal' ? 'bg-orange-500 text-white font-bold shadow-xs shadow-orange-500/40' : 'bg-orange-100 text-orange-600'
+                }`}>
+                  <Flame className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'weekly_deal' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Акція тижня
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'weekly_deal' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    {weeklyDeal.enabled ? 'Увімкнено' : 'Вимкнено'}
+                  </div>
+                </div>
+              </div>
+              <span className={`w-2 h-2 rounded-full shrink-0 ${weeklyDeal.enabled ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
+            </button>
+
+            {/* 5. Відгуки */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('reviews')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'reviews'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'reviews' ? 'bg-amber-400 text-slate-950 font-bold shadow-xs shadow-amber-400/40' : 'bg-amber-100 text-amber-600'
+                }`}>
+                  <Star className="w-3.5 h-3.5 fill-current" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'reviews' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Відгуки
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'reviews' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    {reviews.length} відг.
+                  </div>
+                </div>
+              </div>
+              {activeTab === 'reviews' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              )}
+            </button>
+
+            {/* 6. Клієнти */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('clients')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'clients'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'clients' ? 'bg-violet-400 text-slate-950 font-bold shadow-xs shadow-violet-400/40' : 'bg-violet-100 text-violet-700'
+                }`}>
+                  <Users className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'clients' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Клієнти
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'clients' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    {Object.keys(clients).length} баз.
+                  </div>
+                </div>
+              </div>
+              {activeTab === 'clients' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              )}
+            </button>
+
+            {/* 7. Очікують товар */}
+            <button
+              type="button"
+              onClick={() => {
+                setStockAlertFilterProduct('');
+                handleTabChange('stock_alerts');
+              }}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'stock_alerts'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'stock_alerts' ? 'bg-amber-400 text-slate-950 font-bold shadow-xs shadow-amber-400/40' : 'bg-amber-100 text-amber-700'
+                }`}>
+                  <Bell className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'stock_alerts' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Очікують
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'stock_alerts' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    Сповіщення
+                  </div>
+                </div>
+              </div>
+              {pendingStockAlertsCount > 0 ? (
+                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 ${
+                  activeTab === 'stock_alerts'
+                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                    : 'bg-amber-500 text-slate-950 animate-pulse'
+                }`}>
+                  {pendingStockAlertsCount}
+                </span>
+              ) : activeTab === 'stock_alerts' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              )}
+            </button>
+
+            {/* 8. Аналітика */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('analytics')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'analytics'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'analytics' ? 'bg-cyan-400 text-slate-950 font-bold shadow-xs shadow-cyan-400/40' : 'bg-cyan-100 text-cyan-700'
+                }`}>
+                  <TrendingUp className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'analytics' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Аналітика
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'analytics' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    Звіти & Дохід
+                  </div>
+                </div>
+              </div>
+              {activeTab === 'analytics' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Compact Tabs Strip */}
-        <div className="flex flex-wrap gap-1 pt-1 border-t border-slate-100">
-          
-          {/* GROUP 1: Каталог та Продажі */}
-          {(adminNavGroup === 'all' || adminNavGroup === 'sales') && (
-            <>
-              {(!adminTabSearch || 'товари products наявність склад'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('products')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'products'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <Package className={`w-3.5 h-3.5 ${activeTab === 'products' ? 'text-amber-300' : 'text-amber-600'}`} />
-                  <span>Товари ({products.length})</span>
-                  {totalCriticalStockCount > 0 && (
-                    <span className={`text-[10px] px-1 py-0.2 rounded font-black ${activeTab === 'products' ? 'bg-amber-400 text-slate-950' : 'bg-amber-500 text-white'}`}>
-                      ⚠️ {totalCriticalStockCount}
-                    </span>
-                  )}
-                </button>
-              )}
+        {/* БЛОК 2: ⚙️ Усі налаштування та сервіси */}
+        <div className="pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">⚙️ Усі налаштування та сервіси</h3>
+            </div>
+            <span className="text-[11px] font-semibold text-slate-400">8 розділів</span>
+          </div>
 
-              {(!adminTabSearch || 'замовлення orders покупки клієнт чек'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('orders')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'orders'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <ShoppingCart className={`w-3.5 h-3.5 ${activeTab === 'orders' ? 'text-sky-300' : 'text-sky-600'}`} />
-                  <span>Замовлення ({orders.length})</span>
-                  {orders.filter(o => o.status === 'Створено').length > 0 && (
-                    <span className="text-[10px] px-1 py-0.2 rounded font-black bg-red-600 text-white animate-pulse">
-                      +{orders.filter(o => o.status === 'Створено').length}
-                    </span>
-                  )}
-                </button>
-              )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2">
+            {/* 9. База даних (БД) */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('database')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'database'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'database' ? 'bg-emerald-400 text-slate-950 font-bold shadow-xs shadow-emerald-400/40' : 'bg-emerald-100 text-emerald-700'
+                }`}>
+                  <Database className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'database' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    База даних
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'database' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    Firebase RTDB
+                  </div>
+                </div>
+              </div>
+              <span className={`w-2 h-2 rounded-full shrink-0 ${firebaseConfig.enabled ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
+            </button>
 
-              {(!adminTabSearch || 'категорії categories розділи каталог'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('categories')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'categories'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <FolderPlus className={`w-3.5 h-3.5 ${activeTab === 'categories' ? 'text-indigo-300' : 'text-indigo-600'}`} />
-                  <span>Категорії</span>
-                </button>
+            {/* 10. Доставка (НП/УП) */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('delivery')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'delivery'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'delivery' ? 'bg-orange-400 text-slate-950 font-bold shadow-xs shadow-orange-400/40' : 'bg-orange-100 text-orange-700'
+                }`}>
+                  <Truck className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'delivery' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Доставка
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'delivery' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    НП / Укрпошта
+                  </div>
+                </div>
+              </div>
+              {activeTab === 'delivery' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               )}
+            </button>
 
-              {(!adminTabSearch || 'акція тижня weekly deal знижка промо'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('weekly_deal')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'weekly_deal'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <Flame className={`w-3.5 h-3.5 ${weeklyDeal.enabled ? 'text-red-500 fill-current' : 'text-slate-400'}`} />
-                  <span>Акція тижня</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                    weeklyDeal.enabled
-                      ? (activeTab === 'weekly_deal' ? 'bg-red-500/30 text-red-200' : 'bg-red-100 text-red-700 font-bold')
-                      : 'text-slate-400'
-                  }`}>
-                    {weeklyDeal.enabled ? 'Увімкнено' : 'Вимкнено'}
-                  </span>
-                </button>
+            {/* 11. Онлайн-оплата */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('payments')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'payments'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'payments' ? 'bg-emerald-400 text-slate-950 font-bold shadow-xs shadow-emerald-400/40' : 'bg-emerald-100 text-emerald-700'
+                }`}>
+                  <CreditCard className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'payments' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Онлайн-оплата
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'payments' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    Mono / WayForPay
+                  </div>
+                </div>
+              </div>
+              {activeTab === 'payments' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               )}
+            </button>
 
-              {(!adminTabSearch || 'відгуки reviews оцінки зірки коментарі'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('reviews')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'reviews'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <Star className={`w-3.5 h-3.5 ${activeTab === 'reviews' ? 'text-amber-300 fill-amber-300' : 'text-amber-500'}`} />
-                  <span>Відгуки ({reviews.length})</span>
-                </button>
+            {/* 12. Модулі сайту */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('features')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'features'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'features' ? 'bg-slate-200 text-slate-900 font-bold shadow-xs' : 'bg-slate-100 text-slate-700'
+                }`}>
+                  <Sliders className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'features' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Модулі сайту
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'features' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    Функції & Банери
+                  </div>
+                </div>
+              </div>
+              {activeTab === 'features' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               )}
+            </button>
 
-              {(!adminTabSearch || 'клієнти clients покупці база телефони'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('clients')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'clients'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <Users className={`w-3.5 h-3.5 ${activeTab === 'clients' ? 'text-violet-300' : 'text-violet-600'}`} />
-                  <span>Клієнти ({Object.keys(clients).length})</span>
-                </button>
+            {/* 13. Дизайн */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('design')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'design'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'design' ? 'bg-purple-400 text-slate-950 font-bold shadow-xs shadow-purple-400/40' : 'bg-purple-100 text-purple-700'
+                }`}>
+                  <Palette className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'design' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Дизайн
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'design' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    Тема & Стиль
+                  </div>
+                </div>
+              </div>
+              {activeTab === 'design' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               )}
+            </button>
 
-              {(!adminTabSearch || 'очікують товар stock alerts сповіщення лист очікування'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => {
-                    setStockAlertFilterProduct('');
-                    handleTabChange('stock_alerts');
-                  }}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'stock_alerts'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <Bell className={`w-3.5 h-3.5 ${activeTab === 'stock_alerts' ? 'text-amber-300' : 'text-amber-600'}`} />
-                  <span>Очікують товар</span>
-                  {pendingStockAlertsCount > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black bg-amber-500 text-slate-950 animate-pulse">
-                      {pendingStockAlertsCount}
-                    </span>
-                  )}
-                </button>
+            {/* 14. Про нас / Реквізити */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('about_settings')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'about_settings'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'about_settings' ? 'bg-rose-400 text-slate-950 font-bold shadow-xs shadow-rose-400/40' : 'bg-red-100 text-red-700'
+                }`}>
+                  <Building2 className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'about_settings' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Про нас
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'about_settings' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    ФОП & Юр.дані
+                  </div>
+                </div>
+              </div>
+              {activeTab === 'about_settings' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               )}
-            </>
-          )}
+            </button>
 
-          {/* GROUP 2: Інтеграції та Системи */}
-          {(adminNavGroup === 'all' || adminNavGroup === 'services') && (
-            <>
-              {(!adminTabSearch || 'база даних бд firebase cloud rtdb синхронізація'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('database')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'database'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <Database className={`w-3.5 h-3.5 ${activeTab === 'database' ? 'text-emerald-300' : 'text-emerald-600'}`} />
-                  <span>База даних (БД)</span>
-                  <span className={`w-1.5 h-1.5 rounded-full ${firebaseConfig.enabled ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                </button>
+            {/* 15. Повернення та обмін */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('returns_settings')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'returns_settings'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'returns_settings' ? 'bg-teal-400 text-slate-950 font-bold shadow-xs shadow-teal-400/40' : 'bg-teal-100 text-teal-700'
+                }`}>
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'returns_settings' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Повернення
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'returns_settings' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    Умови 14 днів
+                  </div>
+                </div>
+              </div>
+              {activeTab === 'returns_settings' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               )}
+            </button>
 
-              {(!adminTabSearch || 'аналітика analytics звіти продажі прибуток'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('analytics')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'analytics'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <TrendingUp className={`w-3.5 h-3.5 ${activeTab === 'analytics' ? 'text-cyan-300' : 'text-cyan-600'}`} />
-                  <span>Аналітика</span>
-                </button>
+            {/* 16. Telegram & SMS */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('settings')}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === 'settings'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === 'settings' ? 'bg-sky-400 text-slate-950 font-bold shadow-xs' : 'bg-sky-100 text-sky-700'
+                }`}>
+                  <Send className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === 'settings' ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Telegram & SMS
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === 'settings' ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    Сповіщення & боти
+                  </div>
+                </div>
+              </div>
+              {activeTab === 'settings' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               )}
-
-              {(!adminTabSearch || 'модулі сайту features функції перемикачі'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('features')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'features'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <Sliders className={`w-3.5 h-3.5 ${activeTab === 'features' ? 'text-slate-300' : 'text-slate-600'}`} />
-                  <span>Модулі сайту</span>
-                </button>
-              )}
-
-              {(!adminTabSearch || 'доставка delivery нова пошта укрпошта ттн'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('delivery')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'delivery'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <Truck className={`w-3.5 h-3.5 ${activeTab === 'delivery' ? 'text-orange-300' : 'text-orange-600'}`} />
-                  <span>Доставка (НП/УП)</span>
-                </button>
-              )}
-
-              {(!adminTabSearch || 'онлайн оплата payments wayforpay monobank картка'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('payments')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'payments'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <CreditCard className={`w-3.5 h-3.5 ${activeTab === 'payments' ? 'text-emerald-300' : 'text-emerald-600'}`} />
-                  <span>Онлайн-оплата</span>
-                </button>
-              )}
-            </>
-          )}
-
-          {/* GROUP 3: Юридичні сторінки та Налаштування */}
-          {(adminNavGroup === 'all' || adminNavGroup === 'settings') && (
-            <>
-              {(!adminTabSearch || 'дизайн design кольори шапка логотип банер'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('design')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'design'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <Palette className={`w-3.5 h-3.5 ${activeTab === 'design' ? 'text-purple-300' : 'text-purple-600'}`} />
-                  <span>Дизайн</span>
-                </button>
-              )}
-
-              {(!adminTabSearch || 'про нас реквізити фоп тарасова ірина анатоліївна юр дані iban'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('about_settings')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'about_settings'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <Building2 className={`w-3.5 h-3.5 ${activeTab === 'about_settings' ? 'text-red-300' : 'text-red-600'}`} />
-                  <span>Про нас / Реквізити</span>
-                </button>
-              )}
-
-              {(!adminTabSearch || 'повернення обмін returns гарантія 14 днів нова пошта'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('returns_settings')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'returns_settings'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <RotateCcw className={`w-3.5 h-3.5 ${activeTab === 'returns_settings' ? 'text-teal-300' : 'text-teal-600'}`} />
-                  <span>Повернення та обмін</span>
-                </button>
-              )}
-
-              {(!adminTabSearch || 'контакти bot sms telegram пароль сповіщення'.includes(adminTabSearch.toLowerCase())) && (
-                <button
-                  onClick={() => handleTabChange('settings')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === 'settings'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100/90 hover:bg-slate-200/90 text-slate-700'
-                  }`}
-                >
-                  <Settings className={`w-3.5 h-3.5 ${activeTab === 'settings' ? 'text-slate-300' : 'text-slate-700'}`} />
-                  <span>Контакти, Bot & SMS</span>
-                </button>
-              )}
-            </>
-          )}
-
+            </button>
+          </div>
         </div>
       </div>
 
@@ -2266,100 +2447,172 @@ export const AdminPanel: React.FC = () => {
 
       {/* TAB: WEEKLY DEAL (АКЦІЯ ТИЖНЯ) */}
       {activeTab === 'weekly_deal' && (
-        <div className="space-y-6 max-w-4xl">
+        <div className="space-y-6 max-w-5xl">
           
-          {/* Header Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <span className="p-1.5 rounded-lg bg-red-100 text-red-600">
-                    <Flame className="w-5 h-5 fill-red-600" />
-                  </span>
-                  <span>Налаштування блоку «Акція тижня»</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Керуйте показом спеціальної щотижневої акції з таймером, вигідною ціною та пульсуючою кнопкою «Купити».
-                </p>
+          {/* 1. Master Header Card */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-linear-to-br from-red-500 to-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-red-500/20">
+                  <Flame className="w-6 h-6 fill-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900">
+                      Налаштування блоку «Акція тижня»
+                    </h3>
+                    <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                      weeklyDeal.enabled
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-slate-100 text-slate-600 border-slate-200'
+                    }`}>
+                      {weeklyDeal.enabled ? '● Активно на сайті' : '○ Вимкнено'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Керуйте показом спеціальної щотижневої акції з таймером, вигідною ціною та пульсуючою кнопкою «Купити».
+                  </p>
+                </div>
               </div>
 
-              {/* Status Indicator */}
-              <div className="flex items-center gap-2">
+              {/* Master Switch Button */}
+              <button
+                type="button"
+                onClick={() => updateWeeklyDeal({ enabled: !weeklyDeal.enabled })}
+                className={`relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 active:scale-95 shadow-sm cursor-pointer ${
+                  weeklyDeal.enabled
+                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/25'
+                    : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/25'
+                }`}
+              >
+                <Flame className={`w-4 h-4 ${weeklyDeal.enabled ? 'fill-white animate-bounce' : 'text-amber-400'}`} />
+                <span>{weeklyDeal.enabled ? 'Вимкнути показ акції' : 'Увімкнути показ на сайті'}</span>
+              </button>
+            </div>
+
+            {/* Status Information Box */}
+            <div className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+              weeklyDeal.enabled
+                ? 'bg-red-50/60 border-red-200/80 text-red-950'
+                : 'bg-slate-50 border-slate-200 text-slate-700'
+            }`}>
+              <div className="flex items-start gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                  weeklyDeal.enabled ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-500'
+                }`}>
+                  <Flame className="w-4 h-4 fill-current" />
+                </div>
+                <div>
+                  <b className="text-xs sm:text-sm font-bold block">
+                    {weeklyDeal.enabled ? 'Секція «Акція тижня» транслюється на головній сторінці' : 'Секція «Акція тижня» прихована з сайту'}
+                  </b>
+                  <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                    {weeklyDeal.enabled
+                      ? 'Блок розташований на видному місці головної сторінки з динамічним таймером зворотного відліку та прямим оформленням замовлення.'
+                      : 'Відвідувачі сайту зараз не бачать промо-блок. Усі налаштування, обраний товар та ціни зберігаються в базі даних.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Indicator Pill */}
+              <div className="shrink-0 flex items-center gap-2">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                  weeklyDeal.enabled 
-                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
-                    : 'bg-slate-100 text-slate-600 border border-slate-200'
+                  weeklyDeal.enabled
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                    : 'bg-slate-200 text-slate-600'
                 }`}>
                   <span className={`w-2 h-2 rounded-full ${weeklyDeal.enabled ? 'bg-emerald-600 animate-pulse' : 'bg-slate-400'}`} />
-                  <span>{weeklyDeal.enabled ? 'Акція активна на сайті' : 'Акція вимкнена'}</span>
+                  <span>{weeklyDeal.enabled ? 'Статус: Онлайн' : 'Статус: Пауза'}</span>
                 </span>
               </div>
             </div>
 
-            {/* Big Switch Card */}
-            <div className={`mt-5 p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
-              weeklyDeal.enabled 
-                ? 'bg-emerald-50/70 border-emerald-200' 
-                : 'bg-slate-50 border-slate-200'
-            }`}>
-              <div>
-                <b className="text-sm text-slate-900">
-                  {weeklyDeal.enabled ? 'Показ акції на сайті увімкнено' : 'Показ акції на сайті вимкнено'}
-                </b>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  {weeklyDeal.enabled 
-                    ? 'Блок «Акція тижня» зараз відображається всім відвідувачам на головній сторінці перед хітами продажу.' 
-                    : 'Секція «Акція тижня» прихована з головної сторінки. Налаштування збережені.'}
-                </p>
-              </div>
+            {/* Quick KPI Strip for Selected Deal */}
+            {(() => {
+              const currentProd = products.find(p => p.id === weeklyDeal.productId) || products[0];
+              if (!currentProd) return null;
+              const disc = weeklyDeal.discountPercent || 25;
+              const promoPrice = weeklyDeal.customPrice || Math.round(currentProd.price * (1 - disc / 100));
+              const savings = currentProd.price - promoPrice;
 
-              <button
-                type="button"
-                onClick={() => updateWeeklyDeal({ enabled: !weeklyDeal.enabled })}
-                className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 shadow-xs active:scale-95 ${
-                  weeklyDeal.enabled
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                }`}
-              >
-                {weeklyDeal.enabled ? (
-                  <span>Вимкнути показ акції</span>
-                ) : (
-                  <>
-                    <Flame className="w-4 h-4 fill-white" />
-                    <span>Увімкнути показ акції</span>
-                  </>
-                )}
-              </button>
-            </div>
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Акційний товар</span>
+                    <span className="text-xs font-black text-slate-800 truncate block mt-0.5" title={currentProd.name}>
+                      {currentProd.name}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ціна зі знижкою</span>
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                      <span className="text-xs sm:text-sm font-black text-red-600">{promoPrice} грн</span>
+                      <span className="text-[11px] text-slate-400 line-through">{currentProd.price} грн</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Знижка покупця</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-xs font-black text-emerald-600">-{disc}%</span>
+                      <span className="text-[11px] font-semibold text-slate-500">({savings} грн)</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Залишок на складі</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className={`text-xs font-black ${currentProd.stock <= 5 ? 'text-amber-600' : 'text-slate-800'}`}>
+                        {currentProd.stock} шт
+                      </span>
+                      {currentProd.stock <= 5 && (
+                        <span className="text-[9px] font-extrabold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded">Мало</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
-          {/* Form Settings Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
-            <h4 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-              <Tag className="w-4 h-4 text-red-600" />
-              <span>Параметри та вибір акційного товару</span>
-            </h4>
-
-            {/* Select Product */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Оберіть акційний товар з каталогу ({products.length} товарів на вибір):
-              </label>
-              <select
-                value={weeklyDeal.productId}
-                onChange={(e) => updateWeeklyDeal({ productId: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 focus:border-red-600 outline-none bg-white font-medium"
-              >
-                {products.map((prod) => (
-                  <option key={prod.id} value={prod.id}>
-                    [{prod.sku}] {prod.name} — {prod.price} грн ({prod.category})
-                  </option>
-                ))}
-              </select>
+          {/* 2. Step: Product Selection & Visual Card */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">1</span>
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-red-600" />
+                  <span>Вибір акційного товару з каталогу магазину</span>
+                </h4>
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500">
+                Всього товарів: <b className="text-slate-800">{products.length}</b>
+              </span>
             </div>
 
-            {/* Product Quick Info Pill */}
+            {/* Select Dropdown */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Оберіть товар для встановлення в блок «Акція тижня»:
+              </label>
+              <div className="relative">
+                <select
+                  value={weeklyDeal.productId}
+                  onChange={(e) => updateWeeklyDeal({ productId: e.target.value })}
+                  className="w-full pl-3.5 pr-10 py-3 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-900 bg-white hover:border-red-400 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none transition-all cursor-pointer shadow-2xs appearance-none"
+                >
+                  {products.map((prod) => (
+                    <option key={prod.id} value={prod.id}>
+                      [{prod.sku}] {prod.name} — {prod.price} грн ({prod.category} | Залишок: {prod.stock} шт)
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Selected Product Visual Card */}
             {(() => {
               const activeProd = products.find(p => p.id === weeklyDeal.productId) || products[0];
               if (!activeProd) return null;
@@ -2368,147 +2621,260 @@ export const AdminPanel: React.FC = () => {
               const savings = activeProd.price - promoPrice;
 
               return (
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4">
-                  <div className="w-20 h-20 bg-white rounded-lg p-1 border border-slate-200 flex items-center justify-center shrink-0">
-                    {activeProd.image && activeProd.image.trim() !== '' ? (
-                      <img src={getSafeImageUrl(activeProd.image)} alt={activeProd.name} className="max-h-full max-w-full object-contain" />
-                    ) : (
-                      <Package className="w-8 h-8 text-slate-400" />
-                    )}
+                <div className="bg-gradient-to-r from-slate-50 via-red-50/30 to-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-5">
+                  <div className="flex items-center gap-4 w-full md:w-auto">
+                    {/* Image container with discount pill */}
+                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-xl p-2 border border-slate-200/90 shadow-2xs flex items-center justify-center shrink-0">
+                      {activeProd.image && activeProd.image.trim() !== '' ? (
+                        <img 
+                          src={getSafeImageUrl(activeProd.image)} 
+                          alt={activeProd.name} 
+                          className="max-h-full max-w-full object-contain hover:scale-105 transition-transform" 
+                        />
+                      ) : (
+                        <Package className="w-9 h-9 text-slate-400" />
+                      )}
+                      <span className="absolute -top-2 -left-2 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs">
+                        -{disc}%
+                      </span>
+                    </div>
+
+                    {/* Meta info */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-[11px] font-bold text-red-600 bg-red-100/70 px-2 py-0.5 rounded-md">
+                          {activeProd.sku}
+                        </span>
+                        <span className="text-[11px] text-slate-500 font-medium">
+                          {activeProd.category}
+                        </span>
+                      </div>
+                      <h5 className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug line-clamp-2">
+                        {activeProd.name}
+                      </h5>
+                      <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-600">
+                        <span>Залишок: <b className={activeProd.stock <= 5 ? 'text-amber-600 font-black' : 'text-slate-900 font-bold'}>{activeProd.stock} шт</b></span>
+                        <span>•</span>
+                        <span className="text-emerald-700 font-semibold">Готовий до відправки</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex-1 text-xs">
-                    <div className="font-mono text-[11px] text-slate-500 font-semibold">{activeProd.sku}</div>
-                    <div className="font-bold text-slate-900 text-sm">{activeProd.name}</div>
-                    <div className="text-slate-500 mt-0.5">Категорія: {activeProd.category} | Залишок: {activeProd.stock} шт</div>
-                  </div>
-
-                  <div className="text-right sm:border-l sm:border-slate-200 sm:pl-4">
-                    <div className="text-xs text-slate-400 line-through">{activeProd.price} грн</div>
-                    <div className="text-lg font-black text-red-600">{promoPrice} грн</div>
-                    <div className="text-[11px] font-bold text-emerald-700">Економія: {savings} грн (-{disc}%)</div>
+                  {/* Financial calculation display */}
+                  <div className="w-full md:w-auto flex md:flex-col items-center md:items-end justify-between md:justify-center border-t md:border-t-0 md:border-l border-slate-200/80 pt-3 md:pt-0 md:pl-6 shrink-0">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ціна за акцією</span>
+                    <div className="text-right">
+                      <div className="text-xs text-slate-400 line-through font-semibold">{activeProd.price} грн</div>
+                      <div className="text-xl sm:text-2xl font-black text-red-600 tracking-tight">{promoPrice} грн</div>
+                      <div className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md mt-0.5 inline-block">
+                        Вигода: {savings} грн
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
             })()}
+          </div>
 
-            {/* Promotion Titles and Subtitle */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Заголовок блоку
-                </label>
-                <input
-                  type="text"
-                  value={weeklyDeal.title}
-                  onChange={(e) => updateWeeklyDeal({ title: e.target.value })}
-                  placeholder="Акція тижня"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:border-red-600 outline-none"
-                />
+          {/* 3. Step: Pricing & Discount Controls */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">2</span>
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Percent className="w-4 h-4 text-red-600" />
+                  <span>Розмір знижки та акційна ціна</span>
+                </h4>
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Текст бейджа
-                </label>
-                <input
-                  type="text"
-                  value={weeklyDeal.badgeText}
-                  onChange={(e) => updateWeeklyDeal({ badgeText: e.target.value })}
-                  placeholder="🔥 АКЦІЯ ТИЖНЯ"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:border-red-600 outline-none"
-                />
-              </div>
+              <span className="text-xs font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-100">
+                Поточна знижка: {weeklyDeal.discountPercent || 25}%
+              </span>
             </div>
 
+            {/* Quick preset discount buttons */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Рекламний підзаголовок / опис спеціальної пропозиції
+              <label className="block text-xs font-bold text-slate-700 mb-2">
+                Швидкий вибір розміру знижки:
               </label>
-              <textarea
-                rows={2}
-                value={weeklyDeal.subtitle}
-                onChange={(e) => updateWeeklyDeal({ subtitle: e.target.value })}
-                placeholder="Спеціальна пропозиція зі знижкою 25% на преміум змішувач..."
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:border-red-600 outline-none resize-none"
-              />
-            </div>
-
-            {/* Discount Percentage and Presets */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-                <span>Розмір знижки (%)</span>
-                <span className="text-red-600 font-extrabold">{weeklyDeal.discountPercent || 25}%</span>
-              </label>
-
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                {[10, 15, 20, 25, 30, 35, 40, 50].map((pct) => (
+              <div className="flex flex-wrap items-center gap-2">
+                {[10, 15, 20, 25, 30, 35, 40, 50, 60].map((pct) => (
                   <button
                     key={pct}
                     type="button"
                     onClick={() => updateWeeklyDeal({ discountPercent: pct, customPrice: undefined })}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
                       weeklyDeal.discountPercent === pct && !weeklyDeal.customPrice
-                        ? 'bg-red-600 text-white shadow-xs'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        ? 'bg-red-600 text-white shadow-md shadow-red-600/25 ring-2 ring-red-600/30'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
                     }`}
                   >
                     -{pct}%
                   </button>
                 ))}
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-                <div>
-                  <span className="text-[11px] text-slate-500 block mb-1">Або введіть довільний % знижки:</span>
+            {/* Dual Input Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Option A: Custom % */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+                <label className="block text-xs font-bold text-slate-800">
+                  Довільний % знижки (від 1% до 90%):
+                </label>
+                <div className="relative">
                   <input
                     type="number"
                     min="1"
                     max="90"
                     value={weeklyDeal.discountPercent || 25}
-                    onChange={(e) => updateWeeklyDeal({ discountPercent: Number(e.target.value) || 0, customPrice: undefined })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:border-red-600 outline-none"
+                    onChange={(e) => updateWeeklyDeal({ discountPercent: Math.max(1, Math.min(90, Number(e.target.value) || 0)), customPrice: undefined })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none pr-10"
                   />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
                 </div>
+                <p className="text-[11px] text-slate-500">
+                  Автоматично перераховує акційну ціну відповідно до базової ціни товару.
+                </p>
+              </div>
 
-                <div>
-                  <span className="text-[11px] text-slate-500 block mb-1">Або точна акційна ціна вручну (грн):</span>
+              {/* Option B: Fixed Custom Price Override */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Точна акційна ціна вручну (грн):
+                  </label>
+                  {weeklyDeal.customPrice && (
+                    <button
+                      type="button"
+                      onClick={() => updateWeeklyDeal({ customPrice: undefined })}
+                      className="text-[10px] font-bold text-red-600 hover:underline cursor-pointer"
+                    >
+                      Скинути до %
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
                   <input
                     type="number"
                     min="1"
                     placeholder="Залишити порожнім для авторозрахунку"
                     value={weeklyDeal.customPrice || ''}
                     onChange={(e) => updateWeeklyDeal({ customPrice: e.target.value ? Number(e.target.value) : undefined })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:border-red-600 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none pr-12"
                   />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">грн</span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Якщо заповнено — на сайті покажеться саме ця фіксована сума.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Step: Marketing Texts & Promo Badges */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">3</span>
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-red-600" />
+                  <span>Текстове оформлення, слогани та бейджі</span>
+                </h4>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Block Title */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Заголовок блоку на вітрині:
+                </label>
+                <input
+                  type="text"
+                  value={weeklyDeal.title}
+                  onChange={(e) => updateWeeklyDeal({ title: e.target.value })}
+                  placeholder="Акція тижня"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-900 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none"
+                />
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {['Акція тижня', 'Гаряча пропозиція', 'Товар тижня', 'Суперціна'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => updateWeeklyDeal({ title: preset })}
+                      className="text-[10px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md transition-colors"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Badge Text */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Текст яскравого бейджа / стікера:
+                </label>
+                <input
+                  type="text"
+                  value={weeklyDeal.badgeText}
+                  onChange={(e) => updateWeeklyDeal({ badgeText: e.target.value })}
+                  placeholder="🔥 АКЦІЯ ТИЖНЯ"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-900 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none"
+                />
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {['🔥 АКЦІЯ ТИЖНЯ', '⚡ ХІТ СЕЗОНУ', '💣 ШОК ЦІНА', '🎯 ТОП ЗНИЖКА'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => updateWeeklyDeal({ badgeText: preset })}
+                      className="text-[10px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md transition-colors"
+                    >
+                      {preset}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
 
-            {/* Timer Management */}
-            <div className="pt-2 border-t border-slate-100">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-red-600" />
-                <span>Швидке налаштування таймера зворотного відліку</span>
+            {/* Subtitle / Value Proposition */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">
+                Рекламний підзаголовок / опис спеціальної пропозиції:
+              </label>
+              <textarea
+                rows={2}
+                value={weeklyDeal.subtitle}
+                onChange={(e) => updateWeeklyDeal({ subtitle: e.target.value })}
+                placeholder="Спеціальна пропозиція зі знижкою 25% на преміум сантехніку. Встигніть замовити до завершення акції!"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-900 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none resize-none leading-relaxed"
+              />
+              <p className="text-[11px] text-slate-500">
+                Цей текст відображається одразу під назвою акції та мотивує відвідувача зробити покупку.
+              </p>
+            </div>
+          </div>
+
+          {/* 5. Step: Countdown Timer Settings */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">4</span>
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-red-600" />
+                  <span>Таймер зворотного відліку (дедлайн акції)</span>
+                </h4>
+              </div>
+            </div>
+
+            {/* Quick Timer Presets */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2">
+                Швидке встановлення терміну дії акції в 1 клік:
               </label>
 
-              <div className="flex flex-wrap gap-2 mb-3">
-                <button
-                  type="button"
-                  onClick={() => updateWeeklyDeal({ endTimestamp: Date.now() + 3 * 86400000 + 12 * 3600000, endDateText: '3 дні 12 год' })}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
-                >
-                  +3.5 дні від зараз
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => updateWeeklyDeal({ endTimestamp: Date.now() + 7 * 86400000, endDateText: '7 днів' })}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
-                >
-                  +7 днів від зараз
-                </button>
-
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {/* Sunday 23:59 */}
                 <button
                   type="button"
                   onClick={() => {
@@ -2518,29 +2884,96 @@ export const AdminPanel: React.FC = () => {
                     const nextSunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilSunday, 23, 59, 59);
                     updateWeeklyDeal({ endTimestamp: nextSunday.getTime(), endDateText: 'До кінця неділі 23:59' });
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-semibold"
+                  className="p-3 rounded-xl border border-red-200 bg-red-50/50 hover:bg-red-100/70 text-left transition-all cursor-pointer group active:scale-95"
                 >
-                  До кінця неділі 23:59
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-red-700 group-hover:text-red-800">
+                    <Flame className="w-3.5 h-3.5 fill-current" />
+                    <span>До кінця неділі 23:59</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    Класична щотижнева акція
+                  </div>
+                </button>
+
+                {/* End of Today */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+                    updateWeeklyDeal({ endTimestamp: endOfToday.getTime(), endDateText: 'До кінця доби 23:59' });
+                  }}
+                  className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 group-hover:text-slate-900">
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>До кінця поточної доби</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    Гаряча пропозиція на 24 години
+                  </div>
+                </button>
+
+                {/* +3.5 Days */}
+                <button
+                  type="button"
+                  onClick={() => updateWeeklyDeal({ endTimestamp: Date.now() + 3 * 86400000 + 12 * 3600000, endDateText: '3 дні 12 год' })}
+                  className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 group-hover:text-slate-900">
+                    <Clock className="w-3.5 h-3.5 text-blue-600" />
+                    <span>+3.5 дні від зараз</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    Спеціальний експрес-період
+                  </div>
+                </button>
+
+                {/* +7 Days */}
+                <button
+                  type="button"
+                  onClick={() => updateWeeklyDeal({ endTimestamp: Date.now() + 7 * 86400000, endDateText: '7 днів' })}
+                  className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 group-hover:text-slate-900">
+                    <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>+7 днів від зараз</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    Повний щотижневий цикл
+                  </div>
                 </button>
               </div>
             </div>
 
+            {/* Custom timer description */}
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs">
+              <span className="text-slate-600">Встановлений підпис терміну: <b className="text-slate-900">{weeklyDeal.endDateText || 'До кінця неділі 23:59'}</b></span>
+              <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                Таймер активний
+              </span>
+            </div>
           </div>
 
-          {/* Live Preview Card */}
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl p-6 text-white">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Живий попередній перегляд (так його бачать покупці на сайті)</span>
-              </span>
-              <span className="text-[11px] text-red-400 font-semibold">
-                Кнопка «Купити» пульсує в реальному часі
+          {/* 6. Live Interactive Storefront Preview */}
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl p-5 sm:p-7 text-white space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
+                  Живий інтерактивний попередній перегляд вітрини
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
+                Точний вигляд на головній сторінці сайту
               </span>
             </div>
 
-            {/* Mini preview of the WeeklyDealSection */}
-            <div className="bg-slate-950/80 rounded-2xl p-4 border border-red-500/20">
+            {/* Showcase simulation */}
+            <div className="bg-slate-950 rounded-2xl p-5 sm:p-6 border border-red-500/30 relative overflow-hidden shadow-2xl">
+              {/* Ambient Glow */}
+              <div className="absolute top-0 right-0 w-72 h-72 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+
               {(() => {
                 const prod = products.find(p => p.id === weeklyDeal.productId) || products[0];
                 if (!prod) return null;
@@ -2548,36 +2981,68 @@ export const AdminPanel: React.FC = () => {
                 const pPrice = weeklyDeal.customPrice || Math.round(prod.price * (1 - disc / 100));
 
                 return (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-5">
-                    <div className="flex items-center gap-4">
-                      <div className="relative w-20 h-20 bg-white rounded-xl p-2 flex items-center justify-center shrink-0">
+                  <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6">
+                    {/* Left: Product Media & Info */}
+                    <div className="flex flex-col sm:flex-row items-center gap-5 w-full lg:w-auto">
+                      <div className="relative w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-2xl p-2.5 flex items-center justify-center shrink-0 shadow-lg">
                         {prod.image && prod.image.trim() !== '' ? (
                           <img src={getSafeImageUrl(prod.image)} alt={prod.name} className="max-h-full max-w-full object-contain" />
                         ) : (
-                          <Package className="w-8 h-8 text-slate-400" />
+                          <Package className="w-10 h-10 text-slate-400" />
                         )}
-                        <span className="absolute top-1 left-1 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded">
+                        <span className="absolute -top-2 -left-2 bg-red-600 text-white text-[11px] font-black px-2 py-0.5 rounded-lg shadow-md">
                           -{disc}%
                         </span>
                       </div>
 
-                      <div>
-                        <div className="text-[11px] text-red-400 font-mono font-bold">АКЦІЯ ТИЖНЯ</div>
-                        <div className="text-sm font-bold text-white line-clamp-1">{prod.name}</div>
-                        <div className="flex items-baseline gap-2 mt-1">
-                          <span className="text-lg font-black text-white">{pPrice} грн</span>
-                          <span className="text-xs text-slate-400 line-through">{prod.price} грн</span>
+                      <div className="text-center sm:text-left">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-red-600/20 text-red-400 border border-red-500/30 text-[11px] font-mono font-bold mb-1.5">
+                          <Flame className="w-3.5 h-3.5 fill-current" />
+                          <span>{weeklyDeal.badgeText || '🔥 АКЦІЯ ТИЖНЯ'}</span>
+                        </div>
+                        <h4 className="text-base sm:text-lg font-black text-white line-clamp-1">
+                          {prod.name}
+                        </h4>
+                        <p className="text-xs text-slate-400 line-clamp-1 mt-0.5 max-w-md">
+                          {weeklyDeal.subtitle || 'Спеціальна щотижнева знижка від магазину'}
+                        </p>
+                        
+                        <div className="flex items-baseline justify-center sm:justify-start gap-3 mt-2">
+                          <span className="text-2xl font-black text-white tracking-tight">{pPrice} грн</span>
+                          <span className="text-sm text-slate-500 line-through font-medium">{prod.price} грн</span>
+                          <span className="text-xs font-extrabold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                            -{(prod.price - pPrice)} грн
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* The Pulsing Buy Button Preview */}
-                    <div className="relative inline-flex items-center">
+                    {/* Right: Live Countdown & Pulse CTA */}
+                    <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0 w-full lg:w-auto justify-center">
+                      {/* Fake Timer Display */}
+                      <div className="flex items-center gap-1.5 text-center">
+                        <div className="bg-slate-900 border border-slate-700/80 rounded-xl px-2.5 py-1.5 min-w-[42px]">
+                          <span className="text-sm font-mono font-black text-white block">03</span>
+                          <span className="text-[9px] text-slate-400 block font-bold">ДНІ</span>
+                        </div>
+                        <span className="text-slate-500 font-bold">:</span>
+                        <div className="bg-slate-900 border border-slate-700/80 rounded-xl px-2.5 py-1.5 min-w-[42px]">
+                          <span className="text-sm font-mono font-black text-white block">14</span>
+                          <span className="text-[9px] text-slate-400 block font-bold">ГОД</span>
+                        </div>
+                        <span className="text-slate-500 font-bold">:</span>
+                        <div className="bg-slate-900 border border-slate-700/80 rounded-xl px-2.5 py-1.5 min-w-[42px]">
+                          <span className="text-sm font-mono font-black text-white block">28</span>
+                          <span className="text-[9px] text-slate-400 block font-bold">ХВ</span>
+                        </div>
+                      </div>
+
+                      {/* Pulsing Action Button */}
                       <button
                         type="button"
-                        className="relative px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white flex items-center gap-2 bg-red-600 hover:bg-red-700 btn-pulse-red shadow-sm"
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl font-black text-xs sm:text-sm text-white flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 btn-pulse-red shadow-lg shadow-red-600/30 cursor-pointer"
                       >
-                        <ShoppingBag className="w-4 h-4 stroke-[2]" />
+                        <ShoppingBag className="w-4 h-4 stroke-[2.5]" />
                         <span>Купити по акції</span>
                       </button>
                     </div>
@@ -2592,224 +3057,503 @@ export const AdminPanel: React.FC = () => {
 
       {/* TAB: FEATURES & SITE CONTROLS */}
       {activeTab === 'features' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 max-w-3xl">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-orange-600" />
-              <span>Керування функціоналом та модулями магазину</span>
-            </h3>
-            <p className="text-xs text-slate-500">
-              Гнучке налаштування поведінки сайту: вмикайте або вимикайте модулі за потреби
-            </p>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-6">
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 shadow-xs">
+                <Sliders className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 leading-tight">
+                  Керування функціоналом та модулями магазину
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Гнучке налаштування поведінки сайту: вмикайте або вимикайте модулі за потреби
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Активно: {[
+                  siteSettings.features?.ordersEnabled ?? true,
+                  siteSettings.features?.loyaltyEnabled ?? true,
+                  siteSettings.features?.reviewsEnabled ?? true,
+                  siteSettings.features?.showExactStock ?? true,
+                  siteSettings.features?.floatingCallBtn ?? true,
+                ].filter(Boolean).length} з 5 модулів
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <Database className="w-3.5 h-3.5 text-emerald-600" />
+                Синхронізація з БД
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-4 text-xs divide-y divide-slate-100">
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <Flame className="w-4 h-4 text-red-600 fill-red-600" />
-                  <b className="text-slate-900">Блок «Акція тижня» на головній сторінці сайту</b>
-                </div>
-                <p className="text-slate-500 mt-0.5">Вмикає або вимикає промо-блок з таймером, акційною ціною та пульсуючою кнопкою «Купити».</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => updateWeeklyDeal({ enabled: !weeklyDeal.enabled })}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    weeklyDeal.enabled ? 'bg-red-600' : 'bg-slate-300'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                      weeklyDeal.enabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <b className="text-slate-900">Модуль онлайн-кошика та оформлення замовлень</b>
-                <p className="text-slate-500">Якщо вимкнено, сайт працюватиме в режимі електронного каталогу-вітрини.</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={siteSettings.features?.ordersEnabled ?? true}
-                onChange={(e) => updateSiteFeatures({ ordersEnabled: e.target.checked })}
-                className="w-5 h-5 text-orange-600 rounded"
-              />
-            </div>
-
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <b className="text-slate-900">Особистий кабінет та бонусна програма</b>
-                <p className="text-slate-500">Вмикає нарахування кешбеку та персональні знижки для постійних клієнтів.</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={siteSettings.features?.loyaltyEnabled ?? true}
-                onChange={(e) => updateSiteFeatures({ loyaltyEnabled: e.target.checked })}
-                className="w-5 h-5 text-orange-600 rounded"
-              />
-            </div>
-
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <b className="text-slate-900">Відображення точної кількості товару на складі</b>
-                <p className="text-slate-500">Показувати покупцям конкретний залишок (напр., «В наявності: 15 шт.») замість просто «В наявності».</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={siteSettings.features?.showExactStock ?? true}
-                onChange={(e) => updateSiteFeatures({ showExactStock: e.target.checked })}
-                className="w-5 h-5 text-orange-600 rounded"
-              />
-            </div>
-
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <b className="text-slate-900">Плаваюча кнопка швидкого дзвінка</b>
-                <p className="text-slate-500">Показує круглу кнопку консультації з телефоном у правому нижньому кутку.</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={siteSettings.features?.floatingCallBtn ?? true}
-                onChange={(e) => updateSiteFeatures({ floatingCallBtn: e.target.checked })}
-                className="w-5 h-5 text-orange-600 rounded"
-              />
-            </div>
-
-            {/* Low Stock Dedicated Settings Card */}
-            <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3 my-3">
-              <h4 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider text-amber-900">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                <span>Налаштування списку «Товари, що закінчуються»</span>
+          {/* Section 1: Core Storefront Modules */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                <span>🚀 Ключові модулі вітрини та конверсії</span>
+                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">5 модулів</span>
               </h4>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div>
-                  <label className="block font-semibold text-slate-800 mb-1">
-                    Поріг залишку за замовчуванням (шт.)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="1"
-                      max="50"
-                      value={siteSettings.features?.lowStockThreshold ?? lowStockThreshold}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        if (raw === '') return;
-                        const val = Math.max(1, parseInt(raw, 10) || 1);
-                        setLowStockThreshold(val);
-                        updateSiteFeatures({ lowStockThreshold: val });
-                      }}
-                      className="w-20 px-3 py-1.5 border border-slate-300 rounded-xl font-bold font-mono text-center bg-white"
-                    />
-                    <span className="text-slate-500 text-[11px]">шт. на складі</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {/* 1. Модуль онлайн-кошика та оформлення */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 shadow-2xs">
+                      <ShoppingCart className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <b className="text-xs sm:text-sm font-bold text-slate-900">Онлайн-кошик та замовлення</b>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          (siteSettings.features?.ordersEnabled ?? true) ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {(siteSettings.features?.ordersEnabled ?? true) ? 'Кошик активний' : 'Режим каталогу'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Дозволяє клієнтам оформляти покупки онлайн. Якщо вимкнено — сайт працює як електронний каталог.
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    Товари з кількістю від 0 до цього значення потрапляють у список критичного залишку.
-                  </p>
-                </div>
 
-                <div>
-                  <label className="block font-semibold text-slate-800 mb-1">
-                    Показувати сповіщення покупцям
-                  </label>
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={siteSettings.features?.showLowStockBadgeToBuyers ?? true}
-                      onChange={(e) => updateSiteFeatures({ showLowStockBadgeToBuyers: e.target.checked })}
-                      className="w-4 h-4 text-amber-600 rounded"
+                  <button
+                    type="button"
+                    onClick={() => updateSiteFeatures({ ordersEnabled: !(siteSettings.features?.ordersEnabled ?? true) })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                      (siteSettings.features?.ordersEnabled ?? true) ? 'bg-sky-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (siteSettings.features?.ordersEnabled ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                     />
-                    <span className="text-slate-700 text-xs">
-                      Плашка «⚠️ Закінчується! Залишилося X шт.» на картці товару
-                    </span>
-                  </label>
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Особистий кабінет та бонуси */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center shrink-0 shadow-2xs">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <b className="text-xs sm:text-sm font-bold text-slate-900">Особистий кабінет та кешбек</b>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          (siteSettings.features?.loyaltyEnabled ?? true) ? 'bg-violet-100 text-violet-800' : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          {(siteSettings.features?.loyaltyEnabled ?? true) ? 'Бонуси активні' : 'Вимкнено'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Вмикає нарахування кешбеку на баланс за покупки, історію замовлень та персональні знижки за телефоном.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => updateSiteFeatures({ loyaltyEnabled: !(siteSettings.features?.loyaltyEnabled ?? true) })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                      (siteSettings.features?.loyaltyEnabled ?? true) ? 'bg-violet-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (siteSettings.features?.loyaltyEnabled ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Відгуки та оцінки покупців на сайті */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <b className="text-xs sm:text-sm font-bold text-slate-900">Відгуки покупців на сайті</b>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          (siteSettings.features?.reviewsEnabled ?? true) ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          {(siteSettings.features?.reviewsEnabled ?? true) ? 'Відгуки активні' : 'Вимкнено'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Показує блок реальних відгуків, рейтинг задоволеності покупців та форму додавання оцінки на головній сторінці.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => updateSiteFeatures({ reviewsEnabled: !(siteSettings.features?.reviewsEnabled ?? true) })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                      (siteSettings.features?.reviewsEnabled ?? true) ? 'bg-amber-500' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (siteSettings.features?.reviewsEnabled ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. Відображення точної кількості */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Boxes className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <b className="text-xs sm:text-sm font-bold text-slate-900">Точна кількість товару на складі</b>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          (siteSettings.features?.showExactStock ?? true) ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          {(siteSettings.features?.showExactStock ?? true) ? 'Видно залишок' : 'Тільки наявність'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Показувати покупцям конкретний залишок (напр. «В наявності: 15 шт.») замість звичайного «В наявності».
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => updateSiteFeatures({ showExactStock: !(siteSettings.features?.showExactStock ?? true) })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                      (siteSettings.features?.showExactStock ?? true) ? 'bg-indigo-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (siteSettings.features?.showExactStock ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* 5. Плаваюча кнопка швидкого дзвінка */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3 md:col-span-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <b className="text-xs sm:text-sm font-bold text-slate-900">Плаваюча кнопка швидкого дзвінка</b>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          (siteSettings.features?.floatingCallBtn ?? true) ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          {(siteSettings.features?.floatingCallBtn ?? true) ? 'Віджет увімкнено' : 'Приховано'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Показує круглу пульсуючу кнопку консультації у правому нижньому кутку сайту для швидкого дзвінка покупця.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => updateSiteFeatures({ floatingCallBtn: !(siteSettings.features?.floatingCallBtn ?? true) })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                      (siteSettings.features?.floatingCallBtn ?? true) ? 'bg-emerald-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (siteSettings.features?.floatingCallBtn ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-3">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
+          {/* Section 2: Low Stock Dedicated Settings Card */}
+          <div className="p-5 bg-gradient-to-br from-amber-50/80 via-white to-amber-50/40 border border-amber-200/90 rounded-2xl shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-amber-200/60">
+              <h4 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider text-amber-950">
+                <AlertTriangle className="w-4 h-4 text-amber-600 stroke-[2.5]" />
+                <span>Контроль критичних залишків на складі</span>
+              </h4>
+              <span className="text-[11px] font-bold text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full border border-amber-300/60">
+                Поточний поріг: {siteSettings.features?.lowStockThreshold ?? lowStockThreshold} шт.
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+              {/* Threshold controls */}
+              <div className="space-y-2">
+                <label className="block font-bold text-slate-800">
+                  Поріг залишку за замовчуванням (шт.)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={siteSettings.features?.lowStockThreshold ?? lowStockThreshold}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === '') return;
+                      const val = Math.max(1, parseInt(raw, 10) || 1);
+                      setLowStockThreshold(val);
+                      updateSiteFeatures({ lowStockThreshold: val });
+                    }}
+                    className="w-24 px-3 py-2 border border-slate-300 rounded-xl font-bold font-mono text-center bg-white text-slate-900 text-sm shadow-2xs outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 5, 10].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => {
+                          setLowStockThreshold(num);
+                          updateSiteFeatures({ lowStockThreshold: num });
+                        }}
+                        className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          (siteSettings.features?.lowStockThreshold ?? lowStockThreshold) === num
+                            ? 'bg-amber-500 text-slate-950 shadow-xs'
+                            : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                    <span className="text-slate-500 text-[11px] pl-1 font-medium">шт.</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal">
+                  Товари з кількістю від 0 до цього значення позначаються значком дефіциту в адмінці та враховуються у списку сповіщень.
+                </p>
+              </div>
+
+              {/* Show badge to buyers preview */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800">
+                    Плашка дефіциту для покупців
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => updateSiteFeatures({ showLowStockBadgeToBuyers: !(siteSettings.features?.showLowStockBadgeToBuyers ?? true) })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                      (siteSettings.features?.showLowStockBadgeToBuyers ?? true) ? 'bg-amber-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (siteSettings.features?.showLowStockBadgeToBuyers ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="p-3 bg-white rounded-xl border border-amber-200 shadow-2xs flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-600">Вигляд на картці товару:</span>
+                  </div>
+                  {(siteSettings.features?.showLowStockBadgeToBuyers ?? true) ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-700 stroke-[2.5]" />
+                      <span>Закінчується! Залишилося {siteSettings.features?.lowStockThreshold ?? lowStockThreshold} шт.</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">Плашку приховано</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Financial & Shipping Thresholds */}
+          <div>
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-emerald-600" />
+              <span>Параметри замовлення та безкоштовна доставка</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Мінімальна сума замовлення */}
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/40 space-y-2.5">
+                <label className="block text-xs font-bold text-slate-800">
                   Мінімальна сума замовлення (грн)
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={siteSettings.features?.minOrderSum ?? 50}
-                  onChange={(e) => updateSiteFeatures({ minOrderSum: Number(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">
+                    ₴
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={siteSettings.features?.minOrderSum ?? 50}
+                    onChange={(e) => updateSiteFeatures({ minOrderSum: Number(e.target.value) || 0 })}
+                    className="w-full pl-8 pr-12 py-2 border border-slate-300 rounded-xl bg-white font-mono font-bold text-slate-900 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-xs text-slate-400">
+                    грн
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[11px] text-slate-400">Швидкий вибір:</span>
+                  {[0, 50, 100, 200, 500].map((sum) => (
+                    <button
+                      key={sum}
+                      type="button"
+                      onClick={() => updateSiteFeatures({ minOrderSum: sum })}
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                        (siteSettings.features?.minOrderSum ?? 50) === sum
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-white hover:bg-slate-200 border border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {sum} грн
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal">
+                  Покупці не зможуть відправити замовлення, якщо сума їхнього кошика менша за це значення.
+                </p>
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
+              {/* Поріг безкоштовної доставки */}
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/40 space-y-2.5">
+                <label className="block text-xs font-bold text-slate-800">
                   Поріг безкоштовної доставки (грн)
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={siteSettings.features?.freeShippingThreshold ?? 3000}
-                  onChange={(e) => updateSiteFeatures({ freeShippingThreshold: Number(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">
+                    ₴
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={siteSettings.features?.freeShippingThreshold ?? 3000}
+                    onChange={(e) => updateSiteFeatures({ freeShippingThreshold: Number(e.target.value) || 0 })}
+                    className="w-full pl-8 pr-12 py-2 border border-slate-300 rounded-xl bg-white font-mono font-bold text-slate-900 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-xs text-slate-400">
+                    грн
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[11px] text-slate-400">Швидкий вибір:</span>
+                  {[1000, 2000, 3000, 5000].map((sum) => (
+                    <button
+                      key={sum}
+                      type="button"
+                      onClick={() => updateSiteFeatures({ freeShippingThreshold: sum })}
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                        (siteSettings.features?.freeShippingThreshold ?? 3000) === sum
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-white hover:bg-slate-200 border border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {sum} грн
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal">
+                  При досягненні цієї суми в кошику вартість доставки автоматично стає безкоштовною.
+                </p>
               </div>
             </div>
+          </div>
 
-            {/* Change Admin Password */}
-            <div className="pt-4 space-y-3">
-              <h4 className="font-bold text-slate-900 flex items-center gap-1.5">
-                <Key className="w-4 h-4 text-orange-600" />
-                <span>Зміна пароля адміністратора</span>
+          {/* Section 4: Admin Password Security */}
+          <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+              <h4 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <Lock className="w-4 h-4 text-orange-600" />
+                <span>Безпека та пароль адміністратора</span>
               </h4>
-              <div className="flex gap-2 max-w-sm">
+              <span className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
+                <Key className="w-3.5 h-3.5" />
+                Синхронізація з Firebase
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Встановіть новий майстер-пароль для входу в панель керування. Він зберігається в захищеному сховищі бази даних Firebase Firestore.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2 max-w-md pt-1">
+              <div className="relative flex-1 min-w-[220px]">
                 <input
-                  type="password"
-                  placeholder="Новий пароль адміністратора"
+                  type={showNewPassword ? 'text' : 'password'}
+                  placeholder="Введіть новий пароль адміністратора"
                   value={newPasswordInput}
                   onChange={(e) => setNewPasswordInput(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-xs"
+                  className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 font-mono shadow-2xs"
                 />
                 <button
                   type="button"
-                  disabled={isSavingPassword}
-                  onClick={async () => {
-                    if (newPasswordInput.length < 4) {
-                      showToast('Пароль має містити щонайменше 4 символи', 'error');
-                      return;
-                    }
-                    setIsSavingPassword(true);
-                    try {
-                      await saveAdminPasswordToFirestore(firebaseConfig, newPasswordInput);
-                      updateSiteSettings({
-                        ...siteSettings,
-                        adminPassword: newPasswordInput
-                      });
-                      setNewPasswordInput('');
-                      showToast('Пароль успішно оновлено в базі даних Firebase Firestore!', 'success');
-                    } catch {
-                      showToast('Помилка оновлення пароля в базі даних', 'error');
-                    } finally {
-                      setIsSavingPassword(false);
-                    }
-                  }}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                  tabIndex={-1}
                 >
-                  {isSavingPassword ? (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Key className="w-3.5 h-3.5" />
-                  )}
-                  <span>Оновити в базі</span>
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+
+              <button
+                type="button"
+                disabled={isSavingPassword || !newPasswordInput}
+                onClick={async () => {
+                  if (newPasswordInput.length < 4) {
+                    showToast('Пароль має містити щонайменше 4 символи', 'error');
+                    return;
+                  }
+                  setIsSavingPassword(true);
+                  try {
+                    await saveAdminPasswordToFirestore(firebaseConfig, newPasswordInput);
+                    updateSiteSettings({
+                      ...siteSettings,
+                      adminPassword: newPasswordInput
+                    });
+                    setNewPasswordInput('');
+                    showToast('Пароль успішно оновлено в базі даних Firebase Firestore!', 'success');
+                  } catch {
+                    showToast('Помилка оновлення пароля в базі даних', 'error');
+                  } finally {
+                    setIsSavingPassword(false);
+                  }
+                }}
+                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs active:scale-[0.98]"
+              >
+                {isSavingPassword ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CloudUpload className="w-3.5 h-3.5" />
+                )}
+                <span>Оновити в базі</span>
+              </button>
             </div>
           </div>
         </div>
@@ -6003,132 +6747,544 @@ export const AdminPanel: React.FC = () => {
           onSubmit={(e) => {
             e.preventDefault();
             updateHeaderDesign(designForm);
+            updateSiteSettings(settingsForm);
+            showToast('Дизайн, логотип, контакти та банери магазину успішно збережено!', 'success');
           }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 max-w-2xl"
+          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-6"
         >
-          <h3 className="text-sm font-bold text-slate-900">
-            Налаштування тексту та промо-банера
-          </h3>
-
-          <div className="space-y-4 text-xs">
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Назва бренду (червоний бейдж)
-              </label>
-              <input
-                type="text"
-                value={designForm.logoBadge}
-                placeholder="ISKRA"
-                onChange={(e) => setDesignForm({ ...designForm, logoBadge: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
-              />
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 shadow-xs">
+                <Palette className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 leading-tight">
+                  Налаштування дизайну, логотипа, контактів та промо-банера
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Редагуйте бренд-стиль шапки, прямі контакти, адресу магазину, верхній промо-рядок та головний Hero-банер
+                </p>
+              </div>
             </div>
 
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Основний підпис бренду (верхній рядок)
-              </label>
-              <input
-                type="text"
-                value={designForm.logoText}
-                placeholder="МАГАЗИН"
-                onChange={(e) => setDesignForm({ ...designForm, logoText: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
-              />
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200">
+                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                Живий перегляд увімкнено
+              </span>
+            </div>
+          </div>
+
+          {/* Section 1: Logo & Brand Header */}
+          <div className="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/40 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+              <h4 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <Tag className="w-4 h-4 text-red-600" />
+                <span>1. Фірмовий логотип та стиль шапки</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-medium">Відображається у навігаційній панелі</span>
             </div>
 
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Слоган / Підзаголовок (нижній рядок)
-              </label>
-              <input
-                type="text"
-                value={designForm.logoSubtitle || ''}
-                placeholder="Магазин надійних рішень"
-                onChange={(e) => setDesignForm({ ...designForm, logoSubtitle: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
-              />
-            </div>
-
-            <div className="pt-2 border-t border-slate-100">
-              <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-900 mb-2">
-                <input
-                  type="checkbox"
-                  checked={designForm.promoActive}
-                  onChange={(e) => setDesignForm({ ...designForm, promoActive: e.target.checked })}
-                  className="rounded text-orange-600"
-                />
-                <span>Увімкнути промо-банер угорі сайту</span>
-              </label>
-
-              <textarea
-                rows={2}
-                placeholder="Текст повідомлення на банері..."
-                value={designForm.promoText}
-                onChange={(e) => setDesignForm({ ...designForm, promoText: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
-              />
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              {/* Form Inputs */}
+              <div className="lg:col-span-7 space-y-3 text-xs">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Верхній бейдж над заголовком (наприклад, «Інтернет-магазин»)
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Назва бренду (червоний бейдж)
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.logoBadge}
+                    placeholder="ISKRA"
+                    onChange={(e) => setDesignForm({ ...designForm, logoBadge: e.target.value })}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Текст усередині яскравого червоного фірмового прямокутника.</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">
+                      Основний підпис (верхній рядок)
+                    </label>
+                    <input
+                      type="text"
+                      value={designForm.logoText}
+                      placeholder="МАГАЗИН"
+                      onChange={(e) => setDesignForm({ ...designForm, logoText: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-semibold text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">
+                      Слоган / Підзаголовок
+                    </label>
+                    <input
+                      type="text"
+                      value={designForm.logoSubtitle || ''}
+                      placeholder="Магазин надійних рішень"
+                      onChange={(e) => setDesignForm({ ...designForm, logoSubtitle: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Preview Box */}
+              <div className="lg:col-span-5 flex flex-col justify-center">
+                <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm space-y-2">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Попередній перегляд:</span>
+                    <span className="text-emerald-600 font-bold">● Шапка сайту</span>
+                  </div>
+                  <div className="p-3 bg-slate-50/80 rounded-lg border border-slate-100 flex items-center gap-2.5">
+                    <div className="flex items-center justify-center bg-[#e5001e] text-white px-2.5 py-1.5 rounded-[6px] shadow-xs shrink-0">
+                      <span className="font-black text-white text-[16px] tracking-[0.05em] font-display leading-none transform scale-y-110 scale-x-105 uppercase">
+                        {designForm.logoBadge || 'ISKRA'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col justify-center text-left min-w-0">
+                      <span className="font-bold text-sm text-black tracking-tight font-display leading-tight uppercase truncate">
+                        {designForm.logoText || 'МАГАЗИН'}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-600 tracking-tight leading-tight truncate">
+                        {designForm.logoSubtitle || 'Магазин надійних рішень'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Top Notification Promo Banner */}
+          <div className="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/40 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-orange-500" />
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                  2. Верхній промо-рядок сповіщень
+                </h4>
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                  designForm.promoActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  {designForm.promoActive ? 'Активний на сайті' : 'Приховано'}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDesignForm({ ...designForm, promoActive: !designForm.promoActive })}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                  designForm.promoActive ? 'bg-orange-600' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    designForm.promoActive ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Текст повідомлення на промо-банері
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="🔥 Знижка -10% на всі замовлення від 1000 грн! Встигніть оформити!"
+                  value={designForm.promoText}
+                  onChange={(e) => setDesignForm({ ...designForm, promoText: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs leading-relaxed"
+                />
+              </div>
+
+              {/* Quick Template Chips */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-slate-400 font-medium">Швидкі шаблони:</span>
+                {[
+                  '🔥 Знижка -10% при замовленні від 1000 грн!',
+                  '🚚 Безкоштовна доставка від 3000 грн по всій Україні!',
+                  '⚡ Швидка відправка товару в день замовлення!',
+                  '🎁 Подарунок до кожного замовлення цього тижня!'
+                ].map((tpl) => (
+                  <button
+                    key={tpl}
+                    type="button"
+                    onClick={() => setDesignForm({ ...designForm, promoText: tpl, promoActive: true })}
+                    className="px-2.5 py-1 bg-white hover:bg-orange-50 hover:border-orange-200 border border-slate-200 rounded-lg text-[11px] text-slate-700 transition-all cursor-pointer"
+                  >
+                    {tpl}
+                  </button>
+                ))}
+              </div>
+
+              {/* Live Banner Preview */}
+              <div className="pt-2">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                  <span>Вигляд промо-банера на сайті:</span>
+                  {designForm.promoActive ? (
+                    <span className="text-emerald-600 font-bold">● Банер увімкнено</span>
+                  ) : (
+                    <span className="text-slate-400 italic">Банер вимкнено в перемикачі вище</span>
+                  )}
+                </div>
+
+                <div className="rounded-xl overflow-hidden shadow-xs border border-orange-200">
+                  <div className="bg-gradient-to-r from-red-600 via-orange-600 to-red-700 text-white text-xs font-medium py-2 px-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 overflow-hidden truncate">
+                      <Sparkles className="w-4 h-4 shrink-0 text-amber-200 animate-pulse" />
+                      <span className="truncate">{designForm.promoText || 'Текст повідомлення на промо-банері...'}</span>
+                    </div>
+                    <span className="text-white/80 shrink-0 p-0.5 rounded hover:bg-white/10">
+                      <X className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Hero Banner Controls */}
+          <div className="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/40 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+              <h4 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <Flame className="w-4 h-4 text-orange-600" />
+                <span>3. Головний Hero-банер вітрини (перший екран сайту)</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-medium">Титульний блок вітрини</span>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Верхній бейдж над заголовком
                   </label>
                   <input
                     type="text"
                     placeholder="Інтернет-магазин"
                     value={designForm.heroBadge || ''}
                     onChange={(e) => setDesignForm({ ...designForm, heroBadge: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                   />
+                  <p className="text-[11px] text-slate-400 mt-1">Міні-напис над великим заголовком.</p>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Місто / Регіон на банері (біля напису «Інтернет-магазин»)
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Місто / Регіон на банері
                   </label>
                   <input
                     type="text"
                     placeholder="с-ще. Оратів, Вінницька обл."
                     value={designForm.heroCity || ''}
-                    onChange={(e) => setDesignForm({ ...designForm, heroCity: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDesignForm({ ...designForm, heroCity: val });
+                      setSettingsForm({ ...settingsForm, city: val });
+                    }}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                   />
+                  <p className="text-[11px] text-slate-400 mt-1">Геолокація або підпис розташування складу/магазину.</p>
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
+                <label className="block font-bold text-slate-800 mb-1">
                   Головний заголовок банера (H1)
                 </label>
                 <input
                   type="text"
                   value={designForm.heroTitle}
                   onChange={(e) => setDesignForm({ ...designForm, heroTitle: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
+                  placeholder="Надійна Сантехніка та Електротовари"
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 text-sm shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
+                <label className="block font-bold text-slate-800 mb-1">
                   Опис на головному банері
                 </label>
                 <textarea
                   rows={2}
                   value={designForm.heroDesc}
                   onChange={(e) => setDesignForm({ ...designForm, heroDesc: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
+                  placeholder="Найбільший асортимент товарів для ремонту, монтажу та будівництва у вас вдома."
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-xs leading-relaxed"
                 />
+              </div>
+
+              {/* Live Hero Banner Card Preview */}
+              <div className="pt-2">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>Попередній вигляд першого екрана:</span>
+                  <span className="text-purple-600 font-bold">● Hero-блок сайту</span>
+                </div>
+
+                <div className="p-5 sm:p-6 bg-slate-900 text-white rounded-2xl border border-slate-800 shadow-md space-y-3 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+                  
+                  {/* Badge & City */}
+                  <div className="inline-flex items-center gap-2 text-xs font-semibold text-red-400 tracking-wider uppercase">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span>{designForm.heroBadge || 'Інтернет-магазин'}</span>
+                    {(designForm.heroCity || settingsForm.city) && (
+                      <>
+                        <span className="text-slate-600">·</span>
+                        <span className="text-slate-300 normal-case">{designForm.heroCity || settingsForm.city}</span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Title */}
+                  <h2 className="text-lg sm:text-2xl font-black font-display text-white leading-tight">
+                    {designForm.heroTitle || 'Надійна Сантехніка та Електротовари'}
+                  </h2>
+
+                  {/* Desc */}
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl">
+                    {designForm.heroDesc || 'Найбільший асортимент товарів для ремонту, монтажу та будівництва у вас вдома.'}
+                  </p>
+
+                  {/* Buttons simulation */}
+                  <div className="flex flex-wrap items-center gap-2.5 pt-2">
+                    <span className="inline-flex items-center gap-1.5 bg-red-600 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm">
+                      <Flame className="w-3.5 h-3.5 fill-current" />
+                      <span>Переглянути хіти продажу</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 bg-slate-800 text-slate-200 font-semibold text-xs px-3.5 py-2 rounded-xl border border-slate-700">
+                      <Phone className="w-3.5 h-3.5 text-red-400" />
+                      <span>{settingsForm.phone || siteSettings.phone || '+38 (068) 000-00-00'}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Store Contact Details & Address */}
+          <div className="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/40 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+              <h4 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <Phone className="w-4 h-4 text-emerald-600" />
+                <span>4. Контактні дані, графік роботи та адреса магазину</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-medium">Відображаються у шапці, футері, кнопках дзвінка та контактах</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              {/* Phone */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Головний телефон для замовлень & дзвінків
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Phone className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <input
+                    type="text"
+                    value={settingsForm.phone}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, phone: e.target.value })}
+                    placeholder="+38 (068) 000-00-00"
+                    className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 shadow-2xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Використовується для прямих дзвінків покупців на сайті.</p>
+              </div>
+
+              {/* Work Hours */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Графік та години роботи
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Clock className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <input
+                    type="text"
+                    value={settingsForm.workHours}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, workHours: e.target.value })}
+                    placeholder="Пн-Нд: 08:00 - 20:00 (без вихідних)"
+                    className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Режим прийому дзвінків та обробки онлайн-замовлень.</p>
+              </div>
+
+              {/* City */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Місто / Населений пункт
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <MapPin className="w-4 h-4 text-red-500" />
+                  </div>
+                  <input
+                    type="text"
+                    value={settingsForm.city}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSettingsForm({ ...settingsForm, city: val });
+                      setDesignForm({ ...designForm, heroCity: val });
+                    }}
+                    placeholder="с-ще. Оратів, Вінницька обл."
+                    className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Локація магазину / основного складу.</p>
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Адреса магазину / Пункту самовивозу
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Building2 className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <input
+                    type="text"
+                    value={settingsForm.address}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, address: e.target.value })}
+                    placeholder="вул. Героїв Майдану, 12"
+                    className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Точна фізична адреса для клієнтів у футері та контактах.</p>
+              </div>
+
+              {/* Viber & Telegram */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Viber для консультацій покупців
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <MessageCircle className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <input
+                    type="text"
+                    value={settingsForm.viber}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, viber: e.target.value })}
+                    placeholder="+38 (068) 000-00-00"
+                    className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Telegram канал або прямий юзернейм
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Send className="w-4 h-4 text-sky-500" />
+                  </div>
+                  <input
+                    type="text"
+                    value={settingsForm.telegram}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, telegram: e.target.value })}
+                    placeholder="@iskra_shop"
+                    className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  />
+                </div>
               </div>
             </div>
 
+            {/* Live Contacts & Location Preview */}
+            <div className="pt-2">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                <span>Попередній вигляд контактного блоку та шапки:</span>
+                <span className="text-emerald-600 font-bold">● Контакти сайту</span>
+              </div>
+
+              <div className="p-4 sm:p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-800">
+                      {settingsForm.phone || '+38 (068) 000-00-00'}
+                    </span>
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Приймаємо дзвінки
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+                    <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span>{settingsForm.workHours || 'Пн-Нд: 08:00 - 20:00'}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <MapPin className="w-4 h-4 text-red-500 shrink-0" />
+                    <span>
+                      <b className="text-slate-900">{settingsForm.city || 'с-ще. Оратів, Вінницька обл.'}</b>
+                      {settingsForm.address && <span className="text-slate-500">, {settingsForm.address}</span>}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {settingsForm.viber && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 text-[11px] font-bold">
+                        <MessageCircle className="w-3 h-3 text-purple-600" />
+                        Viber
+                      </span>
+                    )}
+                    {settingsForm.telegram && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-bold">
+                        <Send className="w-3 h-3 text-sky-600" />
+                        {settingsForm.telegram}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Save Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => {
+                setDesignForm({
+                  bgColor: 'bg-slate-900',
+                  logoBadge: 'ISKRA',
+                  logoText: 'МАГАЗИН',
+                  logoSubtitle: 'Магазин надійних рішень',
+                  promoActive: true,
+                  promoText: '🔥 Знижка -10% при замовленні від 1000 грн! Встигніть оформити замовлення!',
+                  heroBadge: 'Інтернет-магазин',
+                  heroTitle: 'Надійна Сантехніка та Електротовари',
+                  heroDesc: 'Найбільший асортимент товарів для ремонту, монтажу та будівництва у вас вдома.',
+                  heroAddress: 'Вінницька обл., с-ще. Оратів',
+                  heroCity: 'с-ще. Оратів, Вінницька обл.'
+                });
+                showToast('Значення дизайну скинуто до початкових', 'info');
+              }}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+            >
+              Скинути до стандартних
+            </button>
+
             <button
               type="submit"
-              className="px-6 py-2.5 bg-orange-600 text-white font-bold rounded-xl"
+              className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold rounded-xl text-xs shadow-md shadow-red-600/25 transition-all flex items-center gap-2 cursor-pointer active:scale-[0.98]"
             >
-              Зберегти зміни дизайну
+              <Check className="w-4 h-4" />
+              <span>Зберегти дизайн, контакти та банери</span>
             </button>
           </div>
         </form>
@@ -6140,219 +7296,309 @@ export const AdminPanel: React.FC = () => {
           onSubmit={(e) => {
             e.preventDefault();
             updateSiteSettings(settingsForm);
+            showToast('Telegram-бот та SMS-сервіси успішно збережено!', 'success');
           }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 max-w-2xl"
+          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-6"
         >
-          <div>
-            <h3 className="text-sm font-bold text-slate-900">
-              Контактні дані та Telegram-сповіщення
-            </h3>
-            <p className="text-xs text-slate-500">
-              Вкажіть номер телефону для дзвінків та токен бота для отримання замовлень у Telegram
-            </p>
-          </div>
-
-          <div className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 shadow-xs">
+                <Send className="w-5 h-5" />
+              </div>
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Телефон для замовлень</label>
-                <input
-                  type="text"
-                  value={settingsForm.phone}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Місто / Селище</label>
-                <input
-                  type="text"
-                  value={settingsForm.city}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, city: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Адреса магазину</label>
-              <input
-                type="text"
-                value={settingsForm.address}
-                onChange={(e) => setSettingsForm({ ...settingsForm, address: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Графік роботи</label>
-              <input
-                type="text"
-                value={settingsForm.workHours}
-                onChange={(e) => setSettingsForm({ ...settingsForm, workHours: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
-              />
-            </div>
-
-            {/* Telegram Bot */}
-            <div className="pt-4 border-t border-slate-100 space-y-3 bg-sky-50/50 p-4 rounded-xl border border-sky-100">
-              <div className="font-bold text-sky-950 flex items-center gap-1.5">
-                <Send className="w-4 h-4 text-sky-600" />
-                <span>Миттєві сповіщення у Telegram</span>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Telegram Bot Token
-                </label>
-                <input
-                  type="text"
-                  placeholder="напр., 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
-                  value={settingsForm.botToken}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, botToken: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs bg-white outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Telegram Chat ID
-                </label>
-                <input
-                  type="text"
-                  placeholder="напр., 987654321"
-                  value={settingsForm.chatId}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, chatId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs bg-white outline-none"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!settingsForm.botToken || !settingsForm.chatId) {
-                    showToast('Введіть Bot Token та Chat ID для тесту', 'error');
-                    return;
-                  }
-                  // Auto-save settings so placeOrder immediately has them
-                  updateSiteSettings(settingsForm);
-
-                  const success = await sendTelegramAlert(
-                    settingsForm.botToken,
-                    settingsForm.chatId,
-                    "✅ Тестове сповіщення від магазину ISKRA. З'єднання працює ідеально!"
-                  );
-                  if (success) {
-                    showToast('Тестове повідомлення надіслано в Telegram та налаштування збережено!', 'success');
-                  } else {
-                    showToast('Помилка надсилання в Telegram (перевірте токен, chat ID та чи натиснутий /start у боті)', 'error');
-                  }
-                }}
-                className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-lg"
-              >
-                Надіслати тестове повідомлення
-              </button>
-            </div>
-
-            {/* SMS Gateway & Notifications Configuration */}
-            <div className="p-5 rounded-2xl border border-blue-200 bg-blue-50/50 space-y-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                  <MessageSquare className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <span>SMS-сповіщення клієнтів (TurboSMS, SMS-Fly, AlphaSMS, 1-клік)</span>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                      Активно
-                    </span>
-                  </h4>
-                  <p className="text-[11px] text-slate-500">
-                    Автоматичні та 1-клік сповіщення для покупців, які очікують на появу товару
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-xs text-slate-700 bg-white/90 p-3.5 rounded-xl border border-blue-200/80 space-y-2">
-                <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Як працює відправка SMS в магазині:</span>
-                </div>
-                <ul className="list-disc list-inside space-y-1 text-slate-600 text-[11px]">
-                  <li><b>1-клік SMS & Viber (безкоштовно):</b> у вкладці «Очікування товару» натисніть кнопку «SMS» або «Viber» — на вашому телефоні або ПК одразу відкриється додаток з уже заповненим текстом і номером клієнта. Працює одразу без жодних платних підписок.</li>
-                  <li><b>SMS-шлюз (TurboSMS, SMS-Fly, AlphaSMS):</b> якщо підключити API ключ українського оператора розсилок, повідомлення можна відправляти з офіційним альфа-іменем (наприклад «ISKRA»).</li>
-                </ul>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    SMS-провайдер
-                  </label>
-                  <select
-                    value={settingsForm.smsGateway || 'none'}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, smsGateway: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white outline-none focus:border-blue-600 font-medium"
-                  >
-                    <option value="none">Швидкі кнопки 1-клік SMS & Viber (Рекомендовано, безкоштовно)</option>
-                    <option value="turbosms">TurboSMS (api.turbosms.ua)</option>
-                    <option value="smsfly">SMS-Fly (sms-fly.ua)</option>
-                    <option value="alphasms">AlphaSMS (alphasms.ua)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Підпис відправника (Альфа-ім'я)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="наприклад: ISKRA"
-                    value={settingsForm.smsSenderName || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, smsSenderName: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white outline-none focus:border-blue-600"
-                  />
-                </div>
-              </div>
-
-              {settingsForm.smsGateway && settingsForm.smsGateway !== 'none' && (
-                <div className="animate-in fade-in">
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    API Ключ (Токен) {settingsForm.smsGateway.toUpperCase()}
-                  </label>
-                  <input
-                    type="password"
-                    placeholder={`Вставте API ключ від ${settingsForm.smsGateway}`}
-                    value={settingsForm.smsApiKey || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, smsApiKey: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs bg-white outline-none focus:border-blue-600"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Шаблон SMS про появу товару
-                </label>
-                <textarea
-                  rows={3}
-                  value={settingsForm.smsStockAlertTemplate || ''}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, smsStockAlertTemplate: e.target.value })}
-                  placeholder={`⚡ Магазин ISKRA\nВітаємо! Товар «{product}» знову в наявності ({price} грн). Замовляйте на сайті або телефонуйте!`}
-                  className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white outline-none focus:border-blue-600"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Змінні: <b>{'{product}'}</b> — назва товару, <b>{'{price}'}</b> — ціна, <b>{'{name}'}</b> — ім'я покупця.
+                <h3 className="text-base font-bold text-slate-900 leading-tight">
+                  Telegram-сповіщення та SMS
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Керуйте ботом сповіщень про нові замовлення та SMS-інформуванням (контакти магазину налаштовуються у вкладці «Дизайн»)
                 </p>
               </div>
             </div>
 
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold ${
+                settingsForm.botToken && settingsForm.chatId
+                  ? 'bg-sky-50 text-sky-800 border border-sky-200'
+                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+              }`}>
+                <Send className="w-3.5 h-3.5 text-sky-500" />
+                {settingsForm.botToken && settingsForm.chatId ? 'Telegram: Налаштовано' : 'Telegram: Не підключено'}
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+                {settingsForm.smsGateway && settingsForm.smsGateway !== 'none' ? settingsForm.smsGateway.toUpperCase() : '1-клік SMS & Viber'}
+              </span>
+            </div>
+          </div>
+
+          {/* Section 1: Telegram Bot Integration */}
+          <div className="p-5 rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50/80 via-white to-sky-50/40 shadow-2xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-sky-200/70">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shadow-xs">
+                  <Send className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <span>1. Миттєві сповіщення про замовлення у Telegram</span>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      settingsForm.botToken && settingsForm.chatId
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-amber-100 text-amber-800 border border-amber-200'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${settingsForm.botToken && settingsForm.chatId ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                      {settingsForm.botToken && settingsForm.chatId ? 'Активно' : 'Очікує налаштування'}
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Бот миттєво надсилає повний склад нового замовлення, контакти клієнта та адресу доставки у ваш Telegram
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Setup Instructions Accordion */}
+            <div className="p-3.5 bg-white/90 rounded-xl border border-sky-200/80 text-xs text-slate-700 space-y-2">
+              <div className="font-bold text-sky-950 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-sky-600" />
+                <span>Як налаштувати Telegram-бота за 2 хвилини:</span>
+              </div>
+              <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-600 leading-relaxed">
+                <li>Відкрийте в Telegram бота <b>@BotFather</b> і надішліть команду <code>/newbot</code>, щоб створити бота та отримати <b>Bot Token</b>.</li>
+                <li>Натисніть <b>START</b> у вашому створеному боті, щоб дозволити йому надсилати вам повідомлення.</li>
+                <li>Дізнайтеся свій <b>Chat ID</b> через бота <b>@userinfobot</b> (або вкажіть ID групи/каналу з мінусом, напр. <code>-1001234567890</code>).</li>
+              </ol>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              {/* Bot Token */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Telegram Bot Token
+                </label>
+                <div className="relative">
+                  <input
+                    type={showBotToken ? 'text' : 'password'}
+                    placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                    value={settingsForm.botToken}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, botToken: e.target.value })}
+                    className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-xl font-mono text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowBotToken(!showBotToken)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showBotToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Chat ID */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Telegram Chat ID (користувача або групи)
+                </label>
+                <input
+                  type="text"
+                  placeholder="наприклад: 987654321 або -100123456789"
+                  value={settingsForm.chatId}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, chatId: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Test Button */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isTestingTelegram}
+                onClick={async () => {
+                  if (!settingsForm.botToken || !settingsForm.chatId) {
+                    showToast('Введіть Bot Token та Chat ID для відправки тестового сповіщення', 'error');
+                    return;
+                  }
+                  setIsTestingTelegram(true);
+                  // Auto-save settings so placeOrder immediately has them
+                  updateSiteSettings(settingsForm);
+
+                  try {
+                    const success = await sendTelegramAlert(
+                      settingsForm.botToken,
+                      settingsForm.chatId,
+                      "✅ Тестове сповіщення від магазину ISKRA!\n\nЗ'єднання з Telegram-ботом налаштовано успішно. Всі нові замовлення будуть миттєво надходити сюди."
+                    );
+                    if (success) {
+                      showToast('✅ Тестове повідомлення надіслано в Telegram та налаштування збережено!', 'success');
+                    } else {
+                      showToast('❌ Помилка надсилання в Telegram (перевірте токен, chat ID та чи натиснутий START у боті)', 'error');
+                    }
+                  } catch {
+                    showToast('Помилка відправки в Telegram', 'error');
+                  } finally {
+                    setIsTestingTelegram(false);
+                  }
+                }}
+                className="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-60"
+              >
+                {isTestingTelegram ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5" />
+                )}
+                <span>Надіслати тестове повідомлення в Telegram</span>
+              </button>
+
+              <span className="text-[11px] text-slate-500 italic">
+                При тесті налаштування бота зберігаються автоматично
+              </span>
+            </div>
+          </div>
+
+          {/* Section 2: SMS Gateway & Customer Stock Notifications */}
+          <div className="p-5 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/80 via-white to-blue-50/40 shadow-2xs space-y-4">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-blue-200/70">
+              <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <span>2. SMS-сповіщення клієнтів (TurboSMS, SMS-Fly, AlphaSMS, 1-клік)</span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                    Активно
+                  </span>
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  Автоматичні та 1-клік сповіщення для покупців, які очікують на появу товару на складі
+                </p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-700 bg-white/90 p-3.5 rounded-xl border border-blue-200/80 space-y-2">
+              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Як працює відправка SMS в магазині:</span>
+              </div>
+              <ul className="list-disc list-inside space-y-1 text-slate-600 text-[11px] leading-relaxed">
+                <li><b>1-клік SMS & Viber (безкоштовно):</b> у вкладці «Очікують товар» натисніть кнопку «SMS» або «Viber» — на вашому телефоні або ПК одразу відкриється месенджер з готовим текстом і номером клієнта без жодних платних підписок.</li>
+                <li><b>SMS-шлюз (TurboSMS, SMS-Fly, AlphaSMS):</b> підключіть API ключ оператора розсилок для масової автоматичної відправки з альфа-іменем магазину.</li>
+              </ul>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  SMS-провайдер
+                </label>
+                <select
+                  value={settingsForm.smsGateway || 'none'}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, smsGateway: e.target.value as any })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-blue-600 font-medium"
+                >
+                  <option value="none">Швидкі кнопки 1-клік SMS & Viber (Рекомендовано, безкоштовно)</option>
+                  <option value="turbosms">TurboSMS (api.turbosms.ua)</option>
+                  <option value="smsfly">SMS-Fly (sms-fly.ua)</option>
+                  <option value="alphasms">AlphaSMS (alphasms.ua)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Підпис відправника (Альфа-ім'я)
+                </label>
+                <input
+                  type="text"
+                  placeholder="наприклад: ISKRA"
+                  value={settingsForm.smsSenderName || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, smsSenderName: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-blue-600 font-bold"
+                />
+              </div>
+            </div>
+
+            {settingsForm.smsGateway && settingsForm.smsGateway !== 'none' && (
+              <div className="animate-in fade-in text-xs">
+                <label className="block font-bold text-slate-800 mb-1">
+                  API Ключ (Токен) {settingsForm.smsGateway.toUpperCase()}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showSmsApiKey ? 'text' : 'password'}
+                    placeholder={`Вставте API ключ від ${settingsForm.smsGateway}`}
+                    value={settingsForm.smsApiKey || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, smsApiKey: e.target.value })}
+                    className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-xl font-mono text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-blue-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSmsApiKey(!showSmsApiKey)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showSmsApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="text-xs space-y-2">
+              <label className="block font-bold text-slate-800">
+                Шаблон SMS про появу товару в наявності
+              </label>
+              <textarea
+                rows={3}
+                value={settingsForm.smsStockAlertTemplate || ''}
+                onChange={(e) => setSettingsForm({ ...settingsForm, smsStockAlertTemplate: e.target.value })}
+                placeholder={`⚡ Магазин ISKRA\nВітаємо! Товар «{product}» знову в наявності ({price} грн). Замовляйте на сайті або телефонуйте!`}
+                className="w-full p-3 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-blue-600 leading-relaxed"
+              />
+
+              {/* Clickable Variable Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] text-slate-400 font-medium">Вставити змінну:</span>
+                {[
+                  { tag: '{product}', label: '{product} — назва товару' },
+                  { tag: '{price}', label: '{price} — ціна' },
+                  { tag: '{name}', label: '{name} — ім\'я клієнта' }
+                ].map((v) => (
+                  <button
+                    key={v.tag}
+                    type="button"
+                    onClick={() => {
+                      const cur = settingsForm.smsStockAlertTemplate || '';
+                      setSettingsForm({ ...settingsForm, smsStockAlertTemplate: cur + ' ' + v.tag });
+                    }}
+                    className="px-2 py-0.5 bg-white hover:bg-blue-50 hover:border-blue-300 border border-slate-200 rounded-md text-[11px] font-mono text-blue-700 transition-all cursor-pointer"
+                  >
+                    + {v.tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Save Action Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => {
+                setSettingsForm(siteSettings);
+                showToast('Налаштування скинуто до збережених', 'info');
+              }}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+            >
+              Скасувати незбережені зміни
+            </button>
+
             <button
               type="submit"
-              className="px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer"
+              className="px-6 py-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold rounded-xl text-xs shadow-md shadow-sky-600/25 transition-all flex items-center gap-2 cursor-pointer active:scale-[0.98]"
             >
-              Зберегти всі налаштування (Контакти, Bot & SMS)
+              <Check className="w-4 h-4" />
+              <span>Зберегти налаштування Telegram & SMS</span>
             </button>
           </div>
         </form>

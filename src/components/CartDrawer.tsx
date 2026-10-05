@@ -11,7 +11,8 @@ import {
   Sparkles,
   Check,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  Tag
 } from 'lucide-react';
 import { Product } from '../types/store';
 import { getSafeImageUrl } from '../utils/assetImages';
@@ -33,9 +34,13 @@ export const CartDrawer: React.FC = () => {
     products,
     addToCart,
     siteSettings,
-    showToast
+    showToast,
+    appliedPromo,
+    applyPromoCode,
+    removeAppliedPromo
   } = useStore();
 
+  const [promoInput, setPromoInput] = useState('');
   const [addedItemIds, setAddedItemIds] = useState<string[]>([]);
 
   const discountAmount = totalCartSum - discountedCartSum;
@@ -323,6 +328,63 @@ export const CartDrawer: React.FC = () => {
           {cart.length > 0 && (
             <div className="p-5 bg-white border-t border-slate-200 space-y-3 shrink-0 shadow-lg">
               
+              {/* Promo Code Input / Applied Badge */}
+              <div className="pt-1">
+                {appliedPromo ? (
+                  <div className="flex items-center justify-between text-xs bg-purple-50 text-purple-900 p-2.5 rounded-xl border border-purple-200">
+                    <div className="flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-purple-600" />
+                      <span>
+                        Промокод <b>{appliedPromo.code}</b> (
+                        {appliedPromo.discountType === 'percent' ? `-${appliedPromo.discountValue}%` : `-${appliedPromo.discountValue} грн`}
+                        )
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeAppliedPromo}
+                      className="text-purple-700 hover:text-rose-600 font-bold text-[11px] underline cursor-pointer"
+                    >
+                      Скасувати
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-1.5">
+                    <div className="relative flex-1">
+                      <Tag className="w-3 h-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Промокод на знижку..."
+                        value={promoInput}
+                        onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (promoInput.trim()) {
+                              applyPromoCode(promoInput.trim());
+                              setPromoInput('');
+                            }
+                          }
+                        }}
+                        className="w-full pl-7 pr-2 py-1.5 text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-purple-600 focus:bg-white"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (promoInput.trim()) {
+                          applyPromoCode(promoInput.trim());
+                          setPromoInput('');
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                    >
+                      Застосувати
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Client Discount Banner */}
               {currentClient && currentClient.discount > 0 && (
                 <div className="flex items-center justify-between text-xs bg-emerald-50 text-emerald-800 p-2.5 rounded-xl border border-emerald-200 font-medium">

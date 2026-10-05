@@ -895,7 +895,7 @@ export const StoreFront: React.FC = () => {
         {!showWishlistOnly && <StoreAboutSection />}
 
         {/* 4. Customer Reviews Section */}
-        {!showWishlistOnly && <StoreReviewsSection />}
+        {!showWishlistOnly && (siteSettings.features?.reviewsEnabled ?? true) && <StoreReviewsSection />}
 
         {/* 5. Frequently Asked Questions & Delivery/Payment Policy */}
         {!showWishlistOnly && <StoreFaqSection />}

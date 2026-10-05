@@ -1,4 +1,4 @@
-import { CategoryTree, HeaderDesign, Product, SiteSettings, WeeklyDealConfig } from '../types/store';
+import { CategoryTree, HeaderDesign, Product, SiteSettings, WeeklyDealConfig, PromoCode } from '../types/store';
 import { ASSET_IMAGES } from '../utils/assetImages';
 
 export const initialCategoriesTree: CategoryTree = {
@@ -767,6 +767,7 @@ export const initialSiteSettings: SiteSettings = {
   features: {
     ordersEnabled: true,
     loyaltyEnabled: true,
+    reviewsEnabled: true,
     showExactStock: true,
     floatingCallBtn: true,
     minOrderSum: 50,
@@ -801,3 +802,39 @@ export const initialWeeklyDeal: WeeklyDealConfig = {
   endDateText: "До неділі 23:59",
   endTimestamp: Date.now() + 4 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000
 };
+
+export const initialPromoCodes: PromoCode[] = [
+  {
+    id: "promo-1",
+    code: "ISKRA5",
+    discountType: "percent",
+    discountValue: 5,
+    minOrderSum: 500,
+    usageCount: 14,
+    usageLimit: 100,
+    isActive: true,
+    notes: "Знижка 5% на перше замовлення"
+  },
+  {
+    id: "promo-2",
+    code: "SANTEH10",
+    discountType: "percent",
+    discountValue: 10,
+    minOrderSum: 2500,
+    usageCount: 8,
+    usageLimit: 50,
+    isActive: true,
+    notes: "Сезонна знижка 10% на сантехніку та опалення"
+  },
+  {
+    id: "promo-3",
+    code: "MAISTER100",
+    discountType: "fixed",
+    discountValue: 100,
+    minOrderSum: 1500,
+    usageCount: 22,
+    isActive: true,
+    notes: "Бонус 100 грн для постійних монтажників"
+  }
+];
+

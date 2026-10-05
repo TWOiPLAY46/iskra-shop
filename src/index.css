@@ -1,6 +1,18 @@
 @import "tailwindcss";
 
 @layer base {
+  * {
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  button, a, input, select, textarea {
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  button:focus, button:focus-visible {
+    outline: none !important;
+  }
+
   html, body {
     overflow-x: clip;
     max-width: 100%;
