@@ -6,6 +6,9 @@ import {
   signOut, 
   onAuthStateChanged, 
   createUserWithEmailAndPassword, 
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult,
   Auth, 
   User 
 } from 'firebase/auth';
@@ -132,6 +135,49 @@ export function getOrInitAuth(config: FirebaseConnectionConfig): Auth | null {
   } catch (err) {
     console.warn("Firebase Auth initialization warning:", err);
     return null;
+  }
+}
+
+/**
+ * Send Firebase SMS OTP code using Google Firebase Phone Authentication
+ */
+export async function sendFirebasePhoneVerification(
+  phoneNumber: string,
+  containerId: string = 'recaptcha-container'
+): Promise<{ success: boolean; confirmationResult?: ConfirmationResult; error?: string }> {
+  try {
+    const auth = getOrInitAuth(defaultFirebaseConfig);
+    if (!auth) {
+      return { success: false, error: 'Firebase Auth не підключено' };
+    }
+
+    // Ensure invisible reCAPTCHA container element exists in DOM
+    let container = document.getElementById(containerId);
+    if (!container) {
+      container = document.createElement('div');
+      container.id = containerId;
+      document.body.appendChild(container);
+    }
+
+    let windowRecaptcha = (window as any).recaptchaVerifier;
+    if (!windowRecaptcha) {
+      windowRecaptcha = new RecaptchaVerifier(auth, containerId, {
+        size: 'invisible',
+        callback: () => {
+          console.log("reCAPTCHA verified for Firebase Phone Auth");
+        }
+      });
+      (window as any).recaptchaVerifier = windowRecaptcha;
+    }
+
+    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, windowRecaptcha);
+    return { success: true, confirmationResult };
+  } catch (err: any) {
+    console.warn("Firebase Phone Auth error:", err);
+    return { 
+      success: false, 
+      error: err.message || 'Помилка надсилання SMS через Firebase Phone Auth' 
+    };
   }
 }
 
