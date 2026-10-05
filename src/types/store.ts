@@ -147,6 +147,29 @@ export interface SiteSettings {
   returnsRefundDays?: string;
   returnsWarrantyInfo?: string;
   returnsNotes?: string;
+  returnsTitle?: string;
+  returnsSubtitle?: string;
+  returnsLegalBasis?: string;
+  returnsProtectionDays?: number;
+  returnsCondition1?: string;
+  returnsCondition2?: string;
+  returnsCondition3?: string;
+  returnsCondition4?: string;
+  returnsStep1Title?: string;
+  returnsStep1Text?: string;
+  returnsStep2Title?: string;
+  returnsStep2Text?: string;
+  returnsStep3Title?: string;
+  returnsStep3Text?: string;
+  returnsStep4Title?: string;
+  returnsStep4Text?: string;
+  returnsNoCodNotice?: string;
+  returnsWarranty1Title?: string;
+  returnsWarranty1Text?: string;
+  returnsWarranty2Title?: string;
+  returnsWarranty2Text?: string;
+  returnsWarranty3Title?: string;
+  returnsWarranty3Text?: string;
   // SMS Notification Gateway (TurboSMS, SMS-Fly, AlphaSMS, manual)
   smsGateway?: 'none' | 'turbosms' | 'smsfly' | 'alphasms';
   smsApiKey?: string;
@@ -156,6 +179,18 @@ export interface SiteSettings {
   callbackAutoSmsEnabled?: boolean;
   callbackSmsTemplate?: string;
   features: SiteFeatures;
+}
+
+export interface ReturnRequest {
+  id: string;
+  orderNumber?: string;
+  buyerPhone: string;
+  buyerName?: string;
+  reason: 'not_fit' | 'defect' | 'wrong_item' | 'warranty' | 'other';
+  comment?: string;
+  status: 'pending' | 'in_review' | 'approved' | 'rejected' | 'completed';
+  createdAt: string;
+  adminNotes?: string;
 }
 
 export interface StockAlertRequest {

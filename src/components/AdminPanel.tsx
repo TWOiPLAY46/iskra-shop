@@ -101,7 +101,7 @@ import {
   formatStockAlertSms, 
   sendSmsViaGateway 
 } from '../utils/smsHelper';
-import { Order, OrderStatus, Product, ProductBadge, ProductReview, StockAlertRequest, FirebaseConnectionConfig } from '../types/store';
+import { Order, OrderStatus, Product, ProductBadge, ProductReview, StockAlertRequest, ReturnRequest, FirebaseConnectionConfig } from '../types/store';
 import { LiveTrackingWidget } from './LiveTrackingWidget';
 import { UkrSkladSyncModal } from './UkrSkladSyncModal';
 import { CsvImportModal } from './CsvImportModal';
@@ -640,6 +640,10 @@ export const AdminPanel: React.FC = () => {
     deleteStockAlert,
     clearAllStockAlerts,
     clearNotifiedStockAlerts,
+    returnRequests,
+    updateReturnRequestStatus,
+    deleteReturnRequest,
+    clearAllReturnRequests,
     updateSiteSettings,
     updateSiteFeatures,
     updateHeaderDesign,
@@ -720,6 +724,14 @@ export const AdminPanel: React.FC = () => {
   const [upTestResults, setUpTestResults] = useState<UkrposhtaOffice[]>([]);
   const [isTestingUp, setIsTestingUp] = useState(false);
   const [deliveryActivePreviewTab, setDeliveryActivePreviewTab] = useState<'np' | 'up' | 'pickup'>('np');
+
+  // Returns Tab State
+  const [returnsSubTab, setReturnsSubTab] = useState<'editor' | 'requisites' | 'requests' | 'preview'>('editor');
+  const [returnsFilterStatus, setReturnsFilterStatus] = useState<string>('all');
+  const [returnsFilterReason, setReturnsFilterReason] = useState<string>('all');
+  const [returnsSearch, setReturnsSearch] = useState<string>('');
+  const [returnsCopyFeedback, setReturnsCopyFeedback] = useState<string | null>(null);
+  const [returnToDelete, setReturnToDelete] = useState<string | null>(null);
 
   // Reviews Tab State
   const [reviewSearch, setReviewSearch] = useState('');
@@ -11078,175 +11090,968 @@ export const AdminPanel: React.FC = () => {
             updateSiteSettings(settingsForm);
             showToast('Умови та правила повернення успішно збережено в базі даних!', 'success');
           }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 max-w-4xl"
+          className="space-y-6 max-w-5xl animate-in fade-in duration-150"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-xl">
-                  <RotateCcw className="w-5 h-5" />
-                </span>
-                <h3 className="text-base font-bold text-slate-900">
-                  Налаштування сторінки «Повернення та обмін»
-                </h3>
+          {/* Top Hero Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-red-950 p-6 sm:p-8 text-white shadow-xl">
+            <div className="absolute right-0 top-0 -mt-12 -mr-12 w-96 h-96 rounded-full bg-red-600/15 blur-3xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-400/30 text-red-300 text-xs font-bold uppercase tracking-wider">
+                  <RotateCcw className="w-3.5 h-3.5 text-red-400" />
+                  <span>Політика повернення та захист покупця</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black font-display text-white tracking-tight">
+                  Керування сторінкою «Повернення та обмін»
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Повне налаштування всіх 5 розділів публічної сторінки: правова база за ст. 9 ЗУ «Про захист прав споживачів», чек-листи, 4 кроки алгоритму, реквізити Нової Пошти, гарантійні зобов'язання та обробка заявок від клієнтів.
+                </p>
+
+                {/* Counter Badges */}
+                <div className="flex flex-wrap items-center gap-2 pt-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-[11px] font-semibold text-slate-200">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    Захист покупця: <b className="text-white">{settingsForm.returnsDays || 14} днів</b>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-[11px] font-semibold text-slate-200">
+                    <CreditCard className="w-3.5 h-3.5 text-blue-400" />
+                    Виплата: <b className="text-white">{settingsForm.returnsRefundDays || '1–3 дн.'}</b>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-[11px] font-semibold text-slate-200">
+                    <FileText className="w-3.5 h-3.5 text-amber-400" />
+                    Заявок у базі: <b className="text-white">{returnRequests.length}</b>
+                  </span>
+                  {returnRequests.filter(r => r.status === 'pending').length > 0 && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-red-500/30 border border-red-400/50 text-[11px] font-bold text-red-200 animate-pulse">
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                      Нових заявок: {returnRequests.filter(r => r.status === 'pending').length}
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Керуйте строками повернення, адресою відділення Нової Пошти, умовами оплати доставки та сервісу
-              </p>
+
+              {/* Quick Actions */}
+              <div className="flex flex-row lg:flex-col gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView('returns');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white font-bold text-xs rounded-xl transition-all border border-white/20 flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                >
+                  <ExternalLink className="w-4 h-4 text-slate-200" />
+                  <span>Відкрити на сайті</span>
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl transition-all shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Зберегти зміни</span>
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* Sub-tab Navigation */}
+          <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80">
+            <button
+              type="button"
+              onClick={() => setReturnsSubTab('editor')}
+              className={`flex-1 min-w-[140px] px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                returnsSubTab === 'editor'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/90'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <FileText className="w-4 h-4 text-red-600" />
+              <span>1. Тексти та умови сторінки</span>
+            </button>
 
             <button
-              type="submit"
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+              type="button"
+              onClick={() => setReturnsSubTab('requisites')}
+              className={`flex-1 min-w-[140px] px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                returnsSubTab === 'requisites'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/90'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
             >
-              <Check className="w-4 h-4" />
-              <span>Зберегти в базу даних</span>
+              <Truck className="w-4 h-4 text-red-600" />
+              <span>2. Реквізити та доставка</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReturnsSubTab('requests')}
+              className={`flex-1 min-w-[140px] px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                returnsSubTab === 'requests'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/90'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <RotateCcw className="w-4 h-4 text-amber-600" />
+              <span>3. Заявки клієнтів</span>
+              {returnRequests.length > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  returnRequests.filter(r => r.status === 'pending').length > 0
+                    ? 'bg-red-500 text-white animate-pulse'
+                    : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {returnRequests.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReturnsSubTab('preview')}
+              className={`flex-1 min-w-[140px] px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                returnsSubTab === 'preview'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/90'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <Eye className="w-4 h-4 text-blue-600" />
+              <span>4. Передперегляд сторінки</span>
             </button>
           </div>
 
-          <div className="space-y-4 text-xs">
-            
-            {/* Key Timelines */}
-            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
-                1. Строки повернення та виплати
-              </span>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Строк повернення товару (календарних днів)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={90}
-                    placeholder="14"
-                    value={settingsForm.returnsDays || 14}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsDays: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600 font-bold"
-                  />
+          {/* SUBTAB 1: EDITOR (Тексти та умови сторінки) */}
+          {returnsSubTab === 'editor' && (
+            <div className="space-y-6 animate-in fade-in-50 duration-150">
+              
+              {/* 1. Header & Legal Basis */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                  <div className="p-2 bg-red-50 text-red-600 rounded-xl">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">1. Заголовок, правова база та ключові строки</h3>
+                    <p className="text-[11px] text-slate-500">Заголовок сторінки, законодавча база та строки повернення/виплати</p>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Строк повернення коштів на картку/рахунок
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="1–3 робочих днів"
-                    value={settingsForm.returnsRefundDays || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsRefundDays: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600"
-                  />
-                </div>
-              </div>
-            </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Головний заголовок сторінки (H1):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Повернення та обмін товару в магазині «ISKRA»"
+                      value={settingsForm.returnsTitle || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsTitle: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50/50 focus:bg-white focus:border-red-600 outline-none font-bold text-slate-900"
+                    />
+                  </div>
 
-            {/* Shipping Receiver Address */}
-            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
-                2. Реквізити одержувача для повернень «Новою Поштою»
-              </span>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Правова основа та вступний текст:
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Ми цінуємо довіру кожного клієнта і суворо дотримуємося ст. 9 Закону України «Про захист прав споживачів»..."
+                      value={settingsForm.returnsLegalBasis || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsLegalBasis: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50/50 focus:bg-white focus:border-red-600 outline-none text-slate-800 leading-relaxed"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    ПІБ одержувача посилки
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Тарасова Ірина Анатоліївна"
-                    value={settingsForm.returnsReceiverName || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverName: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600"
-                  />
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Строк повернення товару:
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={90}
+                          placeholder="14"
+                          value={settingsForm.returnsDays || 14}
+                          onChange={(e) => setSettingsForm({ ...settingsForm, returnsDays: Number(e.target.value) })}
+                          className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none font-bold text-slate-900 font-mono"
+                        />
+                        <span className="text-xs text-slate-500 font-semibold shrink-0">днів</span>
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Телефон одержувача посилки
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="+38 (096) 647-36-67"
-                    value={settingsForm.returnsReceiverPhone || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverPhone: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600 font-mono"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Строк виплати коштів:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="1–3 робочих днів"
+                        value={settingsForm.returnsRefundDays || ''}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, returnsRefundDays: e.target.value })}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-900"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Населений пункт (Місто / Село)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="с-ще. Оратів"
-                    value={settingsForm.returnsReceiverCity || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverCity: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Відділення «Нова Пошта»
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Відділення №1"
-                    value={settingsForm.returnsReceiverWarehouse || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverWarehouse: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600"
-                  />
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Гарантійні зобов'язання:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Офіційна заводська гарантія від 12 до 60 місяців..."
+                        value={settingsForm.returnsWarrantyInfo || ''}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, returnsWarrantyInfo: e.target.value })}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-900"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* 2. Conditions of return (4 Requirements) */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">2. Умови повернення належної якості (Чек-лист 4 пунктів)</h3>
+                    <p className="text-[11px] text-slate-500">Тексти вимог, що відображаються у розділі №1 на публічній сторінці</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Вимога 1 (Відсутність слідів експлуатації):
+                    </span>
+                    <textarea
+                      rows={2}
+                      placeholder="Товар не був у вжитку, відсутні сліди експлуатації, монтажу чи підключення до мережі."
+                      value={settingsForm.returnsCondition1 || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsCondition1: e.target.value })}
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-800"
+                    />
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Вимога 2 (Товарний вигляд та упаковка):
+                    </span>
+                    <textarea
+                      rows={2}
+                      placeholder="Збережено товарний вигляд, оригінальну заводську упаковку, ярлики, наклейки та пломби."
+                      value={settingsForm.returnsCondition2 || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsCondition2: e.target.value })}
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-800"
+                    />
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Вимога 3 (Повна заводська комплектація):
+                    </span>
+                    <textarea
+                      rows={2}
+                      placeholder="Збережено повну комплектацію (інструкції, кабелі, кріплення, перехідники, гарантійний талон)."
+                      value={settingsForm.returnsCondition3 || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsCondition3: e.target.value })}
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-800"
+                    />
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Вимога 4 (Розрахунковий документ / чек):
+                    </span>
+                    <textarea
+                      rows={2}
+                      placeholder="Наявний розрахунковий документ (чек, накладна, номер замовлення або SMS/електронне підтвердження)."
+                      value={settingsForm.returnsCondition4 || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsCondition4: e.target.value })}
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-800"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Step-by-Step Instructions (4 Steps) */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                  <div className="p-2 bg-slate-900 text-white rounded-xl">
+                    <FileText className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">3. Покроковий порядок дій для клієнта (4 кроки)</h3>
+                    <p className="text-[11px] text-slate-500">Алгоритм дій покупця від першого дзвінка до виплати коштів</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  
+                  {/* Step 1 */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-red-600">Крок 1</span>
+                    <input
+                      type="text"
+                      placeholder="Звернення до нас"
+                      value={settingsForm.returnsStep1Title || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsStep1Title: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                    <textarea
+                      rows={3}
+                      placeholder="Зателефонуйте менеджеру або заповніть онлайн-форму..."
+                      value={settingsForm.returnsStep1Text || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsStep1Text: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-[11px] border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-red-600">Крок 2</span>
+                    <input
+                      type="text"
+                      placeholder="Підготовка товару"
+                      value={settingsForm.returnsStep2Title || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsStep2Title: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                    <textarea
+                      rows={3}
+                      placeholder="Акуратно упакуйте товар у рідну коробку..."
+                      value={settingsForm.returnsStep2Text || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsStep2Text: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-[11px] border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                  </div>
+
+                  {/* Step 3 */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-red-600">Крок 3</span>
+                    <input
+                      type="text"
+                      placeholder="Відправка перевізником"
+                      value={settingsForm.returnsStep3Title || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsStep3Title: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                    <textarea
+                      rows={3}
+                      placeholder="Надішліть посилку «Новою Поштою» без післяплати..."
+                      value={settingsForm.returnsStep3Text || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsStep3Text: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-[11px] border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                  </div>
+
+                  {/* Step 4 */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Крок 4</span>
+                    <input
+                      type="text"
+                      placeholder="Огляд і виплата"
+                      value={settingsForm.returnsStep4Title || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsStep4Title: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                    <textarea
+                      rows={3}
+                      placeholder="Після огляду товару протягом 1–3 днів повертаємо гроші..."
+                      value={settingsForm.returnsStep4Text || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsStep4Text: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-[11px] border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                  </div>
+
+                </div>
+              </div>
+
+              {/* 4. Warranty Cases (3 Blocks) */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                  <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">4. Товари неналежної якості та гарантійне обслуговування (3 варіанти)</h3>
+                    <p className="text-[11px] text-slate-500">Умови заміни, сервісного ремонту та повернення коштів при заводському браку</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <span className="text-[10px] font-bold text-slate-800 uppercase tracking-wider block">Варіант 1: Заміна</span>
+                    <input
+                      type="text"
+                      placeholder="1. Заміна на новий товар"
+                      value={settingsForm.returnsWarranty1Title || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsWarranty1Title: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                    <textarea
+                      rows={3}
+                      placeholder="Якщо під час гарантійного строку виявлено істотний заводський брак, замінюємо на новий..."
+                      value={settingsForm.returnsWarranty1Text || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsWarranty1Text: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-[11px] border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <span className="text-[10px] font-bold text-slate-800 uppercase tracking-wider block">Варіант 2: Ремонт</span>
+                    <input
+                      type="text"
+                      placeholder="2. Гарантійний ремонт"
+                      value={settingsForm.returnsWarranty2Title || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsWarranty2Title: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                    <textarea
+                      rows={3}
+                      placeholder="Безкоштовне усунення дефектів в авторизованих сервісних центрах виробників..."
+                      value={settingsForm.returnsWarranty2Text || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsWarranty2Text: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-[11px] border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <span className="text-[10px] font-bold text-slate-800 uppercase tracking-wider block">Варіант 3: Відшкодування</span>
+                    <input
+                      type="text"
+                      placeholder="3. Повне повернення коштів"
+                      value={settingsForm.returnsWarranty3Title || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsWarranty3Title: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs font-bold border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                    <textarea
+                      rows={3}
+                      placeholder="Якщо ремонт неможливий, а аналогічного товару немає в наявності, негайно повертаємо 100%..."
+                      value={settingsForm.returnsWarranty3Text || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsWarranty3Text: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-[11px] border border-slate-300 rounded-lg bg-white focus:border-red-600 outline-none"
+                    />
+                  </div>
+
+                </div>
+              </div>
+
             </div>
+          )}
 
-            {/* Who pays delivery */}
-            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
-                3. Умови оплати логістики при поверненні
-              </span>
+          {/* SUBTAB 2: REQUISITES & LOGISTICS (Реквізити та доставка) */}
+          {returnsSubTab === 'requisites' && (
+            <div className="space-y-6 animate-in fade-in-50 duration-150">
+              
+              {/* Shipping Address */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                  <div className="p-2 bg-red-50 text-red-600 rounded-xl">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Реквізити одержувача для повернень «Новою Поштою»</h3>
+                    <p className="text-[11px] text-slate-500">Адреса та контакти особи або представника магазину, яка приймає посилки</p>
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      ПІБ одержувача посилки:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Тарасова Ірина Анатоліївна"
+                      value={settingsForm.returnsReceiverName || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverName: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Контактний телефон одержувача:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="+38 (096) 647-36-67"
+                      value={settingsForm.returnsReceiverPhone || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverPhone: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-900 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Місто / Населений пункт:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="с-ще. Оратів, Вінницька обл."
+                      value={settingsForm.returnsReceiverCity || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverCity: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Відділення / Поштомат «Нова Пошта»:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Відділення №1"
+                      value={settingsForm.returnsReceiverWarehouse || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsReceiverWarehouse: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-900 font-bold"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Повернення товару належної якості (не підійшов колір/розмір)
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Важливе застереження щодо накладеного платежу (післяплати):
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="Послуги пересилання оплачує покупець за тарифами перевізника..."
-                    value={settingsForm.returnsWhoPaysGood || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsWhoPaysGood: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600 text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Повернення бракованого товару / помилка складу
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="Усі витрати на доставку в обидві сторони повністю оплачує магазин ISKRA..."
-                    value={settingsForm.returnsWhoPaysDefect || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsWhoPaysDefect: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-emerald-600 text-xs"
+                    placeholder="Зверніть увагу: відправлення приймаються без послуги «післяплата» (накладений платіж)..."
+                    value={settingsForm.returnsNoCodNotice || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, returnsNoCodNotice: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-800"
                   />
                 </div>
               </div>
+
+              {/* Who pays delivery */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Розподіл витрат на логістику при поверненні</h3>
+                    <p className="text-[11px] text-slate-500">Чіткі правила оплати пересилання згідно ст. 9 ЗУ «Про захист прав споживачів»</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <label className="block text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-slate-500" />
+                      Повернення товару належної якості (не підійшов колір/розмір):
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Послуги пересилання оплачує покупець за тарифами перевізника «Нова Пошта»."
+                      value={settingsForm.returnsWhoPaysGood || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsWhoPaysGood: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:border-red-600 outline-none text-slate-800"
+                    />
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 space-y-2">
+                    <label className="block text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                      Заводський брак / помилка комплектації складу:
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Усі витрати на доставку в обидві сторони повністю оплачує магазин ISKRA."
+                      value={settingsForm.returnsWhoPaysDefect || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, returnsWhoPaysDefect: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-emerald-300 rounded-xl bg-white focus:border-emerald-600 outline-none text-slate-800"
+                    />
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* SUBTAB 3: CUSTOMER RETURN REQUESTS LOG (Журнал онлайн-заявок) */}
+          {returnsSubTab === 'requests' && (
+            <div className="space-y-4 animate-in fade-in-50 duration-150">
+              
+              {/* Filter & Search Bar */}
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-4 sm:p-5 space-y-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Пошук за телефоном, номером замовлення, коментарем..."
+                      value={returnsSearch}
+                      onChange={(e) => setReturnsSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50/60 focus:bg-white focus:border-red-600 outline-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <select
+                      value={returnsFilterStatus}
+                      onChange={(e) => setReturnsFilterStatus(e.target.value)}
+                      className="px-3 py-2 text-xs font-semibold border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
+                    >
+                      <option value="all">Усі статуси ({returnRequests.length})</option>
+                      <option value="pending">⏳ Очікують ({returnRequests.filter(r => r.status === 'pending').length})</option>
+                      <option value="in_review">🔍 В обробці ({returnRequests.filter(r => r.status === 'in_review').length})</option>
+                      <option value="approved">✅ Схвалено ({returnRequests.filter(r => r.status === 'approved').length})</option>
+                      <option value="completed">🎉 Завершено ({returnRequests.filter(r => r.status === 'completed').length})</option>
+                      <option value="rejected">❌ Відхилено ({returnRequests.filter(r => r.status === 'rejected').length})</option>
+                    </select>
+
+                    <select
+                      value={returnsFilterReason}
+                      onChange={(e) => setReturnsFilterReason(e.target.value)}
+                      className="px-3 py-2 text-xs font-semibold border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
+                    >
+                      <option value="all">Всі причини</option>
+                      <option value="not_fit">Не підійшов</option>
+                      <option value="defect">Виробничий брак</option>
+                      <option value="wrong_item">Помилка складу</option>
+                      <option value="warranty">Гарантія</option>
+                      <option value="other">Інше</option>
+                    </select>
+
+                    {returnRequests.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm('Ви впевнені, що бажаєте очистити всі заявки на повернення?')) {
+                            clearAllReturnRequests();
+                          }
+                        }}
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
+                        title="Очистити всі заявки"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Requests List */}
+              {(() => {
+                const filtered = returnRequests.filter(r => {
+                  if (returnsFilterStatus !== 'all' && r.status !== returnsFilterStatus) return false;
+                  if (returnsFilterReason !== 'all' && r.reason !== returnsFilterReason) return false;
+                  if (returnsSearch.trim()) {
+                    const q = returnsSearch.toLowerCase();
+                    const matchPhone = r.buyerPhone.toLowerCase().includes(q);
+                    const matchName = (r.buyerName || '').toLowerCase().includes(q);
+                    const matchOrder = (r.orderNumber || '').toLowerCase().includes(q);
+                    const matchComment = (r.comment || '').toLowerCase().includes(q);
+                    if (!matchPhone && !matchName && !matchOrder && !matchComment) return false;
+                  }
+                  return true;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-10 text-center space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                        <RotateCcw className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800">Заявок на повернення не знайдено</h4>
+                      <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                        {returnRequests.length === 0 
+                          ? 'Коли покупці заповнюватимуть онлайн-форму на сторінці «Повернення та обмін», їхні звернення миттєво з\'являтимуться тут.'
+                          : 'Спробуйте скинути фільтри або змінити пошуковий запит.'}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {filtered.map((req) => {
+                      const reasonInfo = {
+                        not_fit: { label: 'Не підійшов розмір / характеристики', color: 'bg-slate-100 text-slate-800' },
+                        defect: { label: '⚠️ Виявлено заводський брак', color: 'bg-red-100 text-red-800' },
+                        wrong_item: { label: '📦 Не відповідає замовленому', color: 'bg-amber-100 text-amber-800' },
+                        warranty: { label: '🛡️ Гарантійне обслуговування', color: 'bg-blue-100 text-blue-800' },
+                        other: { label: 'Інша причина', color: 'bg-slate-100 text-slate-700' }
+                      }[req.reason] || { label: req.reason, color: 'bg-slate-100 text-slate-800' };
+
+                      const cleanPhoneDigits = req.buyerPhone.replace(/[^0-9]/g, '');
+
+                      return (
+                        <div
+                          key={req.id}
+                          className={`bg-white rounded-3xl border transition-all p-5 shadow-xs space-y-3 ${
+                            req.status === 'pending'
+                              ? 'border-red-300 ring-1 ring-red-100'
+                              : 'border-slate-200/90'
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2.5 rounded-2xl ${
+                                req.status === 'pending' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-700'
+                              }`}>
+                                <RotateCcw className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-bold text-slate-900">
+                                    {req.buyerName || 'Покупець'}
+                                  </h4>
+                                  {req.orderNumber && (
+                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-mono font-bold text-slate-700">
+                                      {req.orderNumber}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-mono">
+                                  {new Date(req.createdAt).toLocaleString('uk-UA')}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold ${reasonInfo.color}`}>
+                                {reasonInfo.label}
+                              </span>
+
+                              <select
+                                value={req.status}
+                                onChange={(e) => updateReturnRequestStatus(req.id, e.target.value as ReturnRequest['status'])}
+                                className={`px-3 py-1 text-xs font-bold rounded-xl border outline-none cursor-pointer ${
+                                  req.status === 'pending'
+                                    ? 'bg-amber-50 text-amber-900 border-amber-300'
+                                    : req.status === 'in_review'
+                                    ? 'bg-blue-50 text-blue-900 border-blue-300'
+                                    : req.status === 'approved'
+                                    ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                                    : req.status === 'completed'
+                                    ? 'bg-purple-50 text-purple-900 border-purple-300'
+                                    : 'bg-slate-100 text-slate-700 border-slate-300'
+                                }`}
+                              >
+                                <option value="pending">⏳ Очікує розгляду</option>
+                                <option value="in_review">🔍 В обробці</option>
+                                <option value="approved">✅ Схвалено до повернення</option>
+                                <option value="completed">🎉 Завершено (гроші виплачено)</option>
+                                <option value="rejected">❌ Відхилено</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Details & Comments */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            <div className="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                Контакти клієнта:
+                              </span>
+                              <div className="flex items-center justify-between">
+                                <a
+                                  href={`tel:${req.buyerPhone}`}
+                                  className="font-bold text-slate-900 hover:text-red-600 font-mono text-sm transition-colors"
+                                >
+                                  {req.buyerPhone}
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(req.buyerPhone);
+                                    setReturnsCopyFeedback(req.id);
+                                    setTimeout(() => setReturnsCopyFeedback(null), 2000);
+                                  }}
+                                  className="text-[11px] text-slate-500 hover:text-slate-800 font-semibold cursor-pointer"
+                                >
+                                  {returnsCopyFeedback === req.id ? 'Скопійовано!' : 'Копіювати'}
+                                </button>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                <a
+                                  href={`tel:${cleanPhoneDigits}`}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold inline-flex items-center gap-1 transition-all"
+                                >
+                                  <Phone className="w-3 h-3" />
+                                  <span>Дзвінок</span>
+                                </a>
+                                <a
+                                  href={`viber://chat?number=%2B${cleanPhoneDigits}`}
+                                  className="px-2.5 py-1 rounded-lg bg-[#7360f2] hover:bg-[#604ee0] text-white text-[10px] font-bold inline-flex items-center gap-1 transition-all"
+                                >
+                                  <span>Viber</span>
+                                </a>
+                                <a
+                                  href={`sms:${cleanPhoneDigits}`}
+                                  className="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-bold inline-flex items-center gap-1 transition-all"
+                                >
+                                  <Mail className="w-3 h-3" />
+                                  <span>SMS</span>
+                                </a>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                Коментар клієнта:
+                              </span>
+                              <p className="text-slate-700 leading-relaxed italic">
+                                {req.comment ? `«${req.comment}»` : 'Без додаткового коментаря.'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Admin Notes & Delete */}
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                            <div className="flex-1 flex items-center gap-2">
+                              <span className="text-[11px] font-semibold text-slate-500 shrink-0">Примітка менеджера:</span>
+                              <input
+                                type="text"
+                                placeholder="Вкажіть номер ТТН повернення, статус огляду або IBAN..."
+                                defaultValue={req.adminNotes || ''}
+                                onBlur={(e) => updateReturnRequestStatus(req.id, req.status, e.target.value)}
+                                className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:border-red-600 outline-none"
+                              />
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm('Видалити цю заявку на повернення?')) {
+                                  deleteReturnRequest(req.id);
+                                }
+                              }}
+                              className="text-xs text-slate-400 hover:text-red-600 font-semibold cursor-pointer shrink-0 self-end sm:self-center px-2 py-1"
+                            >
+                              Видалити
+                            </button>
+                          </div>
+
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+
+            </div>
+          )}
+
+          {/* SUBTAB 4: LIVE PREVIEW (Інтерактивний передперегляд сторінки) */}
+          {returnsSubTab === 'preview' && (
+            <div className="space-y-4 animate-in fade-in-50 duration-150">
+              <div className="p-4 bg-blue-50 border border-blue-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs text-blue-900">
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>
+                    Нижче наведено точну копію того, як виглядає сторінка <b>«Повернення та обмін товару»</b> для ваших покупців на сайті.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView('returns');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shrink-0 cursor-pointer shadow-xs"
+                >
+                  Перейти до повної сторінки
+                </button>
+              </div>
+
+              {/* Render Preview Frame */}
+              <div className="border border-slate-300 rounded-3xl overflow-hidden shadow-lg bg-slate-50 p-4 sm:p-6 space-y-6">
+                
+                {/* Hero Preview */}
+                <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-red-950 text-white rounded-2xl p-6 relative overflow-hidden">
+                  <div className="space-y-3 relative z-10 max-w-2xl">
+                    <div className="inline-flex items-center gap-2 bg-red-600/20 border border-red-500/30 text-red-300 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                      <RotateCcw className="w-3 h-3 text-red-400" />
+                      <span>Правила та умови</span>
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-black font-display text-white">
+                      {settingsForm.returnsTitle || 'Повернення та обмін товару в магазині «ISKRA»'}
+                    </h3>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      {settingsForm.returnsLegalBasis || 'Ми цінуємо довіру кожного клієнта і суворо дотримуємося ст. 9 Закону України «Про захист прав споживачів»...'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 4 Stats Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 space-y-1">
+                    <span className="text-base font-black text-red-600">{settingsForm.returnsDays || 14}</span>
+                    <h5 className="text-xs font-bold text-slate-900">Термін повернення</h5>
+                    <p className="text-[10px] text-slate-500">{settingsForm.returnsDays || 14} днів з моменту отримання</p>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 space-y-1">
+                    <CreditCard className="w-4 h-4 text-emerald-600" />
+                    <h5 className="text-xs font-bold text-slate-900">Повернення коштів</h5>
+                    <p className="text-[10px] text-slate-500">{settingsForm.returnsRefundDays || '1–3 робочих днів'}</p>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 space-y-1">
+                    <Truck className="w-4 h-4 text-blue-600" />
+                    <h5 className="text-xs font-bold text-slate-900">Доставка</h5>
+                    <p className="text-[10px] text-slate-500">При браку — безкоштовно</p>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 space-y-1">
+                    <ShieldCheck className="w-4 h-4 text-amber-600" />
+                    <h5 className="text-xs font-bold text-slate-900">Гарантія</h5>
+                    <p className="text-[10px] text-slate-500">Офіційна від заводу</p>
+                  </div>
+                </div>
+
+                {/* Receiver Info Box Preview */}
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 space-y-2">
+                  <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                    <MapPin className="w-4 h-4 text-red-600" />
+                    <h5 className="text-xs font-bold text-slate-900">Куди відправляти посилку (Нова Пошта):</h5>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div><b>Одержувач:</b> {settingsForm.returnsReceiverName || 'Тарасова Ірина Анатоліївна'}</div>
+                    <div><b>Телефон:</b> {settingsForm.returnsReceiverPhone || '+38 (096) 647-36-67'}</div>
+                    <div><b>Місто:</b> {settingsForm.returnsReceiverCity || 'с-ще. Оратів, Вінницька обл.'}</div>
+                    <div><b>Відділення:</b> {settingsForm.returnsReceiverWarehouse || 'Відділення №1'}</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* Sticky Bottom Action Bar */}
+          <div className="sticky bottom-4 z-20 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-xl border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="text-xs">
+                <span className="font-bold text-white">Керування політикою повернення та обміну:</span>{' '}
+                <span className="text-slate-300">усі зміни синхронізуються з базою даних</span>
+              </div>
             </div>
 
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="submit"
+                className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>Зберегти всі зміни в базу даних</span>
+              </button>
+            </div>
           </div>
 
-          <button
-            type="submit"
-            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-emerald-600/20 cursor-pointer"
-          >
-            Зберегти всі зміни в базу даних
-          </button>
         </form>
       )}
 

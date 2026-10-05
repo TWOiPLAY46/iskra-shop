@@ -15,6 +15,7 @@ import {
   ProductReview,
   PromoCode,
   StockAlertRequest,
+  ReturnRequest,
   SiteFeatures, 
   SiteSettings,
   WeeklyDealConfig 
@@ -181,6 +182,23 @@ interface StoreContextType {
   deleteStockAlert: (alertId: string) => void;
   clearAllStockAlerts: () => void;
   clearNotifiedStockAlerts: () => void;
+
+  // Return & Exchange Requests
+  returnRequests: ReturnRequest[];
+  addReturnRequest: (data: {
+    orderNumber?: string;
+    buyerPhone: string;
+    buyerName?: string;
+    reason: ReturnRequest['reason'];
+    comment?: string;
+  }) => Promise<boolean>;
+  updateReturnRequestStatus: (
+    id: string,
+    status: ReturnRequest['status'],
+    adminNotes?: string
+  ) => void;
+  deleteReturnRequest: (id: string) => void;
+  clearAllReturnRequests: () => void;
 
   // Site Settings & Features
   updateSiteSettings: (settings: SiteSettings) => void;
@@ -436,6 +454,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               localStorage.setItem('iskra_stock_alerts_v1', JSON.stringify(cleaned));
             }
             return cleaned;
+          }
+        } catch {}
+      }
+    }
+    return [];
+  });
+
+  // Return & Exchange Requests from Customers
+  const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('iskra_return_requests_v1');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            return parsed.filter((r: ReturnRequest) => r && r.id && r.buyerPhone);
           }
         } catch {}
       }
@@ -2445,6 +2479,101 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast(`Видалено ${toDelete.length} сповіщених запитів`, 'info');
   };
 
+  // Return & Exchange Requests Actions
+  const addReturnRequest = async (data: {
+    orderNumber?: string;
+    buyerPhone: string;
+    buyerName?: string;
+    reason: ReturnRequest['reason'];
+    comment?: string;
+  }): Promise<boolean> => {
+    const cleanPhone = data.buyerPhone.trim();
+    if (!cleanPhone || cleanPhone.length < 9) {
+      showToast('Вкажіть коректний номер телефону', 'error');
+      return false;
+    }
+
+    const newReq: ReturnRequest = {
+      id: 'ret_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      orderNumber: data.orderNumber?.trim() || undefined,
+      buyerPhone: cleanPhone,
+      buyerName: data.buyerName?.trim() || 'Покупець',
+      reason: data.reason || 'not_fit',
+      comment: data.comment?.trim() || undefined,
+      createdAt: new Date().toISOString(),
+      status: 'pending'
+    };
+
+    const next = [newReq, ...returnRequests];
+    setReturnRequests(next);
+    try {
+      localStorage.setItem('iskra_return_requests_v1', JSON.stringify(next));
+    } catch {}
+
+    // Push to Firebase RTDB if configured
+    if (firebaseConfig.enabled || firebaseConfig.databaseURL) {
+      pushStoreToFirebase(firebaseConfig, { returnRequests: next, lastSyncTimestamp: Date.now() }).catch(() => {});
+    }
+
+    // Telegram notification to manager
+    if (siteSettings.botToken && siteSettings.chatId) {
+      const reasonLabel = {
+        not_fit: '🔄 Не підійшов розмір / колір / характеристики',
+        defect: '⚠️ Виявлено заводський брак',
+        wrong_item: '📦 Не відповідає замовленому',
+        warranty: '🛡️ Гарантійне обслуговування',
+        other: '❓ Інша причина'
+      }[data.reason] || data.reason;
+
+      const msg = `⚡ *Нова заявка на повернення/обмін товару!*\n\n${data.orderNumber ? `🧾 *№ Замовлення/ТТН:* ${data.orderNumber}\n` : ''}👤 *Клієнт:* ${data.buyerName?.trim() || 'Покупець'}\n📞 *Телефон:* ${cleanPhone}\n📋 *Причина:* ${reasonLabel}\n${data.comment ? `💬 *Коментар:* ${data.comment}\n` : ''}⏰ *Час:* ${new Date().toLocaleString('uk-UA')}`;
+      sendTelegramAlert(siteSettings.botToken, siteSettings.chatId, msg).catch(() => {});
+    }
+
+    showToast('Заявку на повернення/обмін успішно прийнято! Менеджер зв\'яжеться з вами.', 'success');
+    return true;
+  };
+
+  const updateReturnRequestStatus = (id: string, status: ReturnRequest['status'], adminNotes?: string) => {
+    const next = returnRequests.map(r => r.id === id ? {
+      ...r,
+      status,
+      adminNotes: adminNotes !== undefined ? adminNotes : r.adminNotes
+    } : r);
+    setReturnRequests(next);
+    try {
+      localStorage.setItem('iskra_return_requests_v1', JSON.stringify(next));
+    } catch {}
+
+    if (firebaseConfig.enabled || firebaseConfig.databaseURL) {
+      pushStoreToFirebase(firebaseConfig, { returnRequests: next, lastSyncTimestamp: Date.now() }).catch(() => {});
+    }
+    showToast('Статус заявки оновлено', 'info');
+  };
+
+  const deleteReturnRequest = (id: string) => {
+    const next = returnRequests.filter(r => r.id !== id);
+    setReturnRequests(next);
+    try {
+      localStorage.setItem('iskra_return_requests_v1', JSON.stringify(next));
+    } catch {}
+
+    if (firebaseConfig.enabled || firebaseConfig.databaseURL) {
+      pushStoreToFirebase(firebaseConfig, { returnRequests: next, lastSyncTimestamp: Date.now() }).catch(() => {});
+    }
+    showToast('Заявку видалено', 'info');
+  };
+
+  const clearAllReturnRequests = () => {
+    setReturnRequests([]);
+    try {
+      localStorage.removeItem('iskra_return_requests_v1');
+    } catch {}
+    if (firebaseConfig.enabled || firebaseConfig.databaseURL) {
+      pushStoreToFirebase(firebaseConfig, { returnRequests: [], lastSyncTimestamp: Date.now() }).catch(() => {});
+    }
+    showToast('Всі заявки на повернення очищено', 'info');
+  };
+
   // Site Settings
   const updateSiteSettings = (settings: SiteSettings) => {
     setSiteSettings(settings);
@@ -2672,6 +2801,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deleteStockAlert,
         clearAllStockAlerts,
         clearNotifiedStockAlerts,
+        returnRequests,
+        addReturnRequest,
+        updateReturnRequestStatus,
+        deleteReturnRequest,
+        clearAllReturnRequests,
         updateSiteSettings,
         updateSiteFeatures,
         updateHeaderDesign,
