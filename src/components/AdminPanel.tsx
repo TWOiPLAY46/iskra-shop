@@ -83,6 +83,8 @@ import {
   CircleDollarSign,
   Coins,
   Zap,
+  Headphones,
+  PhoneCall,
   X
 } from 'lucide-react';
 import { 
@@ -8320,98 +8322,208 @@ export const AdminPanel: React.FC = () => {
                     type="text"
                     value={settingsForm.address}
                     onChange={(e) => setSettingsForm({ ...settingsForm, address: e.target.value })}
-                    placeholder="вул. Героїв Майдану, 12"
+                    placeholder="вул. Котляревського, 2"
                     className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">Точна фізична адреса для клієнтів у футері та контактах.</p>
               </div>
 
-              {/* Viber & Telegram */}
-              <div>
+              {/* Email */}
+              <div className="sm:col-span-2">
                 <label className="block font-bold text-slate-800 mb-1">
-                  Viber для консультацій покупців
+                  Офіційний E-mail магазину
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <MessageCircle className="w-4 h-4 text-purple-600" />
+                    <Mail className="w-4 h-4 text-rose-500" />
                   </div>
                   <input
-                    type="text"
-                    value={settingsForm.viber}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, viber: e.target.value })}
-                    placeholder="+38 (068) 000-00-00"
-                    className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                    type="email"
+                    value={settingsForm.email || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSettingsForm({ ...settingsForm, email: val, fopEmail: val });
+                    }}
+                    placeholder="iskra.shop.ua@gmail.com"
+                    className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-800 mb-1">
-                  Telegram канал або прямий юзернейм
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <Send className="w-4 h-4 text-sky-500" />
-                  </div>
-                  <input
-                    type="text"
-                    value={settingsForm.telegram}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, telegram: e.target.value })}
-                    placeholder="@iskra_shop"
-                    className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-                  />
-                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Для листування, запитів комерційних пропозицій та рахунків-фактур.</p>
               </div>
             </div>
 
             {/* Live Contacts & Location Preview */}
             <div className="pt-2">
               <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
-                <span>Попередній вигляд контактного блоку та шапки:</span>
-                <span className="text-emerald-600 font-bold">● Контакти сайту</span>
+                <span>Попередній вигляд контактного блоку (Колонка 3 футера):</span>
+                <span className="text-emerald-600 font-bold">● Контакти магазину</span>
               </div>
 
-              <div className="p-4 sm:p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-bold text-slate-800">
-                      {settingsForm.phone || '+38 (068) 000-00-00'}
-                    </span>
-                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      Приймаємо дзвінки
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
-                    <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                    <span>{settingsForm.workHours || 'Пн-Нд: 08:00 - 20:00'}</span>
-                  </div>
+              <div className="p-5 bg-slate-950 text-slate-300 rounded-2xl border border-slate-900 shadow-md space-y-3.5 max-w-xl">
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-900">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider font-display">
+                    Контакти магазину
+                  </h4>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Приймаємо замовлення
+                  </span>
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2 text-slate-700">
-                    <MapPin className="w-4 h-4 text-red-500 shrink-0" />
-                    <span>
-                      <b className="text-slate-900">{settingsForm.city || 'с-ще. Оратів, Вінницька обл.'}</b>
-                      {settingsForm.address && <span className="text-slate-500">, {settingsForm.address}</span>}
-                    </span>
+                <div className="space-y-3 text-xs">
+                  {/* Address */}
+                  <div className="flex items-start gap-2.5">
+                    <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-slate-400 block text-[11px] font-semibold">Адреса магазину / Самовивіз:</span>
+                      <span className="text-white font-bold">
+                        {settingsForm.city || 'с-ще. Оратів'}, {settingsForm.address || 'вул. Котляревського, 2'}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {settingsForm.viber && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 text-[11px] font-bold">
-                        <MessageCircle className="w-3 h-3 text-purple-600" />
-                        Viber
+                  {/* Phone */}
+                  <div className="flex items-center gap-2.5">
+                    <Phone className="w-4 h-4 text-red-500 shrink-0" />
+                    <div>
+                      <span className="text-slate-400 block text-[11px] font-semibold">Телефон для замовлень:</span>
+                      <a 
+                        href={`tel:${(settingsForm.phone || '+38 (096) 647-36-67').replace(/[^0-9+]/g, '')}`} 
+                        className="text-red-400 hover:text-red-300 font-bold font-mono text-sm"
+                      >
+                        {settingsForm.phone || '+38 (096) 647-36-67'}
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="flex items-center gap-2.5">
+                    <Mail className="w-4 h-4 text-red-500 shrink-0" />
+                    <div>
+                      <span className="text-slate-400 block text-[11px] font-semibold">E-mail:</span>
+                      <a 
+                        href={`mailto:${settingsForm.email || 'iskra.shop.ua@gmail.com'}`} 
+                        className="text-slate-200 hover:text-red-400 font-mono"
+                      >
+                        {settingsForm.email || 'iskra.shop.ua@gmail.com'}
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Work Hours */}
+                  <div className="flex items-start gap-2.5">
+                    <Clock className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-slate-400 block text-[11px] font-semibold">Графік роботи:</span>
+                      <span className="text-slate-200">
+                        {settingsForm.workHours || 'Пн-Пт: 08:00 - 17:00, Сб: 08:00 - 15:00, Нд: Вихідний'}
                       </span>
-                    )}
-                    {settingsForm.telegram && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-bold">
-                        <Send className="w-3 h-3 text-sky-600" />
-                        {settingsForm.telegram}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 5: Footer Brand Description & Trust Advantages */}
+          <div className="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/40 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+              <h4 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <Building2 className="w-4 h-4 text-rose-600" />
+                <span>5. Інформаційний блок футера (Опис магазину, логотип та гарантії)</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-medium">Відображається у першій колонці нижнього колонтитула (футера)</span>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              {/* Footer Store Description */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Опис спеціалізації магазину у футері
+                </label>
+                <textarea
+                  rows={2}
+                  value={designForm.footerDesc || ''}
+                  onChange={(e) => setDesignForm({ ...designForm, footerDesc: e.target.value })}
+                  placeholder="Спеціалізований інтернет-магазин та точка продажу інверторів, акумуляторів, сонячного, електромонтажного та сантехнічного обладнання."
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-xs leading-relaxed"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Короткий опис під логотипом про асортимент та напрямок магазину.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Trust 1: Delivery */}
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Перевага 1 (Доставка)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.footerTrust1 || ''}
+                    onChange={(e) => setDesignForm({ ...designForm, footerTrust1: e.target.value })}
+                    placeholder="Доставка Новою Поштою по всій Україні"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-medium text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                  />
+                </div>
+
+                {/* Trust 2: Warranty */}
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Перевага 2 (Гарантія)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.footerTrust2 || ''}
+                    onChange={(e) => setDesignForm({ ...designForm, footerTrust2: e.target.value })}
+                    placeholder="Офіційна заводська гарантія (12–60 міс.)"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-medium text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                  />
+                </div>
+              </div>
+
+              {/* Live Footer Brand & Trust Preview */}
+              <div className="pt-2">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>Попередній вигляд блоку футера сайту:</span>
+                  <span className="text-red-500 font-bold">● Футер сайту (Колонка 1)</span>
+                </div>
+
+                <div className="p-5 bg-slate-950 text-slate-300 rounded-2xl border border-slate-900 shadow-md space-y-4 max-w-xl">
+                  {/* Brand header */}
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center bg-[#e5001e] text-white px-2.5 py-1.5 rounded-[6px] text-sm font-black tracking-tight shrink-0 shadow-xs">
+                      <span className="font-black text-white text-[15px] tracking-[0.05em] font-display leading-none transform scale-y-110 scale-x-105 inline-block uppercase select-none">
+                        {designForm.logoBadge || 'ISKRA'}
                       </span>
-                    )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm text-white tracking-tight font-display leading-tight uppercase">
+                        {designForm.logoText || 'МАГАЗИН'}
+                      </span>
+                      <span className="text-[10px] font-medium text-slate-400 tracking-tight leading-tight">
+                        {designForm.logoSubtitle || 'Магазин надійних рішень'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {designForm.footerDesc || 'Спеціалізований інтернет-магазин та точка продажу інверторів, акумуляторів, сонячного, електромонтажного та сантехнічного обладнання.'}
+                  </p>
+
+                  {/* Trust Points */}
+                  <div className="pt-1 text-xs space-y-2 text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-orange-500 shrink-0" />
+                      <span>{designForm.footerTrust1 || 'Доставка Новою Поштою по всій Україні'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>{designForm.footerTrust2 || 'Офіційна заводська гарантія (12–60 міс.)'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -8741,6 +8853,243 @@ export const AdminPanel: React.FC = () => {
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* Section 3: Quick Consultation & Callback Notifications */}
+          <div className="p-5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/40 shadow-2xs space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-emerald-200/70">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                  <Headphones className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <span>3. Швидка консультація, месенджери та зворотний дзвінок (Callback)</span>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      (settingsForm.callbackTelegramNotify ?? true)
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${(settingsForm.callbackTelegramNotify ?? true) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                      {(settingsForm.callbackTelegramNotify ?? true) ? 'Сповіщення активні' : 'Вимкнено'}
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Керуйте прямими месенджерами (Viber, Telegram), текстом кнопки та сповіщеннями про заявки на зворотний дзвінок
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Sub-section A: Direct Messenger Channels for Buyers */}
+            <div className="p-4 bg-white/95 rounded-xl border border-emerald-200/90 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-purple-600" />
+                  <h5 className="font-bold text-xs text-slate-900">
+                    Прямі канали зв'язку у віджеті консультації (Швидкі повідомлення)
+                  </h5>
+                </div>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  Клієнт пише вам напряму в 1 клік
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                {/* Viber */}
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <MessageCircle className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Viber для консультацій покупців</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={settingsForm.viber}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, viber: e.target.value })}
+                      placeholder="+38 (068) 000-00-00"
+                      className="w-full pl-3.5 pr-16 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                    />
+                    {settingsForm.viber && (
+                      <a
+                        href={`viber://chat?number=${settingsForm.viber.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="absolute inset-y-1.5 right-1.5 px-2.5 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
+                      >
+                        Тест
+                      </a>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Відкриває прямий чат у Viber при кліку на вкладку «Прямий зв'язок».
+                  </p>
+                </div>
+
+                {/* Telegram Username */}
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <Send className="w-3.5 h-3.5 text-sky-500" />
+                    <span>Telegram канал або прямий юзернейм</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={settingsForm.telegram}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, telegram: e.target.value })}
+                      placeholder="@iskra_shop або t.me/iskra_shop"
+                      className="w-full pl-3.5 pr-16 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                    />
+                    {settingsForm.telegram && (
+                      <a
+                        href={settingsForm.telegram.startsWith('http') ? settingsForm.telegram : `https://t.me/${settingsForm.telegram.replace('@', '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="absolute inset-y-1.5 right-1.5 px-2.5 bg-sky-100 hover:bg-sky-200 text-sky-800 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
+                      >
+                        Тест
+                      </a>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Відкриває прямий діалог в Telegram із консультантом або канал магазину.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Sub-section B: Callback Button Text and Telegram Notifications */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              {/* Callback Button Text */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Текст дії / кнопки у віджеті консультації
+                </label>
+                <input
+                  type="text"
+                  placeholder="наприклад: Замовити дзвінок за 30 сек"
+                  value={settingsForm.callbackText || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, callbackText: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs bg-white font-bold text-slate-900 shadow-2xs outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
+                />
+                <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                  <span className="text-[10px] text-slate-400">Швидкі варіанти:</span>
+                  {[
+                    'Замовити дзвінок за 30 сек',
+                    'Швидка консультація',
+                    'Передзвоніть мені',
+                    'Консультація спеціаліста'
+                  ].map((txt) => (
+                    <button
+                      key={txt}
+                      type="button"
+                      onClick={() => setSettingsForm({ ...settingsForm, callbackText: txt })}
+                      className="px-1.5 py-0.5 bg-white hover:bg-emerald-50 border border-slate-200 rounded text-[10px] text-slate-700 transition-all cursor-pointer"
+                    >
+                      {txt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Toggle: Telegram Notification for Callbacks */}
+              <div className="p-3.5 bg-white/90 rounded-xl border border-emerald-200/80 space-y-2 flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <b className="text-slate-900 block text-xs">Надсилати запити у Telegram-бот</b>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">
+                      Миттєве сповіщення з ім'ям, телефоном та темою запиту
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSettingsForm({ ...settingsForm, callbackTelegramNotify: !(settingsForm.callbackTelegramNotify ?? true) })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+                      (settingsForm.callbackTelegramNotify ?? true) ? 'bg-emerald-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (settingsForm.callbackTelegramNotify ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="pt-1 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400">Використовує налаштований Bot Token та Chat ID</span>
+                  <button
+                    type="button"
+                    disabled={isTestingTelegram}
+                    onClick={async () => {
+                      if (!settingsForm.botToken || !settingsForm.chatId) {
+                        showToast('Введіть Bot Token та Chat ID у Секції 1 для перевірки зв\'язку', 'error');
+                        return;
+                      }
+                      setIsTestingTelegram(true);
+                      updateSiteSettings(settingsForm);
+                      try {
+                        const success = await sendTelegramAlert(
+                          settingsForm.botToken,
+                          settingsForm.chatId,
+                          "⚡ *Тестовий запит на швидку консультацію!*\n👤 Ім'я: Тестовий клієнт\n📞 Телефон: +38 (068) 000-00-00\n📌 Тема: Сантехніка та електрика\n⏰ Час: " + new Date().toLocaleTimeString('uk-UA')
+                        );
+                        if (success) {
+                          showToast('✅ Тестове сповіщення консультації надіслано в Telegram!', 'success');
+                        } else {
+                          showToast('❌ Помилка надсилання в Telegram (перевірте токен і chat ID)', 'error');
+                        }
+                      } catch {
+                        showToast('Помилка відправки в Telegram', 'error');
+                      } finally {
+                        setIsTestingTelegram(false);
+                      }
+                    }}
+                    className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-md border border-emerald-200 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Send className="w-2.5 h-2.5" />
+                    <span>Тест Callback в Telegram</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Sub-row: Auto SMS Template to Buyer on Callback */}
+            <div className="p-3.5 bg-white/95 rounded-xl border border-emerald-200/80 space-y-2 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Шаблон SMS-підтвердження покупцеві при замовленні консультації</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    {settingsForm.callbackAutoSmsEnabled ? 'SMS активно' : 'SMS вимкнено'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSettingsForm({ ...settingsForm, callbackAutoSmsEnabled: !settingsForm.callbackAutoSmsEnabled })}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+                      settingsForm.callbackAutoSmsEnabled ? 'bg-emerald-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        settingsForm.callbackAutoSmsEnabled ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <textarea
+                rows={2}
+                value={settingsForm.callbackSmsTemplate || ''}
+                onChange={(e) => setSettingsForm({ ...settingsForm, callbackSmsTemplate: e.target.value })}
+                placeholder="⚡ Магазин ISKRA&#10;Дякуємо за запит на консультацію! Наш фахівець зв'яжеться з вами протягом 2-3 хвилин."
+                className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-emerald-600 leading-relaxed"
+              />
             </div>
           </div>
 

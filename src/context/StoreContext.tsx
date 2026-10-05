@@ -541,8 +541,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       logoText,
       logoSubtitle,
       heroCity,
-      heroAddress: isGarbage(d.heroAddress) || (d.heroAddress && (d.heroAddress.includes('Героїв Майдану') || d.heroAddress.includes('Котляревського, 2'))) ? "вул. Котляревського, 7" : d.heroAddress,
-      heroBadge: isGarbage(d.heroBadge) ? "ІНТЕРНЕТ-МАГАЗИН" : d.heroBadge
+      heroAddress: isGarbage(d.heroAddress) || (d.heroAddress && d.heroAddress.includes('Героїв Майдану')) ? "вул. Котляревського, 2" : d.heroAddress,
+      heroBadge: isGarbage(d.heroBadge) ? "ІНТЕРНЕТ-МАГАЗИН" : d.heroBadge,
+      footerDesc: d.footerDesc || initialHeaderDesign.footerDesc,
+      footerTrust1: d.footerTrust1 || initialHeaderDesign.footerTrust1,
+      footerTrust2: d.footerTrust2 || initialHeaderDesign.footerTrust2
     };
   };
 

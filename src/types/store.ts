@@ -102,6 +102,7 @@ export interface SiteFeatures {
 
 export interface SiteSettings {
   phone: string;
+  email?: string;
   viber: string;
   telegram: string;
   callbackText: string;
@@ -151,6 +152,9 @@ export interface SiteSettings {
   smsApiKey?: string;
   smsSenderName?: string;
   smsStockAlertTemplate?: string;
+  callbackTelegramNotify?: boolean;
+  callbackAutoSmsEnabled?: boolean;
+  callbackSmsTemplate?: string;
   features: SiteFeatures;
 }
 
@@ -195,6 +199,9 @@ export interface HeaderDesign {
   heroDesc: string;
   heroAddress: string;
   heroCity: string;
+  footerDesc?: string;
+  footerTrust1?: string;
+  footerTrust2?: string;
 }
 
 export interface FirebaseConnectionConfig {

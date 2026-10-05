@@ -11,7 +11,7 @@ export const Footer: React.FC = () => {
   };
 
   const storePhone = siteSettings.fopPhone || siteSettings.phone || '+38 (096) 647-36-67';
-  const storeEmail = siteSettings.fopEmail || 'iskra.shop.ua@gmail.com';
+  const storeEmail = siteSettings.email || siteSettings.fopEmail || 'iskra.shop.ua@gmail.com';
 
   return (
     <footer id="contacts-section" className="bg-slate-950 text-slate-400 border-t border-slate-900 mt-20">
@@ -37,17 +37,17 @@ export const Footer: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed">
-              Спеціалізований інтернет-магазин та точка продажу інверторів, акумуляторів, сонячного, електромонтажного та сантехнічного обладнання.
+              {headerDesign.footerDesc || 'Спеціалізований інтернет-магазин та точка продажу інверторів, акумуляторів, сонячного, електромонтажного та сантехнічного обладнання.'}
             </p>
 
             <div className="pt-1 text-xs space-y-2 text-slate-300">
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4 text-orange-500 shrink-0" />
-                <span>Доставка Новою Поштою по всій Україні</span>
+                <span>{headerDesign.footerTrust1 || 'Доставка Новою Поштою по всій Україні'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>Офіційна заводська гарантія (12–60 міс.)</span>
+                <span>{headerDesign.footerTrust2 || 'Офіційна заводська гарантія (12–60 міс.)'}</span>
               </div>
             </div>
           </div>

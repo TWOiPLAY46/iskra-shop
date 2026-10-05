@@ -719,14 +719,15 @@ export const initialProducts: Product[] = [
 
 export const initialSiteSettings: SiteSettings = {
   phone: "+38 (096) 647-36-67",
+  email: "iskra.shop.ua@gmail.com",
   viber: "+380966473667",
   telegram: "iskra_store_orativ",
   callbackText: "Передзвоніть мені",
   botToken: "",
   chatId: "",
   city: "с-ще. Оратів",
-  address: "вул. Котляревського, 7",
-  workHours: "Пн-Пт: 08:00 - 18:00, Сб: 08:00 - 15:00, Нд: Вихідний",
+  address: "вул. Котляревського, 2",
+  workHours: "Пн-Пт: 08:00 - 17:00, Сб: 08:00 - 15:00, Нд: Вихідний",
   adminPassword: "admin",
   novaPoshtaApiKey: "",
   ukrposhtaToken: "",
@@ -740,12 +741,12 @@ export const initialSiteSettings: SiteSettings = {
   companyBank: "АТ КБ «ПриватБанк» (МФО 305299)",
   // Seller / FOP Requisites & Legal Info
   fopName: "ФОП Тарасова Ірина Анатоліївна",
-  fopRegistrationAddress: "Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7",
-  fopActualAddress: "Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7",
+  fopRegistrationAddress: "Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 2",
+  fopActualAddress: "Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 2",
   fopRnokpp: "3298412839",
   fopEmail: "iskra.shop.ua@gmail.com",
   fopPhone: "+38 (096) 647-36-67",
-  fopStoreAddress: "Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7",
+  fopStoreAddress: "Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 2",
   websiteUrl: "https://iskra-shop.ua",
   licenseInfo: "Роздрібна торгівля побутовими електротоварами, сантехнікою, акумуляторами, інверторами та ручним/електроінструментом згідно ст. 7 Закону України «Про ліцензування видів господарської діяльності» не підлягає обов'язковому ліцензуванню. Вся реалізована продукція сертифікована в Україні та супроводжується офіційною гарантією виробника.",
   taxInfo: "Фізична особа-підприємець (ФОП), платник єдиного податку 2-ї групи (без сплати ПДВ). Усі ціни, зазначені в каталозі на сайті, є кінцевими, актуальними та включають усі передбачені законодавством України податки і обов'язкові платежі.",
@@ -764,6 +765,9 @@ export const initialSiteSettings: SiteSettings = {
   smsApiKey: "",
   smsSenderName: "ISKRA",
   smsStockAlertTemplate: "⚡ Магазин ISKRA\nВітаємо! Товар «{product}» знову в наявності ({price} грн). Замовляйте на сайті або телефонуйте!",
+  callbackTelegramNotify: true,
+  callbackAutoSmsEnabled: false,
+  callbackSmsTemplate: "⚡ Магазин ISKRA\nДякуємо за запит на консультацію! Наш фахівець зв'яжеться з вами протягом 2-3 хвилин.",
   features: {
     ordersEnabled: true,
     loyaltyEnabled: true,
@@ -795,8 +799,11 @@ export const initialHeaderDesign: HeaderDesign = {
   heroBadge: "ІНТЕРНЕТ-МАГАЗИН",
   heroTitle: "Надійна Сантехніка та Електротовари",
   heroDesc: "Найбільший асортимент товарів для ремонту, монтажу та будівництва у вас вдома.",
-  heroAddress: "вул. Котляревського, 7",
-  heroCity: "с-ще. Оратів, Вінницька обл."
+  heroAddress: "вул. Котляревського, 2",
+  heroCity: "с-ще. Оратів, Вінницька обл.",
+  footerDesc: "Спеціалізований інтернет-магазин та точка продажу інверторів, акумуляторів, сонячного, електромонтажного та сантехнічного обладнання.",
+  footerTrust1: "Доставка Новою Поштою по всій Україні",
+  footerTrust2: "Офіційна заводська гарантія (12–60 міс.)"
 };
 
 export const initialWeeklyDeal: WeeklyDealConfig = {

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { pushCallbackToFirebase } from '../services/firebaseService';
+import { sendSmsViaGateway } from '../utils/smsHelper';
 import { 
   formatUkrainianPhone, 
   extractLocalPhoneDigits, 
@@ -100,7 +101,7 @@ export const ConsultationWidget: React.FC = () => {
     }
 
     // Attempt to notify telegram bot if configured
-    if (siteSettings.botToken && siteSettings.chatId) {
+    if ((siteSettings.callbackTelegramNotify ?? true) && siteSettings.botToken && siteSettings.chatId) {
       const msg = `⚡ *Новий запит на швидку консультацію!*\n👤 Ім'я: ${name || 'Не вказано'}\n📞 Телефон: ${phone}\n📌 Тема: ${topic}\n⏰ Час: ${new Date().toLocaleTimeString('uk-UA')}`;
       fetch(`https://api.telegram.org/bot${siteSettings.botToken}/sendMessage`, {
         method: 'POST',
@@ -110,6 +111,18 @@ export const ConsultationWidget: React.FC = () => {
           text: msg,
           parse_mode: 'Markdown'
         })
+      }).catch(() => {});
+    }
+
+    // Send auto SMS if enabled
+    if (siteSettings.callbackAutoSmsEnabled && siteSettings.smsGateway && siteSettings.smsGateway !== 'none') {
+      const text = siteSettings.callbackSmsTemplate || `⚡ Магазин ISKRA\nДякуємо за запит на консультацію! Наш фахівець зв'яжеться з вами протягом 2-3 хвилин.`;
+      sendSmsViaGateway({
+        phone: fullPhone,
+        text,
+        gateway: siteSettings.smsGateway,
+        apiKey: siteSettings.smsApiKey || '',
+        senderName: siteSettings.smsSenderName || 'ISKRA'
       }).catch(() => {});
     }
 
@@ -408,7 +421,7 @@ export const ConsultationWidget: React.FC = () => {
                         ) : (
                           <>
                             <Send className="w-4 h-4" />
-                            Замовити дзвінок за 30 сек
+                            {siteSettings.callbackText || 'Замовити дзвінок за 30 сек'}
                           </>
                         )}
                       </button>
