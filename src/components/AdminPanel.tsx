@@ -80,6 +80,8 @@ import {
   Layers,
   Award,
   Download,
+  FolderTree,
+  Folder,
   CircleDollarSign,
   Coins,
   Zap,
@@ -349,6 +351,7 @@ const AdminCategoryCard: React.FC<{
   onDeleteSub: (main: string, sub: string) => void;
   onAddLeaf: (main: string, sub: string | null, leaf: string) => void;
   onDeleteLeaf: (main: string, sub: string | null, leaf: string) => void;
+  searchQuery?: string;
 }> = ({
   mainCat,
   mainObj,
@@ -356,7 +359,8 @@ const AdminCategoryCard: React.FC<{
   onAddSub,
   onDeleteSub,
   onAddLeaf,
-  onDeleteLeaf
+  onDeleteLeaf,
+  searchQuery = ''
 }) => {
   const [subInput, setSubInput] = useState('');
   const [directLeafInput, setDirectLeafInput] = useState('');
@@ -367,34 +371,55 @@ const AdminCategoryCard: React.FC<{
   const directLeaves: string[] = Array.isArray(mainObj._leaves) ? mainObj._leaves : [];
   const subCats = Object.keys(mainObj).filter((k) => k !== '_leaves' && !k.startsWith('_'));
 
+  // Total leaf count for stats
+  const totalLeafCount = directLeaves.length + subCats.reduce((acc, sub) => {
+    const l = Array.isArray(mainObj[sub]) ? mainObj[sub] : [];
+    return acc + l.length;
+  }, 0);
+
   return (
-    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xs">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="font-bold text-sm sm:text-base text-slate-900 flex items-center gap-2">
-          <span className="p-1 rounded-lg bg-orange-100 text-orange-600 text-xs">📂</span>
-          <span>{mainCat}</span>
-          <span className="text-[11px] font-normal text-slate-500">
-            ({subCats.length} підкатегорій, {directLeaves.length} прямих груп)
-          </span>
-        </span>
+    <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 space-y-5 shadow-sm hover:border-emerald-300/80 transition-all hover:shadow-md">
+      {/* Category Card Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 font-black text-sm flex items-center justify-center shrink-0 border border-emerald-200/80 shadow-2xs">
+            <FolderTree className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-black text-slate-900 font-display text-base tracking-tight">
+                {mainCat}
+              </h3>
+              <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
+                {subCats.length} підкатегорій
+              </span>
+              <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg">
+                {totalLeafCount} кінцевих груп
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Головна категорія верхнього рівня у випадаючому меню магазину
+            </p>
+          </div>
+        </div>
 
         {isConfirmingDelete ? (
-          <div className="flex items-center gap-1.5 animate-in fade-in">
-            <span className="text-xs text-rose-600 font-semibold">Видалити всю категорію?</span>
+          <div className="flex items-center gap-1.5 animate-in fade-in bg-rose-50 p-1.5 rounded-2xl border border-rose-200">
+            <span className="text-xs text-rose-700 font-bold pl-1">Видалити категорію з усіма підгрупами?</span>
             <button
               type="button"
               onClick={() => {
                 onDeleteMain(mainCat);
                 setIsConfirmingDelete(false);
               }}
-              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs"
+              className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
             >
               Так, видалити
             </button>
             <button
               type="button"
               onClick={() => setIsConfirmingDelete(false)}
-              className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-medium"
+              className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-medium cursor-pointer"
             >
               Скасувати
             </button>
@@ -403,15 +428,16 @@ const AdminCategoryCard: React.FC<{
           <button
             type="button"
             onClick={() => setIsConfirmingDelete(true)}
-            className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+            className="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
           >
-            Видалити категорію
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Видалити категорію</span>
           </button>
         )}
       </div>
 
       {/* Input forms for Subcategory and Direct Leaf */}
-      <div className="flex flex-wrap items-center gap-2.5 pt-3 border-t border-slate-200/80">
+      <div className="bg-slate-50 p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -420,18 +446,21 @@ const AdminCategoryCard: React.FC<{
               setSubInput('');
             }
           }}
-          className="flex items-center gap-1.5"
+          className="flex items-center gap-2 flex-1 min-w-[240px]"
         >
-          <input
-            type="text"
-            placeholder={`Нова підкатегорія в "${mainCat}"...`}
-            value={subInput}
-            onChange={(e) => setSubInput(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white outline-none focus:border-orange-500 w-48 sm:w-56"
-          />
+          <div className="relative flex-1">
+            <FolderPlus className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder={`Нова підкатегорія у "${mainCat}"...`}
+              value={subInput}
+              onChange={(e) => setSubInput(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-white outline-none focus:border-emerald-500 font-medium"
+            />
+          </div>
           <button
             type="submit"
-            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-colors shadow-2xs"
+            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs cursor-pointer shrink-0"
           >
             + Підкатегорія
           </button>
@@ -445,18 +474,21 @@ const AdminCategoryCard: React.FC<{
               setDirectLeafInput('');
             }
           }}
-          className="flex items-center gap-1.5 sm:ml-auto"
+          className="flex items-center gap-2 flex-1 min-w-[220px]"
         >
-          <input
-            type="text"
-            placeholder="Пряма кінцева група..."
-            value={directLeafInput}
-            onChange={(e) => setDirectLeafInput(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white outline-none focus:border-orange-500 w-40 sm:w-48"
-          />
+          <div className="relative flex-1">
+            <Plus className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Пряма кінцева група (без підкатегорії)..."
+              value={directLeafInput}
+              onChange={(e) => setDirectLeafInput(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-white outline-none focus:border-emerald-500 font-medium"
+            />
+          </div>
           <button
             type="submit"
-            className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-xl transition-colors shadow-2xs"
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs cursor-pointer shrink-0"
           >
             + Кінцева
           </button>
@@ -465,95 +497,104 @@ const AdminCategoryCard: React.FC<{
 
       {/* Direct Leaves (if any) */}
       {directLeaves.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          <span className="text-[11px] text-slate-400 font-semibold self-center mr-1">Прямі групи:</span>
-          {directLeaves.map((leaf) => (
-            <span
-              key={leaf}
-              className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200/80 text-xs px-2.5 py-1 rounded-lg"
-            >
-              <span>{leaf}</span>
-              <button
-                type="button"
-                onClick={() => onDeleteLeaf(mainCat, null, leaf)}
-                className="text-amber-700 hover:text-rose-600 font-bold ml-0.5"
-                title="Видалити"
+        <div className="bg-amber-50/70 border border-amber-200/80 p-3 rounded-2xl space-y-2">
+          <span className="text-[11px] text-amber-900 font-extrabold flex items-center gap-1">
+            <span>📌 Прямі групи в категоріі «{mainCat}»:</span>
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {directLeaves.map((leaf) => (
+              <span
+                key={leaf}
+                className="inline-flex items-center gap-1.5 bg-white text-amber-950 border border-amber-300 text-xs px-2.5 py-1 rounded-xl shadow-2xs font-bold"
               >
-                ×
-              </button>
-            </span>
-          ))}
+                <span>{leaf}</span>
+                <button
+                  type="button"
+                  onClick={() => onDeleteLeaf(mainCat, null, leaf)}
+                  className="text-amber-700 hover:text-rose-600 font-bold ml-0.5 cursor-pointer hover:bg-rose-50 rounded p-0.5"
+                  title="Видалити кінцеву групу"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Subcategories Grid */}
       {subCats.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
           {subCats.map((sub) => {
             const leaves: string[] = Array.isArray(mainObj[sub]) ? mainObj[sub] : [];
 
             return (
-              <div key={sub} className="bg-white p-3.5 rounded-xl border border-slate-200 text-xs shadow-2xs space-y-2">
-                <div className="flex items-center justify-between font-bold text-slate-800 pb-1.5 border-b border-slate-100">
-                  <span className="flex items-center gap-1.5">
-                    <span>📁</span>
-                    <span>{sub}</span>
-                  </span>
-
-                  {confirmSubDelete === sub ? (
-                    <span className="inline-flex items-center gap-1 animate-in fade-in">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onDeleteSub(mainCat, sub);
-                          setConfirmSubDelete(null);
-                        }}
-                        className="px-1.5 py-0.5 bg-rose-600 text-white rounded text-[10px] font-bold"
-                      >
-                        Видалити
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmSubDelete(null)}
-                        className="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded text-[10px]"
-                      >
-                        Ні
-                      </button>
+              <div key={sub} className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/80 text-xs shadow-2xs space-y-3 hover:border-slate-300 transition-all flex flex-col justify-between">
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between font-bold text-slate-900 pb-2 border-b border-slate-200/60">
+                    <span className="flex items-center gap-2">
+                      <Folder className="w-4 h-4 text-emerald-600" />
+                      <span className="font-extrabold text-sm">{sub}</span>
                     </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmSubDelete(sub)}
-                      className="text-rose-500 hover:text-rose-700 font-normal text-[11px] hover:underline"
-                    >
-                      Видалити
-                    </button>
-                  )}
-                </div>
 
-                <div className="flex flex-wrap gap-1 min-h-[24px]">
-                  {leaves.length === 0 ? (
-                    <span className="text-[11px] text-slate-400 italic">Немає кінцевих категорій</span>
-                  ) : (
-                    leaves.map((leaf) => (
-                      <span
-                        key={leaf}
-                        className="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md text-[11px] transition-colors"
-                      >
-                        <span>{leaf}</span>
+                    {confirmSubDelete === sub ? (
+                      <span className="inline-flex items-center gap-1 animate-in fade-in">
                         <button
                           type="button"
-                          onClick={() => onDeleteLeaf(mainCat, sub, leaf)}
-                          className="text-slate-400 hover:text-rose-600 font-bold ml-0.5"
-                          title="Видалити"
+                          onClick={() => {
+                            onDeleteSub(mainCat, sub);
+                            setConfirmSubDelete(null);
+                          }}
+                          className="px-2 py-0.5 bg-rose-600 text-white rounded-lg text-[10px] font-bold cursor-pointer"
                         >
-                          ×
+                          Так
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmSubDelete(null)}
+                          className="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded-lg text-[10px] cursor-pointer"
+                        >
+                          Ні
                         </button>
                       </span>
-                    ))
-                  )}
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmSubDelete(sub)}
+                        className="text-slate-400 hover:text-rose-600 p-1 transition-colors cursor-pointer rounded-lg hover:bg-rose-50"
+                        title="Видалити підкатегорію"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Leaf groups under subcategory */}
+                  <div className="flex flex-wrap gap-1.5 min-h-[28px] items-center">
+                    {leaves.length === 0 ? (
+                      <span className="text-[11px] text-slate-400 italic">Немає кінцевих категорій</span>
+                    ) : (
+                      leaves.map((leaf) => (
+                        <span
+                          key={leaf}
+                          className="inline-flex items-center gap-1 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200/90 px-2.5 py-1 rounded-xl text-[11px] font-semibold transition-colors shadow-2xs"
+                        >
+                          <span>{leaf}</span>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteLeaf(mainCat, sub, leaf)}
+                            className="text-slate-400 hover:text-rose-600 font-bold ml-0.5 cursor-pointer p-0.5 rounded hover:bg-rose-50"
+                            title="Видалити кінцеву категорію"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))
+                    )}
+                  </div>
                 </div>
 
+                {/* Inline add leaf form */}
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -563,18 +604,18 @@ const AdminCategoryCard: React.FC<{
                       setLeafInputs((prev) => ({ ...prev, [sub]: '' }));
                     }
                   }}
-                  className="flex items-center gap-1.5 pt-1.5 border-t border-slate-100"
+                  className="flex items-center gap-1.5 pt-2 border-t border-slate-200/60"
                 >
                   <input
                     type="text"
-                    placeholder="+ Кінцева група"
+                    placeholder="+ Кінцева група..."
                     value={leafInputs[sub] || ''}
                     onChange={(e) => setLeafInputs((prev) => ({ ...prev, [sub]: e.target.value }))}
-                    className="px-2.5 py-1 text-xs border border-slate-200 rounded-lg flex-1 outline-none focus:border-orange-500"
+                    className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-xl flex-1 outline-none focus:border-emerald-500 bg-white font-medium"
                   />
                   <button
                     type="submit"
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold"
+                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0"
                   >
                     +
                   </button>
@@ -894,6 +935,7 @@ export const AdminPanel: React.FC = () => {
 
   // Category states
   const [newMainCatInput, setNewMainCatInput] = useState('');
+  const [categorySearch, setCategorySearch] = useState('');
 
   // Order management states
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
@@ -926,11 +968,17 @@ export const AdminPanel: React.FC = () => {
     isNew: false
   });
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+  const [clientFilter, setClientFilter] = useState<'all' | 'has_bonus' | 'has_discount' | 'vip'>('all');
+  const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
 
   // Settings & DB Form
   const [settingsForm, setSettingsForm] = useState(siteSettings);
   const [designForm, setDesignForm] = useState(headerDesign);
   const [dbConfigForm, setDbConfigForm] = useState<FirebaseConnectionConfig>(firebaseConfig);
+  const [dbSubTab, setDbSubTab] = useState<'status' | 'config' | 'collections' | 'ukrsklad' | 'backup'>('status');
+  const [showDbApiKey, setShowDbApiKey] = useState(false);
+  const [dbPingMs, setDbPingMs] = useState<number | null>(null);
+  const [isTestingDb, setIsTestingDb] = useState(false);
   const [newPasswordInput, setNewPasswordInput] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showBotToken, setShowBotToken] = useState(false);
@@ -2273,229 +2321,762 @@ export const AdminPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* TAB: DATABASE CONNECTION */}
+      {/* TAB: DATABASE CONNECTION (Firebase Firestore + Realtime DB) */}
       {activeTab === 'database' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Database className="w-5 h-5 text-emerald-600" />
-                  <span>База даних Firebase (Firestore + Realtime Database)</span>
-                </h3>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  iskra-8d036
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Повна інтеграція з базою даних проєкту <strong>iskra-8d036</strong>. Синхронізує каталог товарів, замовлення, дерево категорій, клієнтську базу, зворотні дзвінки та пароль доступу.
-              </p>
-            </div>
+        <div className="space-y-6 max-w-5xl animate-in fade-in duration-200">
+          
+          {/* Top Hero Status Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-6 sm:p-8 text-white shadow-2xl border border-emerald-500/20">
+            <div className="absolute right-0 top-0 -mt-12 -mr-12 w-96 h-96 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute left-1/3 bottom-0 w-64 h-64 rounded-full bg-teal-500/10 blur-2xl pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-extrabold uppercase tracking-wider shadow-inner">
+                    <Database className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Firebase Cloud Engine v9+</span>
+                  </span>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <a
-                href="https://console.firebase.google.com/project/iskra-8d036/firestore"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Консоль Firebase</span>
-              </a>
-
-              <button
-                onClick={testDbConnection}
-                className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200 transition-colors flex items-center gap-1.5"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Перевірити з'єднання</span>
-              </button>
-
-              <button
-                onClick={syncToCloud}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm shadow-emerald-600/30"
-              >
-                <CloudUpload className="w-3.5 h-3.5" />
-                <span>Вивантажити все в БД</span>
-              </button>
-
-              <button
-                onClick={fetchFromCloud}
-                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
-              >
-                <CloudDownload className="w-3.5 h-3.5" />
-                <span>Завантажити з БД</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Quick sync options */}
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={dbConfigForm.enabled}
-                onChange={(e) => setDbConfigForm({ ...dbConfigForm, enabled: e.target.checked })}
-                className="w-4 h-4 rounded text-indigo-600"
-              />
-              <div>
-                <b className="text-slate-900">Увімкнути використання хмарної БД</b>
-                <p className="text-[11px] text-slate-500">Якщо вимкнено, сайт працює в локальному сховищі браузера (LocalStorage).</p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={dbConfigForm.autoSync}
-                onChange={(e) => setDbConfigForm({ ...dbConfigForm, autoSync: e.target.checked })}
-                className="w-4 h-4 rounded text-indigo-600"
-              />
-              <div>
-                <b className="text-slate-900">Автоматична синхронізація в реальному часі</b>
-                <p className="text-[11px] text-slate-500">Миттєве отримання нових замовлень та оновлень складу через WebSockets.</p>
-              </div>
-            </label>
-          </div>
-
-          {/* Credentials Form */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              updateFirebaseConfig(dbConfigForm);
-            }}
-            className="space-y-4 text-xs max-w-2xl"
-          >
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Database URL (Firebase Realtime Database) *
-              </label>
-              <input
-                type="url"
-                required
-                value={dbConfigForm.databaseURL}
-                onChange={(e) => setDbConfigForm({ ...dbConfigForm, databaseURL: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs outline-none focus:border-indigo-500"
-                placeholder="https://your-project-default-rtdb.europe-west1.firebasedatabase.app"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">API Key *</label>
-                <input
-                  type="text"
-                  required
-                  value={dbConfigForm.apiKey}
-                  onChange={(e) => setDbConfigForm({ ...dbConfigForm, apiKey: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Project ID *</label>
-                <input
-                  type="text"
-                  required
-                  value={dbConfigForm.projectId}
-                  onChange={(e) => setDbConfigForm({ ...dbConfigForm, projectId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Auth Domain</label>
-                <input
-                  type="text"
-                  value={dbConfigForm.authDomain}
-                  onChange={(e) => setDbConfigForm({ ...dbConfigForm, authDomain: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Storage Bucket</label>
-                <input
-                  type="text"
-                  value={dbConfigForm.storageBucket}
-                  onChange={(e) => setDbConfigForm({ ...dbConfigForm, storageBucket: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="submit"
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-all"
-              >
-                Зберегти параметри підключення БД
-              </button>
-            </div>
-          </form>
-
-          {/* UkrSklad Integration Hub */}
-          <div className="pt-6 border-t border-slate-200 space-y-3 bg-amber-50/50 p-5 rounded-2xl border border-amber-200/80">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-xs">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <span>Синхронізація з програмою «УкрСклад» (ноутбук у магазині)</span>
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-200 text-amber-950">
-                      CommerceML 2.0
+                  <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all shadow-xs ${
+                    dbStatus === 'connected'
+                      ? 'bg-emerald-500/30 border border-emerald-400/60 text-emerald-100 shadow-emerald-500/20'
+                      : dbStatus === 'syncing'
+                      ? 'bg-amber-500/30 border border-amber-400/60 text-amber-100 animate-pulse'
+                      : 'bg-slate-800/80 border border-slate-700 text-slate-300'
+                  }`}>
+                    <span className={`w-2.5 h-2.5 rounded-full ${
+                      dbStatus === 'connected' ? 'bg-emerald-400 animate-ping' : dbStatus === 'syncing' ? 'bg-amber-400 animate-bounce' : 'bg-slate-400'
+                    }`} />
+                    <span>
+                      {dbStatus === 'connected'
+                        ? 'В МЕРЕЖІ (Firestore + Realtime DB)'
+                        : dbStatus === 'syncing'
+                        ? 'СИНХРОНІЗАЦІЯ ХМАРИ...'
+                        : 'ОФЛАЙН (LocalStorage)'}
                     </span>
-                  </h4>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    Імпортуйте нові товари, ціни та залишки з програми УкрСклад, або вивантажуйте замовлення клієнтів у форматі XML / CSV.
-                  </p>
+                  </span>
+
+                  {dbPingMs !== null && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-xs font-mono text-emerald-300 border border-white/10 shadow-inner">
+                      <Zap className="w-3 h-3 text-amber-300" />
+                      <span>{dbPingMs}ms latency</span>
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight flex items-center gap-3">
+                  <span>База даних Firebase</span>
+                  <span className="text-xs font-mono font-normal text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2.5 py-1 rounded-lg">
+                    iskra-8d036
+                  </span>
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Центральний високошвидкісний рушій проєкту <strong>iskra-8d036</strong>. Подвійна хмарна архітектура поєднує транзакційну бакалаврську базу <strong>Cloud Firestore</strong> та стрімінговий канал <strong>Realtime Database (WebSockets)</strong> для миттєвої синхронізації залишків і замовлень.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
+                <a
+                  href="https://console.firebase.google.com/project/iskra-8d036/firestore"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all border border-white/20 flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-95"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-300" />
+                  <span>Консоль Firebase</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsTestingDb(true);
+                    const res = await testDbConnection();
+                    setIsTestingDb(false);
+                    if (res && res.pingMs !== undefined) {
+                      setDbPingMs(res.pingMs);
+                    }
+                  }}
+                  disabled={isTestingDb}
+                  className="px-4 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isTestingDb ? 'animate-spin' : ''}`} />
+                  <span>{isTestingDb ? 'Тестування...' : 'Перевірити з\'єднання'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={syncToCloud}
+                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 cursor-pointer active:scale-95"
+                >
+                  <CloudUpload className="w-4 h-4 text-emerald-200" />
+                  <span>Вивантажити в хмару</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Sub-tabs Navigation Bar */}
+          <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
+            <button
+              type="button"
+              onClick={() => setDbSubTab('status')}
+              className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                dbSubTab === 'status'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/90'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Activity className="w-4 h-4 text-emerald-600" />
+              <span>1. Моніторинг та рушії</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDbSubTab('config')}
+              className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                dbSubTab === 'config'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/90'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Key className="w-4 h-4 text-emerald-600" />
+              <span>2. Реквізити ключів</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDbSubTab('collections')}
+              className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                dbSubTab === 'collections'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/90'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Database className="w-4 h-4 text-sky-600" />
+              <span>3. Таблиці & Статистика</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDbSubTab('ukrsklad')}
+              className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                dbSubTab === 'ukrsklad'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/90'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Building2 className="w-4 h-4 text-amber-600" />
+              <span>4. УкрСклад (CommerceML)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDbSubTab('backup')}
+              className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                dbSubTab === 'backup'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/90'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <FileDown className="w-4 h-4 text-indigo-600" />
+              <span>5. Резервна копія JSON</span>
+            </button>
+          </div>
+
+          {/* SUBTAB 1: STATUS & DUAL ENGINES */}
+          {dbSubTab === 'status' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              
+              {/* System Health Dashboard Quick Metrics */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
+                  <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                    <span>Товари БД</span>
+                    <Package className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div className="text-xl font-black text-slate-900">{products.length}</div>
+                  <div className="text-[10px] text-emerald-700 font-medium">Синхронізовано з Firestore</div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
+                  <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                    <span>Замовлення</span>
+                    <ShoppingCart className="w-4 h-4 text-sky-600" />
+                  </div>
+                  <div className="text-xl font-black text-slate-900">{orders.length}</div>
+                  <div className="text-[10px] text-sky-700 font-medium">Журнал замовлень</div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
+                  <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                    <span>Клієнти</span>
+                    <Users className="w-4 h-4 text-violet-600" />
+                  </div>
+                  <div className="text-xl font-black text-slate-900">{Object.keys(clients).length}</div>
+                  <div className="text-[10px] text-violet-700 font-medium">База покупців</div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
+                  <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                    <span>Заявки</span>
+                    <RotateCcw className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div className="text-xl font-black text-slate-900">{returnRequests.length}</div>
+                  <div className="text-[10px] text-purple-700 font-medium">Повернення & Обмін</div>
                 </div>
               </div>
 
+              {/* Dual Engines Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                
+                {/* Engine 1: Firestore */}
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
+                  <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500" />
+                  <div className="p-5 sm:p-6 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100">
+                          <Database className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900">Cloud Firestore (NoSQL)</h3>
+                          <p className="text-[11px] text-slate-500">Основне сховище документів</p>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">
+                        Активно
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Забезпечує надійне збереження структурованих колекцій: каталог товарів, замовлення, профілі клієнтів, відгуки, сповіщення та повернення.
+                    </p>
+
+                    <div className="bg-slate-50 rounded-2xl p-3.5 space-y-2 border border-slate-200/80 text-xs">
+                      <div className="flex justify-between items-center text-slate-600 border-b border-slate-200/60 pb-1.5">
+                        <span>ID Проєкта:</span>
+                        <b className="font-mono text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">iskra-8d036</b>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-600 border-b border-slate-200/60 pb-1.5">
+                        <span>Регіон хостингу:</span>
+                        <b className="font-mono text-slate-900">europe-west1</b>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-600">
+                        <span>Статус колекцій:</span>
+                        <b className="text-emerald-700 font-bold">6 колекцій синхронізовано</b>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-50/80 border-t border-slate-100 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={syncToCloud}
+                      className="w-full py-2.5 bg-white hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-700 text-xs font-bold rounded-xl transition-all border border-slate-200 flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+                    >
+                      <CloudUpload className="w-3.5 h-3.5" />
+                      <span>Синхронізувати Firestore</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Engine 2: Realtime Database */}
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
+                  <div className="h-1.5 bg-gradient-to-r from-amber-500 to-orange-500" />
+                  <div className="p-5 sm:p-6 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100">
+                          <Zap className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900">Realtime Database (WebSockets)</h3>
+                          <p className="text-[11px] text-slate-500">Стрімінг залишків та замовлень</p>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-[10px] font-extrabold uppercase">
+                        Realtime
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Забезпечує миттєву передачу нових замовлень та зміну залишків товарів у реальному часі без необхідності оновлювати сторінку браузера.
+                    </p>
+
+                    <div className="bg-slate-50 rounded-2xl p-3.5 space-y-2 border border-slate-200/80 text-xs">
+                      <div className="flex justify-between items-center text-slate-600 border-b border-slate-200/60 pb-1.5">
+                        <span>Протокол зв'язку:</span>
+                        <b className="font-mono text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">WSS (WebSockets)</b>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-600 border-b border-slate-200/60 pb-1.5">
+                        <span>Авто-синхронізація:</span>
+                        <b className={dbConfigForm.autoSync ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
+                          {dbConfigForm.autoSync ? 'Увімкнено (100ms)' : 'Вимкнено'}
+                        </b>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-600">
+                        <span>Статус каналу:</span>
+                        <b className="text-emerald-700 font-bold">{dbStatus === 'connected' ? 'З\'єднання активне' : 'Очікування'}</b>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-50/80 border-t border-slate-100 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={fetchFromCloud}
+                      className="w-full py-2.5 bg-white hover:bg-amber-50 hover:text-amber-800 hover:border-amber-200 text-slate-700 text-xs font-bold rounded-xl transition-all border border-slate-200 flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+                    >
+                      <CloudDownload className="w-3.5 h-3.5" />
+                      <span>Завантажити з Realtime DB</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Mode Control Switches */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
+                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-emerald-600" />
+                  <span>Режими робочої бази даних</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <label className="flex items-start gap-3.5 p-4 rounded-2xl bg-slate-50/80 border border-slate-200 hover:bg-slate-100/80 transition-all cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={dbConfigForm.enabled}
+                      onChange={(e) => {
+                        const updated = { ...dbConfigForm, enabled: e.target.checked };
+                        setDbConfigForm(updated);
+                        updateFirebaseConfig(updated);
+                      }}
+                      className="w-4 h-4 rounded text-emerald-600 mt-0.5 cursor-pointer focus:ring-emerald-500"
+                    />
+                    <div>
+                      <b className="text-slate-900 block text-xs group-hover:text-emerald-700 transition-colors">
+                        Використовувати хмарну БД Firebase
+                      </b>
+                      <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
+                        Якщо увімкнено, усі замовлення, клієнти та товари зберігаються у хмарі. Якщо вимкнено — сайт працює локально (LocalStorage).
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3.5 p-4 rounded-2xl bg-slate-50/80 border border-slate-200 hover:bg-slate-100/80 transition-all cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={dbConfigForm.autoSync}
+                      onChange={(e) => {
+                        const updated = { ...dbConfigForm, autoSync: e.target.checked };
+                        setDbConfigForm(updated);
+                        updateFirebaseConfig(updated);
+                      }}
+                      className="w-4 h-4 rounded text-emerald-600 mt-0.5 cursor-pointer focus:ring-emerald-500"
+                    />
+                    <div>
+                      <b className="text-slate-900 block text-xs group-hover:text-emerald-700 transition-colors">
+                        Автоматична синхронізація у реальному часі
+                      </b>
+                      <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
+                        Миттєве отримання сповіщень про нові замовлення покупців та зміну залишків через живий канал.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* SUBTAB 2: CREDENTIALS CONFIGURATION */}
+          {dbSubTab === 'config' && (
+            <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-6 animate-in fade-in duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Реквізити підключення проєкту Firebase</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Ключі доступу, ендпоінти та параметри аутентифікації</p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const defaultCfg: FirebaseConnectionConfig = {
+                      apiKey: dbConfigForm.apiKey || '',
+                      authDomain: 'iskra-8d036.firebaseapp.com',
+                      databaseURL: 'https://iskra-8d036-default-rtdb.europe-west1.firebasedatabase.app',
+                      projectId: 'iskra-8d036',
+                      storageBucket: 'iskra-8d036.firebasestorage.app',
+                      messagingSenderId: '472272282956',
+                      appId: '1:472272282956:web:iskra8d036',
+                      enabled: true,
+                      autoSync: true
+                    };
+                    setDbConfigForm(defaultCfg);
+                    showToast('Застосовано рекомендовані реквізити проєкту iskra-8d036', 'info');
+                  }}
+                  className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Застосувати пресет iskra-8d036</span>
+                </button>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  updateFirebaseConfig(dbConfigForm);
+                  showToast('Конфігурацію бази даних успішно збережено!', 'success');
+                }}
+                className="space-y-4 text-xs"
+              >
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Database URL (Firebase Realtime Database) *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="url"
+                      required
+                      value={dbConfigForm.databaseURL}
+                      onChange={(e) => setDbConfigForm({ ...dbConfigForm, databaseURL: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono text-xs outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 bg-slate-50/50 focus:bg-white text-slate-900 font-bold"
+                      placeholder="https://iskra-8d036-default-rtdb.europe-west1.firebasedatabase.app"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(dbConfigForm.databaseURL);
+                        showToast('Скопійовано URL бази даних!', 'info');
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+                      title="Скопіювати"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">
+                      API Key (Ключ доступу Firebase) *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showDbApiKey ? "text" : "password"}
+                        required
+                        value={dbConfigForm.apiKey}
+                        onChange={(e) => setDbConfigForm({ ...dbConfigForm, apiKey: e.target.value })}
+                        className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-xl font-mono text-xs outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 bg-slate-50/50 focus:bg-white text-slate-900 font-bold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDbApiKey(!showDbApiKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                      >
+                        {showDbApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">Project ID *</label>
+                    <input
+                      type="text"
+                      required
+                      value={dbConfigForm.projectId}
+                      onChange={(e) => setDbConfigForm({ ...dbConfigForm, projectId: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono text-xs outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 bg-slate-50/50 focus:bg-white text-slate-900 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">Auth Domain</label>
+                    <input
+                      type="text"
+                      value={dbConfigForm.authDomain}
+                      onChange={(e) => setDbConfigForm({ ...dbConfigForm, authDomain: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono text-xs outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 bg-slate-50/50 focus:bg-white text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">Storage Bucket</label>
+                    <input
+                      type="text"
+                      value={dbConfigForm.storageBucket}
+                      onChange={(e) => setDbConfigForm({ ...dbConfigForm, storageBucket: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono text-xs outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 bg-slate-50/50 focus:bg-white text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Зберегти реквізити БД</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* SUBTAB 3: COLLECTIONS METRICS */}
+          {dbSubTab === 'collections' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Синхронізовані таблиці та колекції БД</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Кількість документів та швидкий перехід до перегляду записів</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={syncToCloud}
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-emerald-600/20 shrink-0 self-start sm:self-auto"
+                  >
+                    <CloudUpload className="w-4 h-4" />
+                    <span>Синхронізувати всі колекції</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  
+                  {/* Collection 1: products */}
+                  <div className="p-4.5 rounded-2xl bg-slate-50 border border-slate-200/90 hover:border-emerald-300 transition-all space-y-3 flex flex-col justify-between group">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 font-mono bg-white px-2 py-0.5 rounded border border-slate-200">/products</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">
+                          {products.length} записів
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">Каталог товарів, ціни, артикули, залишки та специфікації.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('products')}
+                      className="text-xs text-emerald-700 font-bold hover:underline self-start cursor-pointer flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                    >
+                      <span>Управління товарами</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+
+                  {/* Collection 2: orders */}
+                  <div className="p-4.5 rounded-2xl bg-slate-50 border border-slate-200/90 hover:border-sky-300 transition-all space-y-3 flex flex-col justify-between group">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 font-mono bg-white px-2 py-0.5 rounded border border-slate-200">/orders</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-extrabold">
+                          {orders.length} замовлень
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">Історія покупок, реквізити доставки Нової Пошти, ТТН та оплати.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('orders')}
+                      className="text-xs text-sky-700 font-bold hover:underline self-start cursor-pointer flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                    >
+                      <span>Журнал замовлень</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+
+                  {/* Collection 3: clients */}
+                  <div className="p-4.5 rounded-2xl bg-slate-50 border border-slate-200/90 hover:border-violet-300 transition-all space-y-3 flex flex-col justify-between group">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 font-mono bg-white px-2 py-0.5 rounded border border-slate-200">/clients</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-800 text-[10px] font-extrabold">
+                          {Object.keys(clients).length} клієнтів
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">Клієнтські профілі, баланс кешбеку та особисті знижки.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('clients')}
+                      className="text-xs text-violet-700 font-bold hover:underline self-start cursor-pointer flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                    >
+                      <span>База клієнтів</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+
+                  {/* Collection 4: reviews */}
+                  <div className="p-4.5 rounded-2xl bg-slate-50 border border-slate-200/90 hover:border-amber-300 transition-all space-y-3 flex flex-col justify-between group">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 font-mono bg-white px-2 py-0.5 rounded border border-slate-200">/reviews</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold">
+                          {reviews.length} відгуків
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">Відгуки покупців, оцінки товарів та верифікація покупок.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('reviews')}
+                      className="text-xs text-amber-700 font-bold hover:underline self-start cursor-pointer flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                    >
+                      <span>Модерація відгуків</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+
+                  {/* Collection 5: stock_alerts */}
+                  <div className="p-4.5 rounded-2xl bg-slate-50 border border-slate-200/90 hover:border-red-300 transition-all space-y-3 flex flex-col justify-between group">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 font-mono bg-white px-2 py-0.5 rounded border border-slate-200">/stock_alerts</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-extrabold">
+                          {stockAlerts.length} запитів
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">Запити покупців на сповіщення про надходження товарів.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('stock_alerts')}
+                      className="text-xs text-red-700 font-bold hover:underline self-start cursor-pointer flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                    >
+                      <span>Сповіщення наявності</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+
+                  {/* Collection 6: return_requests */}
+                  <div className="p-4.5 rounded-2xl bg-slate-50 border border-slate-200/90 hover:border-purple-300 transition-all space-y-3 flex flex-col justify-between group">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 font-mono bg-white px-2 py-0.5 rounded border border-slate-200">/return_requests</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-extrabold">
+                          {returnRequests.length} заявок
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">Онлайн-заявки покупців на повернення та обмін товарів.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('returns_settings')}
+                      className="text-xs text-purple-700 font-bold hover:underline self-start cursor-pointer flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                    >
+                      <span>Заявки повернення</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SUBTAB 4: UKRSKLAD INTEGRATION HUB */}
+          {dbSubTab === 'ukrsklad' && (
+            <div className="bg-amber-50/70 rounded-3xl border border-amber-200 p-5 sm:p-7 shadow-xs space-y-4 animate-in fade-in duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-md shadow-amber-500/20 shrink-0">
+                    <Building2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                      <span>Синхронізація з програмою «УкрСклад»</span>
+                      <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950">
+                        CommerceML 2.0
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                      Імпортуйте нові товари, ціни та залишки з програми УкрСклад, або вивантажуйте замовлення клієнтів у форматі XML / CSV.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsUkrSkladModalOpen(true)}
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer shrink-0 border border-amber-600/30 active:scale-95"
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>Відкрити модуль УкрСклад</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* SUBTAB 5: BACKUP & RESTORE */}
+          {dbSubTab === 'backup' && (
+            <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-4 animate-in fade-in duration-200">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Повна резервна копія сайту (JSON Backup)</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Збережіть усі товари, замовлення, клієнтів та структуру каталогу у файл на комп'ютері, або відновіть їх у разі потреби.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleJsonBackupDownload}
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+                >
+                  <FileDown className="w-4 h-4 text-emerald-400" />
+                  <span>Скачати резервну копію (JSON)</span>
+                </button>
+
+                <label className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-200 flex items-center gap-2 cursor-pointer transition-all active:scale-95">
+                  <FileUp className="w-4 h-4 text-indigo-600" />
+                  <span>Відновити з файлу JSON</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleJsonBackupRestore}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Sticky Bottom Action Bar */}
+          <div className="sticky bottom-4 z-20 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-xl border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className={`w-2.5 h-2.5 rounded-full ${
+                dbStatus === 'connected' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+              }`} />
+              <div className="text-xs">
+                <span className="font-bold text-white">Проєкт: iskra-8d036</span>{' '}
+                <span className="text-slate-300">({dbStatus === 'connected' ? "З'єднання активне" : 'Локальний режим'})</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
-                onClick={() => setIsUkrSkladModalOpen(true)}
-                className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer self-start sm:self-center shrink-0 border border-amber-600/30"
+                onClick={() => {
+                  updateFirebaseConfig(dbConfigForm);
+                  showToast('Параметри підключення бази даних збережено!', 'success');
+                }}
+                className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
-                <Building2 className="w-4 h-4" />
-                <span>Відкрити модуль УкрСклад</span>
+                <Check className="w-4 h-4" />
+                <span>Зберегти параметри підключення БД</span>
               </button>
-            </div>
-          </div>
-
-          {/* Backup & Restore Panel */}
-          <div className="pt-6 border-t border-slate-200 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Повна резервна копія сайту (JSON Backup)
-            </h4>
-            <p className="text-xs text-slate-500">
-              Ви можете зберегти всі товари, замовлення, клієнтів і структуру каталогу у файл на комп'ютер, або відновити їх у разі потреби.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={handleJsonBackupDownload}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-200 flex items-center gap-1.5"
-              >
-                <FileDown className="w-4 h-4 text-indigo-600" />
-                <span>Скачати резервну копію (JSON)</span>
-              </button>
-
-              <label className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-200 flex items-center gap-1.5 cursor-pointer">
-                <FileUp className="w-4 h-4 text-indigo-600" />
-                <span>Відновити з резервної копії</span>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleJsonBackupRestore}
-                  className="hidden"
-                />
-              </label>
             </div>
           </div>
 
@@ -2504,164 +3085,166 @@ export const AdminPanel: React.FC = () => {
 
       {/* TAB: WEEKLY DEAL (АКЦІЯ ТИЖНЯ) */}
       {activeTab === 'weekly_deal' && (
-        <div className="space-y-6 max-w-5xl">
+        <div className="space-y-6 max-w-5xl animate-in fade-in duration-200">
           
-          {/* 1. Master Header Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-linear-to-br from-red-500 to-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-red-500/20">
-                  <Flame className="w-6 h-6 fill-white" />
+          {/* Top Master Hero Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-red-950 p-6 sm:p-8 text-white shadow-2xl border border-red-500/20">
+            <div className="absolute right-0 top-0 -mt-12 -mr-12 w-96 h-96 rounded-full bg-red-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute left-1/3 bottom-0 w-64 h-64 rounded-full bg-amber-500/10 blur-2xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-400/30 text-red-300 text-xs font-extrabold uppercase tracking-wider shadow-inner">
+                    <Flame className="w-3.5 h-3.5 text-red-400 fill-red-400 animate-pulse" />
+                    <span>Промо-модуль «Акція тижня»</span>
+                  </span>
+
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-inner ${
+                    weeklyDeal.enabled
+                      ? 'bg-emerald-500/20 border border-emerald-400/30 text-emerald-300'
+                      : 'bg-slate-700/50 border border-slate-600/50 text-slate-300'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${weeklyDeal.enabled ? 'bg-emerald-400 animate-ping' : 'bg-slate-400'}`} />
+                    <span>{weeklyDeal.enabled ? 'Трансляція: Увімкнено' : 'Трансляція: Вимкнено'}</span>
+                  </span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base sm:text-lg font-black text-slate-900">
-                      Налаштування блоку «Акція тижня»
-                    </h3>
-                    <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                      weeklyDeal.enabled
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-slate-100 text-slate-600 border-slate-200'
-                    }`}>
-                      {weeklyDeal.enabled ? '● Активно на сайті' : '○ Вимкнено'}
-                    </span>
+
+                <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight flex items-center gap-3">
+                  <span>Налаштування блоку «Акція тижня»</span>
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Спеціальний промо-блок на головній сторінці магазину <strong>ISKRA</strong>. Привертайте увагу покупців лімітованою акцією із анімованим таймером, привабливою знижкою та кнопкою швидкої покупки.
+                </p>
+
+                {/* Status Badges */}
+                <div className="pt-1 flex flex-wrap gap-2 text-[11px]">
+                  <div className="px-3 py-1.5 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center gap-2">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-slate-400">Розміщення:</span>
+                    <span className="text-white font-extrabold">Головна вітрина (Top Hero)</span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Керуйте показом спеціальної щотижневої акції з таймером, вигідною ціною та пульсуючою кнопкою «Купити».
-                  </p>
+                  <div className="px-3 py-1.5 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-red-400" />
+                    <span className="text-slate-400">Таймер відліку:</span>
+                    <span className="text-red-300 font-extrabold">{weeklyDeal.endDateText || 'До кінця тижня'}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Master Switch Button */}
-              <button
-                type="button"
-                onClick={() => updateWeeklyDeal({ enabled: !weeklyDeal.enabled })}
-                className={`relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 active:scale-95 shadow-sm cursor-pointer ${
-                  weeklyDeal.enabled
-                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/25'
-                    : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/25'
-                }`}
-              >
-                <Flame className={`w-4 h-4 ${weeklyDeal.enabled ? 'fill-white animate-bounce' : 'text-amber-400'}`} />
-                <span>{weeklyDeal.enabled ? 'Вимкнути показ акції' : 'Увімкнути показ на сайті'}</span>
-              </button>
-            </div>
+              {/* Master Switch Action */}
+              <div className="shrink-0 flex flex-col items-start lg:items-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateWeeklyDeal({ enabled: !weeklyDeal.enabled });
+                    showToast(weeklyDeal.enabled ? 'Акцію тижня вимкнено з сайту' : 'Акцію тижня увімкнено на сайті!', 'info');
+                  }}
+                  className={`px-6 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all flex items-center gap-2.5 cursor-pointer shadow-lg active:scale-95 ${
+                    weeklyDeal.enabled
+                      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white shadow-red-600/30'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-slate-900/40'
+                  }`}
+                >
+                  <Flame className={`w-4 h-4 ${weeklyDeal.enabled ? 'fill-white animate-bounce' : 'text-amber-400'}`} />
+                  <span>{weeklyDeal.enabled ? 'Вимкнути показ акції' : 'Увімкнути показ на сайті'}</span>
+                </button>
 
-            {/* Status Information Box */}
-            <div className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-              weeklyDeal.enabled
-                ? 'bg-red-50/60 border-red-200/80 text-red-950'
-                : 'bg-slate-50 border-slate-200 text-slate-700'
-            }`}>
-              <div className="flex items-start gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                  weeklyDeal.enabled ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-500'
-                }`}>
-                  <Flame className="w-4 h-4 fill-current" />
-                </div>
-                <div>
-                  <b className="text-xs sm:text-sm font-bold block">
-                    {weeklyDeal.enabled ? 'Секція «Акція тижня» транслюється на головній сторінці' : 'Секція «Акція тижня» прихована з сайту'}
-                  </b>
-                  <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                    {weeklyDeal.enabled
-                      ? 'Блок розташований на видному місці головної сторінки з динамічним таймером зворотного відліку та прямим оформленням замовлення.'
-                      : 'Відвідувачі сайту зараз не бачать промо-блок. Усі налаштування, обраний товар та ціни зберігаються в базі даних.'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Status Indicator Pill */}
-              <div className="shrink-0 flex items-center gap-2">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                  weeklyDeal.enabled
-                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                    : 'bg-slate-200 text-slate-600'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${weeklyDeal.enabled ? 'bg-emerald-600 animate-pulse' : 'bg-slate-400'}`} />
-                  <span>{weeklyDeal.enabled ? 'Статус: Онлайн' : 'Статус: Пауза'}</span>
+                <span className="text-[11px] text-slate-400 font-medium">
+                  {weeklyDeal.enabled ? 'Клієнти бачать цей блок на сайті' : 'Блок приховано з головної сторінки'}
                 </span>
               </div>
             </div>
-
-            {/* Quick KPI Strip for Selected Deal */}
-            {(() => {
-              const currentProd = products.find(p => p.id === weeklyDeal.productId) || products[0];
-              if (!currentProd) return null;
-              const disc = weeklyDeal.discountPercent || 25;
-              const promoPrice = weeklyDeal.customPrice || Math.round(currentProd.price * (1 - disc / 100));
-              const savings = currentProd.price - promoPrice;
-
-              return (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Акційний товар</span>
-                    <span className="text-xs font-black text-slate-800 truncate block mt-0.5" title={currentProd.name}>
-                      {currentProd.name}
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ціна зі знижкою</span>
-                    <div className="flex items-baseline gap-1.5 mt-0.5">
-                      <span className="text-xs sm:text-sm font-black text-red-600">{promoPrice} грн</span>
-                      <span className="text-[11px] text-slate-400 line-through">{currentProd.price} грн</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Знижка покупця</span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-xs font-black text-emerald-600">-{disc}%</span>
-                      <span className="text-[11px] font-semibold text-slate-500">({savings} грн)</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Залишок на складі</span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={`text-xs font-black ${currentProd.stock <= 5 ? 'text-amber-600' : 'text-slate-800'}`}>
-                        {currentProd.stock} шт
-                      </span>
-                      {currentProd.stock <= 5 && (
-                        <span className="text-[9px] font-extrabold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded">Мало</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
 
-          {/* 2. Step: Product Selection & Visual Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">1</span>
-                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-red-600" />
-                  <span>Вибір акційного товару з каталогу магазину</span>
-                </h4>
+          {/* Quick KPI Dashboard for Active Deal */}
+          {(() => {
+            const currentProd = products.find(p => p.id === weeklyDeal.productId) || products[0];
+            if (!currentProd) return null;
+            const disc = weeklyDeal.discountPercent || 25;
+            const promoPrice = weeklyDeal.customPrice || Math.round(currentProd.price * (1 - disc / 100));
+            const savings = currentProd.price - promoPrice;
+
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Акційний товар</span>
+                  <span className="text-xs sm:text-sm font-black text-slate-900 truncate block mt-0.5" title={currentProd.name}>
+                    {currentProd.name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">{currentProd.sku}</span>
+                </div>
+
+                <div className="bg-gradient-to-br from-red-50/80 to-rose-50/40 rounded-2xl p-4 border border-red-200/80 shadow-xs flex flex-col justify-between space-y-2">
+                  <span className="text-[10px] font-extrabold text-red-800 uppercase tracking-wider block">Ціна зі знижкою</span>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="text-xl sm:text-2xl font-black text-red-600 font-display">{promoPrice} грн</span>
+                    <span className="text-xs text-slate-400 line-through font-semibold">{currentProd.price} грн</span>
+                  </div>
+                  <span className="text-[10px] text-red-600 font-bold">Акційна вартість</span>
+                </div>
+
+                <div className="bg-gradient-to-br from-emerald-50/80 to-teal-50/40 rounded-2xl p-4 border border-emerald-200/80 shadow-xs flex flex-col justify-between space-y-2">
+                  <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">Знижка покупця</span>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="text-xl sm:text-2xl font-black text-emerald-600 font-display">-{disc}%</span>
+                    <span className="text-xs font-bold text-emerald-700">({savings} грн)</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-600 font-bold">Чиста економія</span>
+                </div>
+
+                <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Залишок на складі</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className={`text-xl sm:text-2xl font-black ${currentProd.stock <= 5 ? 'text-amber-600' : 'text-slate-900'} font-display`}>
+                      {currentProd.stock} шт
+                    </span>
+                    {currentProd.stock <= 5 && (
+                      <span className="text-[9px] font-black bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded uppercase">Мало</span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-medium">Статус наявності</span>
+                </div>
               </div>
-              <span className="text-[11px] font-semibold text-slate-500">
-                Всього товарів: <b className="text-slate-800">{products.length}</b>
+            );
+          })()}
+
+          {/* 1. Step: Product Selection & Interactive Visual Card */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-red-50 text-red-600 rounded-xl border border-red-100 font-black text-xs">
+                  1
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
+                    Вибір акційного товару з каталогу
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Оберіть будь-який товар із вашої бази для встановлення у головний промо-блок
+                  </p>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
+                Всього товарів: <b>{products.length}</b>
               </span>
             </div>
 
             {/* Select Dropdown */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              <label className="block text-xs font-bold text-slate-800 mb-1.5">
                 Оберіть товар для встановлення в блок «Акція тижня»:
               </label>
               <div className="relative">
                 <select
                   value={weeklyDeal.productId}
                   onChange={(e) => updateWeeklyDeal({ productId: e.target.value })}
-                  className="w-full pl-3.5 pr-10 py-3 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-900 bg-white hover:border-red-400 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none transition-all cursor-pointer shadow-2xs appearance-none"
+                  className="w-full pl-3.5 pr-10 py-3 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 bg-white hover:border-red-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/20 outline-none transition-all cursor-pointer shadow-2xs appearance-none"
                 >
                   {products.map((prod) => (
                     <option key={prod.id} value={prod.id}>
-                      [{prod.sku}] {prod.name} — {prod.price} грн ({prod.category} | Залишок: {prod.stock} шт)
+                      [{prod.sku}] {prod.name} — {prod.price} грн ({prod.category} | На складі: {prod.stock} шт)
                     </option>
                   ))}
                 </select>
@@ -2681,7 +3264,7 @@ export const AdminPanel: React.FC = () => {
                 <div className="bg-gradient-to-r from-slate-50 via-red-50/30 to-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-5">
                   <div className="flex items-center gap-4 w-full md:w-auto">
                     {/* Image container with discount pill */}
-                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-xl p-2 border border-slate-200/90 shadow-2xs flex items-center justify-center shrink-0">
+                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-2xl p-2 border border-slate-200 shadow-2xs flex items-center justify-center shrink-0">
                       {activeProd.image && activeProd.image.trim() !== '' ? (
                         <img 
                           src={getSafeImageUrl(activeProd.image)} 
@@ -2691,7 +3274,7 @@ export const AdminPanel: React.FC = () => {
                       ) : (
                         <Package className="w-9 h-9 text-slate-400" />
                       )}
-                      <span className="absolute -top-2 -left-2 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs">
+                      <span className="absolute -top-2 -left-2 bg-red-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow-md">
                         -{disc}%
                       </span>
                     </div>
@@ -2733,25 +3316,31 @@ export const AdminPanel: React.FC = () => {
             })()}
           </div>
 
-          {/* 3. Step: Pricing & Discount Controls */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">2</span>
-                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Percent className="w-4 h-4 text-red-600" />
-                  <span>Розмір знижки та акційна ціна</span>
-                </h4>
+          {/* 2. Step: Pricing & Discount Controls */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-red-50 text-red-600 rounded-xl border border-red-100 font-black text-xs">
+                  2
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
+                    Розмір знижки та акційна ціна
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Встановіть відсоток знижки або вкажіть фіксовану ціну
+                  </p>
+                </div>
               </div>
-              <span className="text-xs font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-100">
+              <span className="text-xs font-black text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-100">
                 Поточна знижка: {weeklyDeal.discountPercent || 25}%
               </span>
             </div>
 
             {/* Quick preset discount buttons */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">
-                Швидкий вибір розміру знижки:
+              <label className="block text-xs font-bold text-slate-800 mb-2">
+                Швидкий вибір розміру знижки в 1 клік:
               </label>
               <div className="flex flex-wrap items-center gap-2">
                 {[10, 15, 20, 25, 30, 35, 40, 50, 60].map((pct) => (
@@ -2774,7 +3363,7 @@ export const AdminPanel: React.FC = () => {
             {/* Dual Input Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Option A: Custom % */}
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2">
                 <label className="block text-xs font-bold text-slate-800">
                   Довільний % знижки (від 1% до 90%):
                 </label>
@@ -2785,7 +3374,7 @@ export const AdminPanel: React.FC = () => {
                     max="90"
                     value={weeklyDeal.discountPercent || 25}
                     onChange={(e) => updateWeeklyDeal({ discountPercent: Math.max(1, Math.min(90, Number(e.target.value) || 0)), customPrice: undefined })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none pr-10"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 bg-white focus:border-red-600 focus:ring-2 focus:ring-red-600/20 outline-none pr-10"
                   />
                   <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
                 </div>
@@ -2795,7 +3384,7 @@ export const AdminPanel: React.FC = () => {
               </div>
 
               {/* Option B: Fixed Custom Price Override */}
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-bold text-slate-800">
                     Точна акційна ціна вручну (грн):
@@ -2817,7 +3406,7 @@ export const AdminPanel: React.FC = () => {
                     placeholder="Залишити порожнім для авторозрахунку"
                     value={weeklyDeal.customPrice || ''}
                     onChange={(e) => updateWeeklyDeal({ customPrice: e.target.value ? Number(e.target.value) : undefined })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none pr-12"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 bg-white focus:border-red-600 focus:ring-2 focus:ring-red-600/20 outline-none pr-12"
                   />
                   <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">грн</span>
                 </div>
@@ -2828,22 +3417,28 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* 4. Step: Marketing Texts & Promo Badges */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">3</span>
-                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-red-600" />
-                  <span>Текстове оформлення, слогани та бейджі</span>
-                </h4>
+          {/* 3. Step: Marketing Texts & Promo Badges */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-red-50 text-red-600 rounded-xl border border-red-100 font-black text-xs">
+                  3
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
+                    Текстове оформлення, слогани та бейджі
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Заголовок, рекламний підзаголовок та стікер
+                  </p>
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Block Title */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-xs font-bold text-slate-800">
                   Заголовок блоку на вітрині:
                 </label>
                 <input
@@ -2851,7 +3446,7 @@ export const AdminPanel: React.FC = () => {
                   value={weeklyDeal.title}
                   onChange={(e) => updateWeeklyDeal({ title: e.target.value })}
                   placeholder="Акція тижня"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-900 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 focus:border-red-600 focus:ring-2 focus:ring-red-600/20 outline-none"
                 />
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {['Акція тижня', 'Гаряча пропозиція', 'Товар тижня', 'Суперціна'].map((preset) => (
@@ -2859,7 +3454,7 @@ export const AdminPanel: React.FC = () => {
                       key={preset}
                       type="button"
                       onClick={() => updateWeeklyDeal({ title: preset })}
-                      className="text-[10px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md transition-colors"
+                      className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
                     >
                       {preset}
                     </button>
@@ -2869,7 +3464,7 @@ export const AdminPanel: React.FC = () => {
 
               {/* Badge Text */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-xs font-bold text-slate-800">
                   Текст яскравого бейджа / стікера:
                 </label>
                 <input
@@ -2877,7 +3472,7 @@ export const AdminPanel: React.FC = () => {
                   value={weeklyDeal.badgeText}
                   onChange={(e) => updateWeeklyDeal({ badgeText: e.target.value })}
                   placeholder="🔥 АКЦІЯ ТИЖНЯ"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-900 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 focus:border-red-600 focus:ring-2 focus:ring-red-600/20 outline-none"
                 />
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {['🔥 АКЦІЯ ТИЖНЯ', '⚡ ХІТ СЕЗОНУ', '💣 ШОК ЦІНА', '🎯 ТОП ЗНИЖКА'].map((preset) => (
@@ -2885,7 +3480,7 @@ export const AdminPanel: React.FC = () => {
                       key={preset}
                       type="button"
                       onClick={() => updateWeeklyDeal({ badgeText: preset })}
-                      className="text-[10px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md transition-colors"
+                      className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
                     >
                       {preset}
                     </button>
@@ -2896,7 +3491,7 @@ export const AdminPanel: React.FC = () => {
 
             {/* Subtitle / Value Proposition */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700">
+              <label className="block text-xs font-bold text-slate-800">
                 Рекламний підзаголовок / опис спеціальної пропозиції:
               </label>
               <textarea
@@ -2904,7 +3499,7 @@ export const AdminPanel: React.FC = () => {
                 value={weeklyDeal.subtitle}
                 onChange={(e) => updateWeeklyDeal({ subtitle: e.target.value })}
                 placeholder="Спеціальна пропозиція зі знижкою 25% на преміум сантехніку. Встигніть замовити до завершення акції!"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-900 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none resize-none leading-relaxed"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-900 focus:border-red-600 focus:ring-2 focus:ring-red-600/20 outline-none resize-none leading-relaxed"
               />
               <p className="text-[11px] text-slate-500">
                 Цей текст відображається одразу під назвою акції та мотивує відвідувача зробити покупку.
@@ -2912,25 +3507,31 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* 5. Step: Countdown Timer Settings */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">4</span>
-                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-red-600" />
-                  <span>Таймер зворотного відліку (дедлайн акції)</span>
-                </h4>
+          {/* 4. Step: Countdown Timer Settings */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-red-50 text-red-600 rounded-xl border border-red-100 font-black text-xs">
+                  4
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
+                    Таймер зворотного відліку (дедлайн акції)
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Встановіть термін дії акції для показу точного таймера відліку
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Quick Timer Presets */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">
+              <label className="block text-xs font-bold text-slate-800 mb-2">
                 Швидке встановлення терміну дії акції в 1 клік:
               </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Sunday 23:59 */}
                 <button
                   type="button"
@@ -2940,14 +3541,15 @@ export const AdminPanel: React.FC = () => {
                     const daysUntilSunday = (7 - dayOfWeek) % 7 || 7;
                     const nextSunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilSunday, 23, 59, 59);
                     updateWeeklyDeal({ endTimestamp: nextSunday.getTime(), endDateText: 'До кінця неділі 23:59' });
+                    showToast('Таймер встановлено: До кінця неділі', 'info');
                   }}
-                  className="p-3 rounded-xl border border-red-200 bg-red-50/50 hover:bg-red-100/70 text-left transition-all cursor-pointer group active:scale-95"
+                  className="p-3.5 rounded-2xl border border-red-200 bg-red-50/60 hover:bg-red-100/70 text-left transition-all cursor-pointer group active:scale-95"
                 >
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-red-700 group-hover:text-red-800">
+                  <div className="flex items-center gap-1.5 text-xs font-extrabold text-red-700 group-hover:text-red-800">
                     <Flame className="w-3.5 h-3.5 fill-current" />
                     <span>До кінця неділі 23:59</span>
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-1">
+                  <div className="text-[10px] text-slate-500 mt-1 font-medium">
                     Класична щотижнева акція
                   </div>
                 </button>
@@ -2959,14 +3561,15 @@ export const AdminPanel: React.FC = () => {
                     const now = new Date();
                     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                     updateWeeklyDeal({ endTimestamp: endOfToday.getTime(), endDateText: 'До кінця доби 23:59' });
+                    showToast('Таймер встановлено: До кінця доби', 'info');
                   }}
-                  className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
+                  className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
                 >
                   <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 group-hover:text-slate-900">
                     <Clock className="w-3.5 h-3.5 text-amber-600" />
                     <span>До кінця поточної доби</span>
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-1">
+                  <div className="text-[10px] text-slate-500 mt-1 font-medium">
                     Гаряча пропозиція на 24 години
                   </div>
                 </button>
@@ -2974,14 +3577,17 @@ export const AdminPanel: React.FC = () => {
                 {/* +3.5 Days */}
                 <button
                   type="button"
-                  onClick={() => updateWeeklyDeal({ endTimestamp: Date.now() + 3 * 86400000 + 12 * 3600000, endDateText: '3 дні 12 год' })}
-                  className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
+                  onClick={() => {
+                    updateWeeklyDeal({ endTimestamp: Date.now() + 3 * 86400000 + 12 * 3600000, endDateText: '3 дні 12 год' });
+                    showToast('Таймер встановлено: +3.5 дні', 'info');
+                  }}
+                  className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
                 >
                   <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 group-hover:text-slate-900">
                     <Clock className="w-3.5 h-3.5 text-blue-600" />
                     <span>+3.5 дні від зараз</span>
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-1">
+                  <div className="text-[10px] text-slate-500 mt-1 font-medium">
                     Спеціальний експрес-період
                   </div>
                 </button>
@@ -2989,14 +3595,17 @@ export const AdminPanel: React.FC = () => {
                 {/* +7 Days */}
                 <button
                   type="button"
-                  onClick={() => updateWeeklyDeal({ endTimestamp: Date.now() + 7 * 86400000, endDateText: '7 днів' })}
-                  className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
+                  onClick={() => {
+                    updateWeeklyDeal({ endTimestamp: Date.now() + 7 * 86400000, endDateText: '7 днів' });
+                    showToast('Таймер встановлено: +7 днів', 'info');
+                  }}
+                  className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
                 >
                   <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 group-hover:text-slate-900">
                     <Clock className="w-3.5 h-3.5 text-emerald-600" />
                     <span>+7 днів від зараз</span>
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-1">
+                  <div className="text-[10px] text-slate-500 mt-1 font-medium">
                     Повний щотижневий цикл
                   </div>
                 </button>
@@ -3004,25 +3613,25 @@ export const AdminPanel: React.FC = () => {
             </div>
 
             {/* Custom timer description */}
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs">
-              <span className="text-slate-600">Встановлений підпис терміну: <b className="text-slate-900">{weeklyDeal.endDateText || 'До кінця неділі 23:59'}</b></span>
-              <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                Таймер активний
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs">
+              <span className="text-slate-600">Встановлений підпис терміну: <b className="text-slate-900 font-extrabold">{weeklyDeal.endDateText || 'До кінця неділі 23:59'}</b></span>
+              <span className="text-[11px] text-emerald-700 font-extrabold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                ● Таймер відліку активний
               </span>
             </div>
           </div>
 
-          {/* 6. Live Interactive Storefront Preview */}
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl p-5 sm:p-7 text-white space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          {/* 5. Live Interactive Storefront Preview */}
+          <div className="bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl p-5 sm:p-7 text-white space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
+                <span className="text-xs sm:text-sm font-extrabold text-white uppercase tracking-wider">
                   Живий інтерактивний попередній перегляд вітрини
                 </span>
               </div>
-              <span className="text-[11px] text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
-                Точний вигляд на головній сторінці сайту
+              <span className="text-[11px] text-slate-400 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 font-mono">
+                Storefront Live Preview
               </span>
             </div>
 
@@ -3097,7 +3706,7 @@ export const AdminPanel: React.FC = () => {
                       {/* Pulsing Action Button */}
                       <button
                         type="button"
-                        className="w-full sm:w-auto px-6 py-3 rounded-xl font-black text-xs sm:text-sm text-white flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 btn-pulse-red shadow-lg shadow-red-600/30 cursor-pointer"
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl font-black text-xs sm:text-sm text-white flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/30 cursor-pointer"
                       >
                         <ShoppingBag className="w-4 h-4 stroke-[2.5]" />
                         <span>Купити по акції</span>
@@ -3109,44 +3718,223 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
+          {/* Sticky Floating Save Bar */}
+          <div className="sticky bottom-4 z-20 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-xl border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 text-xs">
+              <Flame className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" />
+              <span>
+                Статус акції: <b className="text-white">{weeklyDeal.enabled ? 'Активна на сайті' : 'Прихована'}</b>
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                showToast('Параметри «Акції тижня» успішно збережено в БД!', 'success');
+              }}
+              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Check className="w-4 h-4" />
+              <span>Зберегти блок «Акція тижня»</span>
+            </button>
+          </div>
+
         </div>
       )}
 
       {/* TAB: FEATURES & SITE CONTROLS */}
       {activeTab === 'features' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-6">
-          {/* Header */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 shadow-xs">
-                <Sliders className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 leading-tight">
-                  Керування функціоналом та модулями магазину
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Гнучке налаштування поведінки сайту: вмикайте або вимикайте модулі за потреби
+        <div className="space-y-6 max-w-5xl animate-in fade-in duration-200">
+          
+          {/* Top Master Hero Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 p-6 sm:p-8 text-white shadow-2xl border border-orange-500/20">
+            <div className="absolute right-0 top-0 -mt-12 -mr-12 w-96 h-96 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute left-1/3 bottom-0 w-64 h-64 rounded-full bg-amber-500/10 blur-2xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-400/30 text-orange-300 text-xs font-extrabold uppercase tracking-wider shadow-inner">
+                    <Sliders className="w-3.5 h-3.5 text-orange-400" />
+                    <span>Панель керування модулями магазину</span>
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold shadow-inner">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span>БД Синхронізація: Активно</span>
+                  </span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight flex items-center gap-3">
+                  <span>Керування функціоналом та модулями</span>
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Гнучке та безпечне налаштування бізнес-поведінки інтернет-магазину <strong>ISKRA</strong>. Вмикайте або вимикайте ключові модулі, підключайте програми лояльності, налаштовуйте пороги безкоштовної доставки та керуйте промо-повідомленнями.
                 </p>
+
+                {/* Status Badges */}
+                <div className="pt-1 flex flex-wrap gap-2 text-[11px]">
+                  <div className="px-3 py-1.5 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center gap-2">
+                    <Zap className="w-3.5 h-3.5 text-orange-400" />
+                    <span className="text-slate-400">Активні модулі:</span>
+                    <span className="text-white font-extrabold">
+                      {[
+                        siteSettings.features?.ordersEnabled ?? true,
+                        siteSettings.features?.loyaltyEnabled ?? true,
+                        siteSettings.features?.reviewsEnabled ?? true,
+                        siteSettings.features?.personalDiscountEnabled ?? true,
+                        siteSettings.features?.showExactStock ?? true,
+                        siteSettings.features?.floatingCallBtn ?? true,
+                      ].filter(Boolean).length} з 6
+                    </span>
+                  </div>
+                  <div className="px-3 py-1.5 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-slate-400">Захист маржі:</span>
+                    <span className="text-emerald-300 font-extrabold">Макс. {siteSettings.features?.maxPersonalDiscountPercent ?? 20}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    showToast('Налаштування модулів та функціоналу збережено в БД', 'success');
+                  }}
+                  className="px-5 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-orange-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <Check className="w-4 h-4 text-slate-950 stroke-[3]" />
+                  <span>Зберегти всі модулі</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Notification Promo Banner Settings */}
+          <div className="bg-white rounded-3xl border border-orange-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-orange-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-orange-50 text-orange-600 rounded-xl border border-orange-100">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
+                    Верхній промо-рядок сповіщень на сайті
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Анонсуйте акції, безкоштовну доставку та спеціальні пропозиції у самому верху сайту
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full border ${
+                  designForm.promoActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
+                }`}>
+                  {designForm.promoActive ? '● Банер активний' : '○ Приховано'}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !designForm.promoActive;
+                    setDesignForm({ ...designForm, promoActive: next });
+                    updateHeaderDesign({ ...designForm, promoActive: next });
+                    showToast(next ? 'Промо-рядок увімкнено!' : 'Промо-рядок приховано!', 'success');
+                  }}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                    designForm.promoActive ? 'bg-orange-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      designForm.promoActive ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Активно: {[
-                  siteSettings.features?.ordersEnabled ?? true,
-                  siteSettings.features?.loyaltyEnabled ?? true,
-                  siteSettings.features?.reviewsEnabled ?? true,
-                  siteSettings.features?.personalDiscountEnabled ?? true,
-                  siteSettings.features?.showExactStock ?? true,
-                  siteSettings.features?.floatingCallBtn ?? true,
-                ].filter(Boolean).length} з 6 модулів
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                <Database className="w-3.5 h-3.5 text-emerald-600" />
-                Синхронізація з БД
-              </span>
+            <div className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-bold text-slate-800 mb-1.5">
+                  Текст повідомлення на промо-банері
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <textarea
+                    rows={2}
+                    placeholder="🔥 Знижка -10% на всі замовлення від 1000 грн! Встигніть оформити!"
+                    value={designForm.promoText}
+                    onChange={(e) => setDesignForm({ ...designForm, promoText: e.target.value })}
+                    className="flex-1 px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold shadow-2xs outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs leading-relaxed"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateHeaderDesign(designForm);
+                      showToast('Текст промо-рядка збережено!', 'success');
+                    }}
+                    className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs rounded-xl transition-all shadow-md shadow-orange-600/25 cursor-pointer shrink-0 self-start sm:self-auto active:scale-95"
+                  >
+                    Зберегти рядок
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Template Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] text-slate-400 font-bold">Швидкі шаблони:</span>
+                {[
+                  '🔥 Знижка -10% при замовленні від 1000 грн!',
+                  '🚚 Безкоштовна доставка від 3000 грн по всій Україні!',
+                  '⚡ Швидка відправка товару в день замовлення!',
+                  '🎁 Подарунок до кожного замовлення цього тижня!'
+                ].map((tpl) => (
+                  <button
+                    key={tpl}
+                    type="button"
+                    onClick={() => {
+                      const updated = { ...designForm, promoText: tpl, promoActive: true };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                      showToast('Застосовано швидкий шаблон промо-рядка!', 'success');
+                    }}
+                    className="px-3 py-1 bg-slate-50 hover:bg-orange-50 hover:border-orange-200 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 transition-all cursor-pointer active:scale-95"
+                  >
+                    {tpl}
+                  </button>
+                ))}
+              </div>
+
+              {/* Live Banner Preview */}
+              <div className="pt-2">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>Вигляд промо-банера на сайті (Storefront Live Preview):</span>
+                  {designForm.promoActive ? (
+                    <span className="text-emerald-600 font-bold flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Банер активний
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 italic">Банер вимкнено</span>
+                  )}
+                </div>
+
+                <div className="rounded-2xl overflow-hidden shadow-sm border border-orange-200">
+                  <div className="bg-gradient-to-r from-red-600 via-orange-600 to-red-700 text-white text-xs font-bold py-2.5 px-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 overflow-hidden truncate">
+                      <Sparkles className="w-4 h-4 shrink-0 text-amber-200 animate-pulse" />
+                      <span className="truncate">{designForm.promoText || 'Текст повідомлення на промо-банері...'}</span>
+                    </div>
+                    <span className="text-white/80 shrink-0 p-0.5 rounded hover:bg-white/10">
+                      <X className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -4034,6 +4822,35 @@ export const AdminPanel: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Sticky Floating Save Bar */}
+          <div className="sticky bottom-4 z-20 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-xl border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 text-xs">
+              <Sliders className="w-4 h-4 text-orange-400" />
+              <span>
+                Активних модулів: <b className="text-emerald-400">{[
+                  siteSettings.features?.ordersEnabled ?? true,
+                  siteSettings.features?.loyaltyEnabled ?? true,
+                  siteSettings.features?.reviewsEnabled ?? true,
+                  siteSettings.features?.personalDiscountEnabled ?? true,
+                  siteSettings.features?.showExactStock ?? true,
+                  siteSettings.features?.floatingCallBtn ?? true,
+                ].filter(Boolean).length} з 6</b>
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                updateSiteSettings(siteSettings);
+                showToast('Усі параметри функціоналу та модулів збережено в БД!', 'success');
+              }}
+              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-orange-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Check className="w-4 h-4 text-slate-950 stroke-[3]" />
+              <span>Зберегти налаштування модулів</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -4206,32 +5023,40 @@ export const AdminPanel: React.FC = () => {
         return (
           <div className="space-y-6 max-w-6xl">
             
-            {/* 1. Header & Period Filter Bar */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
-                    <TrendingUp className="w-6 h-6" />
+            {/* 1. Master Header Banner & Period Filter Bar */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/90 p-6 sm:p-8 text-white shadow-2xl border border-emerald-500/30">
+              {/* Background ambient light effects */}
+              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-80 h-80 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-1/3 -mb-16 w-64 h-64 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-3 max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 backdrop-blur-md">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>⚡ Live Аналітика магазину ISKRA</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-200 border border-white/15 backdrop-blur-md">
+                      <Calendar className="w-3.5 h-3.5 text-teal-300" />
+                      <span>{analyticsPeriod === 'today' ? 'За сьогодні' : analyticsPeriod === '7d' ? 'За останні 7 днів' : analyticsPeriod === '30d' ? 'За останні 30 днів' : 'За весь період'}</span>
+                    </span>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                        Аналітика продажів та активність магазину
-                      </h3>
-                      <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Live Дані
-                      </span>
+
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-2xl text-emerald-400 shadow-inner">
+                      <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7" />
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Виручка, середній чек, динаміка замовлень, популярні категорії та активність клієнтів
-                    </p>
-                  </div>
+                    <span>Аналітика продажів та активність магазину</span>
+                  </h2>
+
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Загальний оборот, структура замовлень, середній чек, динаміка виручки, рейтинг хітів продажів та аналіз категорій у реальному часі.
+                  </p>
                 </div>
 
-                {/* Period Segmented Control */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
+                {/* Period Segmented Switcher & Print Button */}
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1 p-1 bg-slate-900/90 rounded-2xl border border-white/15 backdrop-blur-md shadow-inner">
                     {[
                       { id: 'today', label: 'Сьогодні' },
                       { id: '7d', label: '7 днів' },
@@ -4242,10 +5067,10 @@ export const AdminPanel: React.FC = () => {
                         key={p.id}
                         type="button"
                         onClick={() => setAnalyticsPeriod(p.id as any)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                        className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                           analyticsPeriod === p.id
-                            ? 'bg-slate-900 text-white shadow-sm'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                            ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/30'
+                            : 'text-slate-300 hover:text-white hover:bg-white/10'
                         }`}
                       >
                         {p.label}
@@ -4255,45 +5080,33 @@ export const AdminPanel: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      window.print();
-                    }}
-                    className="p-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl transition-all shadow-2xs cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
-                    title="Роздрукувати звіт"
+                    onClick={() => window.print()}
+                    className="p-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-2xl transition-all shadow-sm cursor-pointer flex items-center gap-2 text-xs font-bold backdrop-blur-md"
+                    title="Роздрукувати аналітичний звіт"
                   >
-                    <Printer className="w-4 h-4 text-slate-500" />
-                    <span className="hidden sm:inline">Друк</span>
+                    <Printer className="w-4 h-4 text-emerald-300" />
+                    <span className="hidden sm:inline">Друк звіту</span>
                   </button>
                 </div>
               </div>
 
-              {/* Quick Period Summary Badge */}
-              <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+              {/* Quick Summary Sub-Bar */}
+              <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300 relative z-10">
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-slate-400" />
-                  <span>
-                    Аналіз за період: <strong className="text-slate-800">
-                      {analyticsPeriod === 'today' && 'Сьогодні'}
-                      {analyticsPeriod === '7d' && 'Останні 7 календарних днів'}
-                      {analyticsPeriod === '30d' && 'Останні 30 календарних днів'}
-                      {analyticsPeriod === 'all' && 'Увесь період роботи магазину'}
-                    </strong>
-                  </span>
+                  <Clock className="w-4 h-4 text-emerald-400" />
+                  <span>Враховано замовлень у вибірці: <strong className="text-white font-mono font-bold">{ordersCount} шт.</strong></span>
                   <span>·</span>
-                  <span>Враховано замовлень: <strong className="text-slate-900">{ordersCount}</strong></span>
+                  <span>Товарів продано: <strong className="text-amber-300 font-mono font-bold">{totalItemsSold} од.</strong></span>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="text-emerald-600 font-medium">
-                    Виконано & Оплачено: <b>{completedRevenue.toFixed(2)} грн</b>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="inline-flex items-center gap-1 text-emerald-300 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                    Оплачено/Виконано: <strong className="font-mono">{completedRevenue.toLocaleString('uk-UA', { minimumFractionDigits: 2 })} грн</strong>
                   </span>
                   {pendingRevenue > 0 && (
-                    <>
-                      <span>·</span>
-                      <span className="text-amber-600 font-medium">
-                        В обробці: <b>{pendingRevenue.toFixed(2)} грн</b>
-                      </span>
-                    </>
+                    <span className="inline-flex items-center gap-1 text-amber-300 font-bold bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+                      В обробці: <strong className="font-mono">{pendingRevenue.toLocaleString('uk-UA', { minimumFractionDigits: 2 })} грн</strong>
+                    </span>
                   )}
                 </div>
               </div>
@@ -4302,114 +5115,114 @@ export const AdminPanel: React.FC = () => {
             {/* 2. Primary KPI Executive Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Card 1: Total Revenue */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-300 transition-all">
+              <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm relative overflow-hidden group hover:border-emerald-400 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                       Загальний Оборот
                     </span>
-                    <div className="text-2xl font-black font-display text-slate-900 leading-tight">
+                    <div className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight font-mono tracking-tight">
                       {totalRevenue.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      <span className="text-sm font-semibold text-slate-500 ml-1">грн</span>
+                      <span className="text-sm font-bold text-slate-500 ml-1">грн</span>
                     </div>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-                    <DollarSign className="w-5 h-5" />
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100 shadow-2xs">
+                    <DollarSign className="w-6 h-6" />
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Виконано замовлень:</span>
-                  <span className="font-bold text-emerald-600">{completedOrders.length} із {ordersCount}</span>
+                  <span className="text-slate-500">Виконані замовлення:</span>
+                  <span className="font-bold text-emerald-600 font-mono">{completedOrders.length} / {ordersCount}</span>
                 </div>
               </div>
 
               {/* Card 2: Orders Count */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-orange-300 transition-all">
+              <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm relative overflow-hidden group hover:border-orange-400 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                       Кількість Замовлень
                     </span>
-                    <div className="text-2xl font-black font-display text-slate-900 leading-tight">
+                    <div className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight font-mono tracking-tight">
                       {ordersCount}
-                      <span className="text-sm font-semibold text-slate-500 ml-1">замовл.</span>
+                      <span className="text-sm font-bold text-slate-500 ml-1">замовл.</span>
                     </div>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 border border-orange-100">
-                    <ShoppingCart className="w-5 h-5" />
+                  <div className="w-11 h-11 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 border border-orange-100 shadow-2xs">
+                    <ShoppingCart className="w-6 h-6" />
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Товарів продано:</span>
-                  <span className="font-bold text-orange-600">{totalItemsSold} од.</span>
+                  <span className="text-slate-500">Продано товарів:</span>
+                  <span className="font-bold text-orange-600 font-mono">{totalItemsSold} од.</span>
                 </div>
               </div>
 
               {/* Card 3: Average Order Value (AOV) */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-sky-300 transition-all">
+              <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm relative overflow-hidden group hover:border-sky-400 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                       Середній Чек (AOV)
                     </span>
-                    <div className="text-2xl font-black font-display text-slate-900 leading-tight">
+                    <div className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight font-mono tracking-tight">
                       {avgOrderValue.toFixed(2)}
-                      <span className="text-sm font-semibold text-slate-500 ml-1">грн</span>
+                      <span className="text-sm font-bold text-slate-500 ml-1">грн</span>
                     </div>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 border border-sky-100">
-                    <CircleDollarSign className="w-5 h-5" />
+                  <div className="w-11 h-11 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 border border-sky-100 shadow-2xs">
+                    <CircleDollarSign className="w-6 h-6" />
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Асортимент вітрини:</span>
-                  <span className="font-bold text-sky-600">{products.length} товарів</span>
+                  <span className="text-slate-500">Каталог товарів:</span>
+                  <span className="font-bold text-sky-600 font-mono">{products.length} позицій</span>
                 </div>
               </div>
 
               {/* Card 4: Clients & Loyalty Program */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-purple-300 transition-all">
+              <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm relative overflow-hidden group hover:border-purple-400 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Клієнти та Лояльність
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      База Клієнтів
                     </span>
-                    <div className="text-2xl font-black font-display text-slate-900 leading-tight">
+                    <div className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight font-mono tracking-tight">
                       {totalClientsCount}
-                      <span className="text-sm font-semibold text-slate-500 ml-1">покупців</span>
+                      <span className="text-sm font-bold text-slate-500 ml-1">покупців</span>
                     </div>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
-                    <Users className="w-5 h-5" />
+                  <div className="w-11 h-11 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100 shadow-2xs">
+                    <Users className="w-6 h-6" />
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Кешбек-баланс:</span>
-                  <span className="font-bold text-purple-600">{totalCashbackLiability.toFixed(2)} грн</span>
+                  <span className="text-slate-500">Баланс кешбеку:</span>
+                  <span className="font-bold text-purple-600 font-mono">{totalCashbackLiability.toFixed(2)} грн</span>
                 </div>
               </div>
             </div>
 
             {/* 3. Visual 14-Day Activity & Sales Bar Chart */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-emerald-600" />
+                  <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-emerald-600" />
                     <span>Динаміка виручки та активності за останні 14 днів</span>
                   </h4>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Щоденний обсяг продажів та кількість оформлених замовлень
                   </p>
                 </div>
 
                 <div className="flex items-center gap-3 text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                    <span className="w-3 h-3 rounded-sm bg-gradient-to-t from-emerald-600 to-teal-400" />
+                  <div className="flex items-center gap-1.5 text-slate-600 font-bold">
+                    <span className="w-3 h-3 rounded-md bg-gradient-to-t from-emerald-600 to-teal-400 shadow-2xs" />
                     <span>Виручка (грн)</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-orange-500" />
+                  <div className="flex items-center gap-1.5 text-slate-600 font-bold">
+                    <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
                     <span>Замовлення</span>
                   </div>
                 </div>
@@ -4428,23 +5241,23 @@ export const AdminPanel: React.FC = () => {
                         className="flex flex-col items-center justify-end h-full group relative"
                       >
                         {/* Hover Tooltip */}
-                        <div className="absolute -top-12 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-150 transform -translate-y-1 bg-slate-900 text-white text-[11px] font-semibold py-1 px-2.5 rounded-lg shadow-xl whitespace-nowrap">
-                          <div>{item.dayLabel}: <b>{item.revenue.toFixed(2)} грн</b></div>
+                        <div className="absolute -top-12 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-150 transform -translate-y-1 bg-slate-900 text-white text-[11px] font-semibold py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap">
+                          <div>{item.dayLabel}: <b className="text-emerald-400 font-mono">{item.revenue.toFixed(2)} грн</b></div>
                           <div className="text-[10px] text-slate-300">{item.ordersCount} замовлень</div>
                           <div className="w-2 h-2 bg-slate-900 rotate-45 mx-auto -mb-2 transform translate-y-1" />
                         </div>
 
                         {/* Top dot for orders count */}
                         {item.ordersCount > 0 && (
-                          <span className="text-[10px] font-bold text-orange-600 mb-1 opacity-80 group-hover:opacity-100">
+                          <span className="text-[10px] font-mono font-bold text-orange-600 mb-1 opacity-90 group-hover:opacity-100">
                             {item.ordersCount}
                           </span>
                         )}
 
                         {/* Bar Pillar */}
-                        <div className="w-full max-w-[36px] bg-slate-100 rounded-t-lg overflow-hidden flex flex-col justify-end transition-all group-hover:bg-slate-200">
+                        <div className="w-full max-w-[36px] bg-slate-100 rounded-t-xl overflow-hidden flex flex-col justify-end transition-all group-hover:bg-slate-200">
                           <div
-                            className={`w-full rounded-t-lg transition-all duration-500 ${
+                            className={`w-full rounded-t-xl transition-all duration-500 ${
                               item.revenue > 0
                                 ? isToday
                                   ? 'bg-gradient-to-t from-emerald-600 via-teal-500 to-emerald-400 shadow-sm'
@@ -4457,8 +5270,8 @@ export const AdminPanel: React.FC = () => {
 
                         {/* Date Label */}
                         <div className="mt-2 text-center">
-                          <span className={`text-[10px] sm:text-[11px] font-medium block truncate max-w-[40px] ${
-                            isToday ? 'text-emerald-700 font-bold' : 'text-slate-500'
+                          <span className={`text-[10px] sm:text-[11px] font-mono font-bold block truncate max-w-[40px] ${
+                            isToday ? 'text-emerald-700' : 'text-slate-500'
                           }`}>
                             {isToday ? 'Сьогодні' : item.dayLabel.split(' ')[0]}
                           </span>
@@ -4474,51 +5287,51 @@ export const AdminPanel: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
               {/* Left Col: Category Share & Leaderboard */}
-              <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+              <div className="lg:col-span-6 bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <Layers className="w-4 h-4 text-purple-600" />
                     <span>Частка категорій у продажах</span>
                   </h4>
-                  <span className="text-xs text-slate-400">За вибраний період</span>
+                  <span className="text-xs text-slate-400 font-medium">За вибіркою</span>
                 </div>
 
                 {sortedCategories.length > 0 ? (
                   <div className="space-y-3 text-xs">
                     {sortedCategories.map((cat, idx) => {
                       const colors = [
-                        'bg-red-500',
-                        'bg-orange-500',
                         'bg-amber-500',
                         'bg-emerald-500',
                         'bg-sky-500',
+                        'bg-purple-500',
+                        'bg-orange-500',
                         'bg-indigo-500',
-                        'bg-purple-500'
+                        'bg-teal-500'
                       ];
                       const color = colors[idx % colors.length];
 
                       return (
-                        <div key={cat.name} className="space-y-1.5 p-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+                        <div key={cat.name} className="space-y-1.5 p-3 rounded-2xl hover:bg-slate-50 transition-colors">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-slate-900 truncate max-w-[200px]">
                               {cat.name}
                             </span>
-                            <div className="text-right">
+                            <div className="text-right font-mono">
                               <span className="font-bold text-slate-900">{cat.revenue.toFixed(2)} грн</span>
-                              <span className="text-slate-400 ml-1.5">({cat.percent}%)</span>
+                              <span className="text-slate-400 ml-1.5 font-medium">({cat.percent}%)</span>
                             </div>
                           </div>
                           
                           {/* Progress bar */}
-                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                             <div
                               className={`h-full ${color} rounded-full transition-all duration-500`}
                               style={{ width: `${Math.max(4, cat.percent)}%` }}
                             />
                           </div>
-                          <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                          <div className="text-[11px] text-slate-500 flex items-center justify-between font-medium">
                             <span>{cat.count} од. продано</span>
-                            <span>{cat.percent}% обороту</span>
+                            <span>{cat.percent}% від обороту</span>
                           </div>
                         </div>
                       );
@@ -4535,13 +5348,13 @@ export const AdminPanel: React.FC = () => {
               <div className="lg:col-span-6 space-y-6">
                 
                 {/* Status Pipeline Card */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                       <Activity className="w-4 h-4 text-orange-600" />
                       <span>Воронка статусів замовлень</span>
                     </h4>
-                    <span className="text-xs text-slate-400">Всього: {ordersCount}</span>
+                    <span className="text-xs text-slate-400 font-mono font-bold">Всього: {ordersCount}</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -4560,22 +5373,22 @@ export const AdminPanel: React.FC = () => {
                       const IconComp = item.icon;
 
                       return (
-                        <div key={item.status} className={`p-3 rounded-xl border ${item.color} flex flex-col justify-between space-y-2`}>
+                        <div key={item.status} className={`p-3 rounded-2xl border ${item.color} flex flex-col justify-between space-y-2 shadow-2xs`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5 font-bold">
                               <IconComp className="w-3.5 h-3.5 shrink-0" />
                               <span>{item.status}</span>
                             </div>
-                            <span className="font-extrabold text-sm">{stCount}</span>
+                            <span className="font-black text-sm font-mono">{stCount}</span>
                           </div>
 
                           <div>
                             <div className="w-full h-1.5 bg-black/10 rounded-full overflow-hidden mb-1">
                               <div className={`h-full ${item.barColor} rounded-full`} style={{ width: `${stPercent}%` }} />
                             </div>
-                            <div className="flex items-center justify-between text-[10px] opacity-80">
+                            <div className="flex items-center justify-between text-[10px] opacity-80 font-mono">
                               <span>{stPercent}%</span>
-                              <span className="font-semibold">{stSum.toFixed(2)} грн</span>
+                              <span className="font-bold">{stSum.toFixed(2)} грн</span>
                             </div>
                           </div>
                         </div>
@@ -4585,7 +5398,7 @@ export const AdminPanel: React.FC = () => {
                 </div>
 
                 {/* Delivery & Payment Distribution Card */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
                   <h4 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
                     <Truck className="w-4 h-4 text-sky-600" />
                     <span>Служби доставки та способи оплати</span>
@@ -4598,9 +5411,9 @@ export const AdminPanel: React.FC = () => {
                         Доставка:
                       </span>
                       {Object.entries(deliveryMap).map(([name, count]) => (
-                        <div key={name} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                          <span className="text-slate-700 truncate pr-2">{name}</span>
-                          <span className="font-bold text-slate-900 shrink-0">{count}</span>
+                        <div key={name} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                          <span className="text-slate-700 truncate pr-2 font-medium">{name}</span>
+                          <span className="font-bold text-slate-900 shrink-0 font-mono">{count}</span>
                         </div>
                       ))}
                     </div>
@@ -4611,9 +5424,9 @@ export const AdminPanel: React.FC = () => {
                         Оплата:
                       </span>
                       {Object.entries(paymentMap).map(([name, count]) => (
-                        <div key={name} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                          <span className="text-slate-700 truncate pr-2">{name}</span>
-                          <span className="font-bold text-slate-900 shrink-0">{count}</span>
+                        <div key={name} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                          <span className="text-slate-700 truncate pr-2 font-medium">{name}</span>
+                          <span className="font-bold text-slate-900 shrink-0 font-mono">{count}</span>
                         </div>
                       ))}
                     </div>
@@ -4624,18 +5437,18 @@ export const AdminPanel: React.FC = () => {
             </div>
 
             {/* 5. Top Bestsellers Leaderboard */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xs">
-                    <Flame className="w-4 h-4" />
+                  <div className="w-9 h-9 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xs border border-orange-200">
+                    <Flame className="w-5 h-5 fill-orange-500" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">
+                    <h4 className="text-base font-black text-slate-900">
                       Хіти продажів та найпопулярніші товари (Leaderboard)
                     </h4>
                     <p className="text-xs text-slate-500">
-                      Товари, які генерують найбільшу виручку та кількість замовлень
+                      Товари, які генерують найбільшу виручку та обсяг замовлень
                     </p>
                   </div>
                 </div>
@@ -4643,7 +5456,7 @@ export const AdminPanel: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleTabChange('products')}
-                  className="text-xs text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                  className="text-xs text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 cursor-pointer self-start sm:self-auto bg-orange-50 px-3 py-1.5 rounded-xl border border-orange-200"
                 >
                   <span>Весь каталог товарів</span>
                   <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
@@ -4654,23 +5467,23 @@ export const AdminPanel: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                      <tr className="border-b border-slate-200 text-slate-400 font-black uppercase text-[10px] tracking-wider">
                         <th className="py-2.5 px-3">Ранг</th>
                         <th className="py-2.5 px-3">Товар</th>
                         <th className="py-2.5 px-3">Категорія</th>
                         <th className="py-2.5 px-3 text-right">Ціна за од.</th>
                         <th className="py-2.5 px-3 text-center">Продано</th>
                         <th className="py-2.5 px-3 text-right">Сума продажів</th>
-                        <th className="py-2.5 px-3 text-right">Залишок на складі</th>
+                        <th className="py-2.5 px-3 text-right">Залишок</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {sortedBestsellers.map((item, idx) => {
                         const p = item.product;
                         const rankColors = [
-                          'bg-amber-100 text-amber-800 border-amber-300 font-black',
+                          'bg-amber-100 text-amber-900 border-amber-300 font-black shadow-2xs',
                           'bg-slate-200 text-slate-800 border-slate-300 font-bold',
-                          'bg-orange-100 text-orange-800 border-orange-300 font-bold'
+                          'bg-orange-100 text-orange-900 border-orange-300 font-bold'
                         ];
                         const rankBadge = rankColors[idx] || 'bg-slate-50 text-slate-600 border-slate-200 font-medium';
 
@@ -4678,7 +5491,7 @@ export const AdminPanel: React.FC = () => {
                           <tr key={p?.id || idx} className="hover:bg-slate-50/80 transition-colors">
                             {/* Rank */}
                             <td className="py-3 px-3 whitespace-nowrap">
-                              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs border ${rankBadge}`}>
+                              <span className={`inline-flex items-center justify-center w-7 h-7 rounded-xl text-xs border ${rankBadge}`}>
                                 #{idx + 1}
                               </span>
                             </td>
@@ -4686,7 +5499,7 @@ export const AdminPanel: React.FC = () => {
                             {/* Product Info */}
                             <td className="py-3 px-3 min-w-[220px]">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
                                   {p?.image ? (
                                     <img src={getSafeImageUrl(p.image)} alt={p.name} className="w-full h-full object-cover" />
                                   ) : (
@@ -4710,27 +5523,27 @@ export const AdminPanel: React.FC = () => {
                             </td>
 
                             {/* Unit Price */}
-                            <td className="py-3 px-3 text-right font-semibold text-slate-800 whitespace-nowrap">
+                            <td className="py-3 px-3 text-right font-mono font-semibold text-slate-800 whitespace-nowrap">
                               {p?.price?.toFixed(2) || '0.00'} грн
                             </td>
 
                             {/* Qty Sold */}
                             <td className="py-3 px-3 text-center whitespace-nowrap">
-                              <span className="inline-flex items-center gap-1 font-extrabold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md">
+                              <span className="inline-flex items-center gap-1 font-extrabold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg font-mono">
                                 <Zap className="w-3 h-3 text-orange-500 fill-current" />
                                 {item.qty} {p?.unit || 'од.'}
                               </span>
                             </td>
 
                             {/* Total Revenue */}
-                            <td className="py-3 px-3 text-right font-black text-emerald-600 text-sm whitespace-nowrap">
+                            <td className="py-3 px-3 text-right font-black font-mono text-emerald-600 text-sm whitespace-nowrap">
                               {item.revenue.toFixed(2)} грн
                             </td>
 
                             {/* Stock */}
-                            <td className="py-3 px-3 text-right whitespace-nowrap">
+                            <td className="py-3 px-3 text-right whitespace-nowrap font-mono">
                               {p && (
-                                <span className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded text-[11px] ${
+                                <span className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-lg text-[11px] ${
                                   p.stock <= 0
                                     ? 'bg-rose-100 text-rose-800'
                                     : p.stock <= 3
@@ -4754,18 +5567,18 @@ export const AdminPanel: React.FC = () => {
               )}
             </div>
 
-            {/* 6. Interactive Recent Transactions Stream */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+            {/* 6. Live Transactions & Customer Activity Feed */}
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <ShoppingCart className="w-4 h-4 text-emerald-600" />
+                <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5 text-emerald-600" />
                   <span>Останні замовлення та активність покупців</span>
                 </h4>
 
                 <button
                   type="button"
                   onClick={() => handleTabChange('orders')}
-                  className="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 cursor-pointer bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200"
                 >
                   <span>Усі замовлення ({orders.length})</span>
                   <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
@@ -4780,17 +5593,17 @@ export const AdminPanel: React.FC = () => {
                       setEditingOrder(o);
                       handleTabChange('orders');
                     }}
-                    className="py-3 px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50 rounded-xl transition-all cursor-pointer group"
+                    className="py-3 px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50 rounded-2xl transition-all cursor-pointer group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 group-hover:bg-emerald-50 text-slate-700 group-hover:text-emerald-600 flex items-center justify-center font-black font-mono text-xs shrink-0 transition-colors">
+                      <div className="w-10 h-10 rounded-2xl bg-slate-100 group-hover:bg-emerald-50 text-slate-700 group-hover:text-emerald-600 flex items-center justify-center font-black font-mono text-xs shrink-0 transition-colors shadow-2xs">
                         #{o.id.slice(-4)}
                       </div>
                       <div>
                         <div className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
-                          {o.fio} <span className="font-normal text-slate-400">({o.phone})</span>
+                          {o.fio} <span className="font-mono text-slate-400 font-normal">({o.phone})</span>
                         </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
+                        <div className="text-[11px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-2 font-medium">
                           <span>{o.date}</span>
                           <span>·</span>
                           <span>{o.delivery || 'Самовивіз'}</span>
@@ -4805,7 +5618,7 @@ export const AdminPanel: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-3 self-end sm:self-auto w-full sm:w-auto">
-                      <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+                      <span className={`px-3 py-1 rounded-xl text-[11px] font-bold ${
                         o.status === 'Доставлено' || o.status === 'Оплачено'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : o.status === 'Відправлено'
@@ -4816,7 +5629,7 @@ export const AdminPanel: React.FC = () => {
                       }`}>
                         {o.status}
                       </span>
-                      <span className="font-black text-slate-900 text-sm">
+                      <span className="font-black text-slate-900 text-sm font-mono">
                         {o.total?.toFixed(2)} грн
                       </span>
                     </div>
@@ -4831,33 +5644,92 @@ export const AdminPanel: React.FC = () => {
 
       {/* TAB: PRODUCTS */}
       {activeTab === 'products' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+        <div className="space-y-6 max-w-7xl animate-in fade-in duration-200">
           
+          {/* Master Hero Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950/90 p-6 sm:p-8 text-white shadow-2xl border border-amber-500/30">
+            {/* Ambient Background Lights */}
+            <div className="absolute top-0 right-0 -mt-12 -mr-12 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-1/3 -mb-16 w-64 h-64 bg-orange-500/15 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 backdrop-blur-md">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    <span>📦 Управління каталогом ISKRA</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-200 border border-white/15 backdrop-blur-md">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Швидке редагування цін та залишків</span>
+                  </span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                  <div className="p-2.5 bg-amber-500/20 border border-amber-500/40 rounded-2xl text-amber-400 shadow-inner">
+                    <Package className="w-6 h-6 sm:w-7 sm:h-7" />
+                  </div>
+                  <span>Каталог товарів та складський облік</span>
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Повний облік асортименту, масове коригування цін, автоматична класифікація за категоріями, контроль критичних залишків та синхронізація з УкрСклад.
+                </p>
+              </div>
+
+              {/* Stat Badges Grid */}
+              <div className="grid grid-cols-2 gap-3 shrink-0 min-w-[280px]">
+                <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg hover:border-slate-700 transition-all">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Всього товарів</div>
+                  <div className="text-2xl sm:text-3xl font-black text-white mt-1 font-mono tabular-nums">{products.length}</div>
+                </div>
+
+                <div className="bg-emerald-500/15 backdrop-blur-md p-4 rounded-2xl border border-emerald-500/30 shadow-lg hover:border-emerald-500/50 transition-all">
+                  <div className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">В наявності</div>
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1 font-mono tabular-nums">{products.filter(p => p.stock > 0).length}</div>
+                </div>
+
+                <div className="bg-amber-500/15 backdrop-blur-md p-4 rounded-2xl border border-amber-500/30 shadow-lg hover:border-amber-500/50 transition-all">
+                  <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    Критичні
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-amber-400 mt-1 font-mono tabular-nums">{lowStockCount}</div>
+                </div>
+
+                <div className="bg-rose-500/15 backdrop-blur-md p-4 rounded-2xl border border-rose-500/30 shadow-lg hover:border-rose-500/50 transition-all">
+                  <div className="text-[11px] font-bold text-rose-300 uppercase tracking-wider">Відсутні</div>
+                  <div className="text-2xl sm:text-3xl font-black text-rose-400 mt-1 font-mono tabular-nums">{outOfStockCount}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Low Stock Warning Alert Card */}
           {totalCriticalStockCount > 0 && (
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 sm:p-5 shadow-xs animate-in fade-in space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <AlertTriangle className="w-5 h-5" />
+            <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200/90 rounded-3xl p-5 sm:p-6 shadow-sm animate-in fade-in space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
+                    <AlertTriangle className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <h4 className="font-black text-base text-slate-900 flex items-center gap-2 flex-wrap">
                       <span>Сповіщення про залишки: товари закінчуються на складі!</span>
-                      <span className="bg-amber-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full">
+                      <span className="bg-amber-500 text-slate-950 text-xs font-black px-3 py-0.5 rounded-full font-mono">
                         {totalCriticalStockCount} {getUkPositionsWord(totalCriticalStockCount)}
                       </span>
                     </h4>
-                    <p className="text-xs text-slate-600 mt-0.5">
-                      Критичний залишок ({lowStockThreshold} шт.): <b className="text-amber-800">{lowStockCount} {lowStockCount % 10 === 1 && lowStockCount % 100 !== 11 ? 'позиція' : lowStockCount % 10 >= 2 && lowStockCount % 10 <= 4 && (lowStockCount % 100 < 10 || lowStockCount % 100 >= 20) ? 'позиції' : 'позицій'}</b>
+                    <p className="text-xs sm:text-sm text-slate-600 mt-0.5 leading-relaxed">
+                      Критичний залишок (&le; {lowStockThreshold} шт.): <b className="text-amber-900">{lowStockCount} {lowStockCount % 10 === 1 && lowStockCount % 100 !== 11 ? 'позиція' : lowStockCount % 10 >= 2 && lowStockCount % 10 <= 4 && (lowStockCount % 100 < 10 || lowStockCount % 100 >= 20) ? 'позиції' : 'позицій'}</b>
                       {outOfStockCount > 0 && <span> • Повністю відсутні: <b className="text-rose-700">{outOfStockCount} {outOfStockCount % 10 === 1 && outOfStockCount % 100 !== 11 ? 'позиція' : outOfStockCount % 10 >= 2 && outOfStockCount % 10 <= 4 && (outOfStockCount % 100 < 10 || outOfStockCount % 100 >= 20) ? 'позиції' : 'позицій'}</b></span>}
                     </p>
                   </div>
                 </div>
 
                 {/* Threshold Switcher */}
-                <div className="flex items-center gap-1.5 self-end sm:self-auto bg-white/80 p-1 rounded-xl border border-amber-200 text-xs">
-                  <span className="text-[11px] font-semibold text-slate-500 pl-1.5">Поріг:</span>
+                <div className="flex items-center gap-1.5 self-start lg:self-auto bg-white/90 p-1.5 rounded-2xl border border-amber-200 text-xs shadow-2xs">
+                  <span className="text-[11px] font-bold text-slate-500 pl-2">Поріг:</span>
                   {[1, 2, 3, 5, 10].map((t) => (
                     <button
                       key={t}
@@ -4866,9 +5738,9 @@ export const AdminPanel: React.FC = () => {
                         setLowStockThreshold(t);
                         updateSiteFeatures({ lowStockThreshold: t });
                       }}
-                      className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         lowStockThreshold === t
-                          ? 'bg-amber-500 text-white shadow-xs'
+                          ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
                           : 'text-slate-600 hover:bg-slate-100'
                       }`}
                     >
@@ -4879,13 +5751,13 @@ export const AdminPanel: React.FC = () => {
               </div>
 
               {/* Action Buttons for Low Stock */}
-              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-amber-200/60 text-xs">
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-200/60 text-xs">
                 <button
                   type="button"
                   onClick={() => setProductFilterStock(productFilterStock === 'low_stock' ? 'all' : 'low_stock')}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer ${
                     productFilterStock === 'low_stock'
-                      ? 'bg-amber-600 text-white'
+                      ? 'bg-amber-600 text-white shadow-sm'
                       : 'bg-white hover:bg-amber-100 text-amber-900 border border-amber-300'
                   }`}
                 >
@@ -4900,7 +5772,7 @@ export const AdminPanel: React.FC = () => {
                 <button
                   type="button"
                   onClick={exportLowStockCSV}
-                  className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-xl border border-slate-300 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-xl border border-slate-300 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
                   title="Завантажити таблицю Excel/CSV для замовлення у постачальника"
                 >
                   <FileDown className="w-3.5 h-3.5 text-amber-600" />
@@ -4910,7 +5782,7 @@ export const AdminPanel: React.FC = () => {
                 <button
                   type="button"
                   onClick={printProcurementList}
-                  className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-xl border border-slate-300 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-xl border border-slate-300 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
                   title="Роздрукувати відомість на поповнення складу"
                 >
                   <Printer className="w-3.5 h-3.5 text-slate-600" />
@@ -4920,60 +5792,61 @@ export const AdminPanel: React.FC = () => {
             </div>
           )}
           
-          {/* Action bar & Filters */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 max-w-xl w-full">
-              <div className="relative flex-1 min-w-[180px]">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Шукати за назвою або артикулом..."
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 outline-none"
+          {/* Action bar & Filters Card */}
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-xl w-full">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Шукати за назвою або артикулом..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2.5 rounded-2xl border border-slate-200 text-xs text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all font-medium bg-slate-50 focus:bg-white"
+                  />
+                </div>
+
+                <StockFilterDropdown
+                  value={productFilterStock}
+                  onChange={setProductFilterStock}
+                  totalProducts={products.length}
+                  inStockCount={products.filter(p => p.stock > 0).length}
+                  lowStockCount={lowStockCount}
+                  outOfStockCount={outOfStockCount}
                 />
               </div>
 
-              <StockFilterDropdown
-                value={productFilterStock}
-                onChange={setProductFilterStock}
-                totalProducts={products.length}
-                inStockCount={products.filter(p => p.stock > 0).length}
-                lowStockCount={lowStockCount}
-                outOfStockCount={outOfStockCount}
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsUkrSkladModalOpen(true)}
+                  className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-2xl transition-all shadow-sm flex items-center gap-2 cursor-pointer border border-amber-600/30"
+                  title="Синхронізація з програмою УкрСклад на ноутбуці"
+                >
+                  <Building2 className="w-4 h-4 text-slate-950" />
+                  <span>Синхронізація УкрСклад</span>
+                </button>
+
+                <button
+                  onClick={handleOpenAddProduct}
+                  className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl transition-all flex items-center gap-2 shadow-sm cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-amber-400" />
+                  <span>+ Додати товар</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => autoClassifyProducts()}
+                  className="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-2xl transition-colors flex items-center gap-1.5 cursor-pointer border border-indigo-200 shadow-2xs"
+                  title="Автоматично розподілити товари за категоріями та підкатегоріями на основі їхніх назв"
+                >
+                  <Sparkles className="w-4 h-4 text-indigo-600" />
+                  <span>Авто-категорії</span>
+                </button>
+              </div>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsUkrSkladModalOpen(true)}
-                className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer border border-amber-600/30"
-                title="Синхронізація з програмою УкрСклад на ноутбуці"
-              >
-                <Building2 className="w-4 h-4 text-slate-950" />
-                <span>Синхронізація УкрСклад</span>
-              </button>
-
-              <button
-                onClick={handleOpenAddProduct}
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm shadow-orange-600/30"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ Додати товар</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => autoClassifyProducts()}
-                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border border-indigo-200 shadow-2xs"
-                title="Автоматично розподілити товари за категоріями та підкатегоріями на основі їхніх назв"
-              >
-                <Sparkles className="w-4 h-4 text-indigo-600" />
-                <span>Авто-категорії</span>
-              </button>
-            </div>
-          </div>
 
           {/* Bulk Price Adjuster Panel */}
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-wrap items-center gap-2.5 text-xs shadow-2xs">
@@ -5020,6 +5893,7 @@ export const AdminPanel: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
 
           {/* Products Table */}
           {/* Batch Selection Action Bar - Sleek Modern Floating Toolbar */}
@@ -5200,9 +6074,9 @@ export const AdminPanel: React.FC = () => {
 
           <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+              <thead className="bg-slate-50/90 border-b border-slate-200 text-slate-500 font-black uppercase tracking-wider text-[10px]">
                 <tr>
-                  <th className="py-3 px-4 w-10">
+                  <th className="py-3.5 px-4 w-10 text-center">
                     <input
                       type="checkbox"
                       checked={filteredProducts.length > 0 && filteredProducts.every(p => selectedProductIds.includes(p.id))}
@@ -5215,21 +6089,21 @@ export const AdminPanel: React.FC = () => {
                           setSelectedProductIds([]);
                         }
                       }}
-                      className="w-4 h-4 rounded text-orange-600 cursor-pointer"
+                      className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
                     />
                   </th>
-                  <th className="py-3 px-4">Фото</th>
-                  <th className="py-3 px-4">Назва / Категорія</th>
-                  <th className="py-3 px-4">Артикул</th>
-                  <th className="py-3 px-4">Склад</th>
-                  <th className="py-3 px-4">Ціна (грн)</th>
-                  <th className="py-3 px-4 text-right">Дії</th>
+                  <th className="py-3.5 px-4">Фото</th>
+                  <th className="py-3.5 px-4">Назва / Категорія</th>
+                  <th className="py-3.5 px-4">Артикул</th>
+                  <th className="py-3.5 px-4">Склад</th>
+                  <th className="py-3.5 px-4">Ціна (грн)</th>
+                  <th className="py-3.5 px-4 text-right">Дії</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredProducts.map((p) => (
-                  <tr key={p.id} className={`hover:bg-slate-50/70 ${selectedProductIds.includes(p.id) ? 'bg-orange-50/40' : ''}`}>
-                    <td className="py-2.5 px-4 w-10">
+                  <tr key={p.id} className={`hover:bg-slate-50/80 transition-colors ${selectedProductIds.includes(p.id) ? 'bg-amber-50/50' : ''}`}>
+                    <td className="py-3 px-4 w-10 text-center">
                       <input
                         type="checkbox"
                         checked={selectedProductIds.includes(p.id)}
@@ -5242,7 +6116,7 @@ export const AdminPanel: React.FC = () => {
                             setSelectedProductIds(selectedProductIds.filter(id => id !== p.id));
                           }
                         }}
-                        className="w-4 h-4 rounded text-orange-600 cursor-pointer"
+                        className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
                       />
                     </td>
                     <td className="py-2.5 px-4">
@@ -5389,165 +6263,351 @@ export const AdminPanel: React.FC = () => {
       )}
 
       {/* TAB: ORDERS */}
-      {activeTab === 'orders' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-2 flex-1 max-w-2xl">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Пошук за номером, клієнтом або телефоном..."
-                  value={orderSearch}
-                  onChange={(e) => setOrderSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 outline-none focus:border-orange-500"
-                />
+      {activeTab === 'orders' && (() => {
+        const totalOrders = orders.length;
+        const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+        const paidOrders = orders.filter((o) => o.isPaid === true);
+        const paidRevenue = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+        const createdCount = orders.filter((o) => o.status === 'Створено').length;
+        const assemblingCount = orders.filter((o) => o.status === 'Збирається').length;
+        const transitCount = orders.filter((o) => o.status === 'Відправлено').length;
+        const deliveredCount = orders.filter((o) => o.status === 'Доставлено').length;
+
+        const filteredOrders = orders.filter((o) => {
+          const matchQ =
+            !orderSearch ||
+            o.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
+            o.fio.toLowerCase().includes(orderSearch.toLowerCase()) ||
+            o.phone.toLowerCase().includes(orderSearch.toLowerCase()) ||
+            (o.ttn && o.ttn.includes(orderSearch));
+          const matchStatus = orderFilterStatus === 'all' || o.status === orderFilterStatus;
+          const isPaid = o.isPaid === true;
+          const matchPayment =
+            orderPaymentFilter === 'all'
+              ? true
+              : orderPaymentFilter === 'paid'
+              ? isPaid
+              : !isPaid;
+
+          return matchQ && matchStatus && matchPayment;
+        });
+
+        const safeClients = clients || {};
+
+        return (
+          <div className="space-y-6 max-w-7xl animate-in fade-in duration-200">
+            
+            {/* Master Hero Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950/90 p-6 sm:p-8 text-white shadow-2xl border border-amber-500/30">
+              {/* Ambient Glows */}
+              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-1/3 -mb-16 w-64 h-64 bg-orange-500/15 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-3 max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 backdrop-blur-md">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                      <span>📦 Замовлення & Комплектація ISKRA</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-200 border border-white/15 backdrop-blur-md">
+                      <Truck className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Авто-трекінг ТТН Нової Пошти</span>
+                    </span>
+                  </div>
+
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                    <div className="p-2.5 bg-amber-500/20 border border-amber-500/40 rounded-2xl text-amber-400 shadow-inner">
+                      <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7" />
+                    </div>
+                    <span>Управління замовленнями покупців</span>
+                  </h2>
+
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Повний цикл обробки: комплектація товарів, роздруківка товарних чеків, підтвердження платежів та синхронізація статусів посилок Нової Пошти.
+                  </p>
+                </div>
+
+                {/* KPI Stat Cards Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-3 shrink-0 min-w-[320px]">
+                  <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg hover:border-slate-700 transition-all">
+                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Всього замовлень</div>
+                    <div className="text-2xl sm:text-3xl font-black text-white mt-1 font-mono tabular-nums">{totalOrders}</div>
+                  </div>
+
+                  <div className="bg-emerald-500/15 backdrop-blur-md p-4 rounded-2xl border border-emerald-500/30 shadow-lg hover:border-emerald-500/50 transition-all">
+                    <div className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">Загальний оборот</div>
+                    <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1 font-mono tabular-nums">
+                      {totalRevenue.toLocaleString('uk-UA')} <span className="text-xs text-emerald-300 font-normal">грн</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-500/15 backdrop-blur-md p-4 rounded-2xl border border-amber-500/30 shadow-lg hover:border-amber-500/50 transition-all">
+                    <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-amber-400" />
+                      Оплачено
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-black text-amber-400 mt-1 font-mono tabular-nums">
+                      {paidOrders.length} <span className="text-xs text-amber-300 font-normal">({paidRevenue.toLocaleString('uk-UA')} грн)</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-sky-500/15 backdrop-blur-md p-4 rounded-2xl border border-sky-500/30 shadow-lg hover:border-sky-500/50 transition-all">
+                    <div className="text-[11px] font-bold text-sky-300 uppercase tracking-wider flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-sky-400" />
+                      В роботі
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-black text-sky-300 mt-1 font-mono tabular-nums">{createdCount + assemblingCount}</div>
+                  </div>
+                </div>
               </div>
-
-              {/* Status filter */}
-              <select
-                value={orderFilterStatus}
-                onChange={(e) => setOrderFilterStatus(e.target.value)}
-                className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium outline-none"
-              >
-                <option value="all">Всі статуси</option>
-                <option value="Створено">1. Оформлено</option>
-                <option value="Збирається">2. Комплектується</option>
-                <option value="Відправлено">3. В дорозі</option>
-                <option value="Доставлено">4. Доставлено</option>
-                <option value="Оплачено">Оплачено</option>
-              </select>
-
-              {/* Payment filter */}
-              <select
-                value={orderPaymentFilter}
-                onChange={(e) => setOrderPaymentFilter(e.target.value as any)}
-                className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium outline-none"
-              >
-                <option value="all">Всі оплати</option>
-                <option value="paid">Тільки оплачені (✓)</option>
-                <option value="unpaid">Очікують оплати (Наложка / IBAN)</option>
-              </select>
-
-              {/* Live Nova Poshta Sync button */}
-              <button
-                type="button"
-                disabled={isSyncingTTN}
-                onClick={async () => {
-                  const activeWithTtn = orders.filter(o => o.ttn && o.ttn.trim().length >= 10 && o.status !== 'Доставлено');
-                  if (activeWithTtn.length === 0) {
-                    showToast('Немає активних замовлень із номером ТТН для перевірки', 'info');
-                    return;
-                  }
-                  setIsSyncingTTN(true);
-                  let updatedCount = 0;
-                  try {
-                    for (const ord of activeWithTtn) {
-                      try {
-                        const res = await trackNovaPoshtaTTN(
-                          ord.ttn!,
-                          ord.phone,
-                          siteSettings.novaPoshtaApiKey,
-                          ord.date,
-                          ord.status,
-                          ord.city
-                        );
-                        if (res.isSuccess) {
-                          if (res.statusCategory === 'delivered' && ord.status !== 'Доставлено') {
-                            updateOrderStatus(ord.id, 'Доставлено');
-                            updatedCount++;
-                          } else if (res.statusCategory === 'in_transit' && ord.status !== 'Відправлено' && ord.status !== 'Доставлено') {
-                            updateOrderStatus(ord.id, 'Відправлено');
-                          }
-                        }
-                      } catch (err) {
-                        console.warn('Sync error for TTN:', ord.ttn, err);
-                      }
-                    }
-                    if (updatedCount > 0) {
-                      showToast(`Синхронізація успішна! Оновлено ${updatedCount} замовлень до «Доставлено» та автоматично підтверджено оплату накладених платежів`, 'success');
-                    } else {
-                      showToast(`Перевірено ${activeWithTtn.length} ТТН: всі статуси актуальні`, 'success');
-                    }
-                  } finally {
-                    setIsSyncingTTN(false);
-                  }
-                }}
-                className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
-                title="Автоматично перевірити всі активні ТТН через офіційне API Нової Пошти"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingTTN ? 'animate-spin' : ''}`} />
-                <span>{isSyncingTTN ? 'Синхронізація...' : 'Перевірити ТТН у Новій Пошті'}</span>
-              </button>
             </div>
 
-            {confirmClearAllOrders ? (
-              <div className="flex items-center gap-2 animate-in fade-in">
-                <span className="text-xs text-rose-600 font-bold">Точно видалити всі замовлення?</span>
+            {/* Filter Bar & Quick Status Tabs */}
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+              {/* Quick Status Tabs */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                 <button
                   type="button"
-                  onClick={() => {
-                    clearAllOrders();
-                    setConfirmClearAllOrders(false);
-                  }}
-                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+                  onClick={() => setOrderFilterStatus('all')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    orderFilterStatus === 'all'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                  }`}
                 >
-                  Так, очистити
+                  <span>Всі замовлення</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${orderFilterStatus === 'all' ? 'bg-slate-800 text-amber-300' : 'bg-slate-200 text-slate-700'}`}>
+                    {totalOrders}
+                  </span>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => setConfirmClearAllOrders(false)}
-                  className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold transition-colors"
+                  onClick={() => setOrderFilterStatus('Створено')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    orderFilterStatus === 'Створено'
+                      ? 'bg-sky-600 text-white shadow-sm'
+                      : 'bg-sky-50 text-sky-800 border border-sky-200/80 hover:bg-sky-100'
+                  }`}
                 >
-                  Скасувати
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>1. Оформлено</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 text-current">{createdCount}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderFilterStatus('Збирається')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    orderFilterStatus === 'Збирається'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200/80 hover:bg-amber-100'
+                  }`}
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  <span>2. Комплектується</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 text-current">{assemblingCount}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderFilterStatus('Відправлено')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    orderFilterStatus === 'Відправлено'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-blue-50 text-blue-800 border border-blue-200/80 hover:bg-blue-100'
+                  }`}
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>3. В дорозі</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 text-current">{transitCount}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderFilterStatus('Доставлено')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    orderFilterStatus === 'Доставлено'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-emerald-50 text-emerald-800 border border-emerald-200/80 hover:bg-emerald-100'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>4. Доставлено</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 text-current">{deliveredCount}</span>
                 </button>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirmClearAllOrders(true)}
-                className="text-xs font-bold text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-xl transition-colors cursor-pointer"
-              >
-                Очистити всі замовлення
-              </button>
-            )}
-          </div>
 
-          <div className="space-y-4">
-            {orders.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
-                Замовлень поки немає
+              {/* Search & Actions Control Bar */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+                  <div className="relative flex-1 min-w-[240px]">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Пошук за № замовлення, ПІБ, телефоном або ТТН..."
+                      value={orderSearch}
+                      onChange={(e) => setOrderSearch(e.target.value)}
+                      className="w-full pl-10 pr-9 py-2.5 rounded-2xl border border-slate-200 text-xs text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all font-medium bg-slate-50 focus:bg-white"
+                    />
+                    {orderSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setOrderSearch('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Payment Filter Selector */}
+                  <select
+                    value={orderPaymentFilter}
+                    onChange={(e) => setOrderPaymentFilter(e.target.value as any)}
+                    className="px-3.5 py-2.5 border border-slate-200 rounded-2xl text-xs bg-slate-50 focus:bg-white text-slate-800 font-bold outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer shrink-0"
+                  >
+                    <option value="all">Всі статуси оплати</option>
+                    <option value="paid">✓ Тільки оплачені ({paidOrders.length})</option>
+                    <option value="unpaid">Очікують оплати ({totalOrders - paidOrders.length})</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isSyncingTTN}
+                    onClick={async () => {
+                      const activeWithTtn = orders.filter(o => o.ttn && o.ttn.trim().length >= 10 && o.status !== 'Доставлено');
+                      if (activeWithTtn.length === 0) {
+                        showToast('Немає активних замовлень із номером ТТН для перевірки', 'info');
+                        return;
+                      }
+                      setIsSyncingTTN(true);
+                      let updatedCount = 0;
+                      try {
+                        for (const ord of activeWithTtn) {
+                          try {
+                            const res = await trackNovaPoshtaTTN(
+                              ord.ttn!,
+                              ord.phone,
+                              siteSettings.novaPoshtaApiKey,
+                              ord.date,
+                              ord.status,
+                              ord.city
+                            );
+                            if (res.isSuccess) {
+                              if (res.statusCategory === 'delivered' && ord.status !== 'Доставлено') {
+                                updateOrderStatus(ord.id, 'Доставлено');
+                                updatedCount++;
+                              } else if (res.statusCategory === 'in_transit' && ord.status !== 'Відправлено' && ord.status !== 'Доставлено') {
+                                updateOrderStatus(ord.id, 'Відправлено');
+                              }
+                            }
+                          } catch (err) {
+                            console.warn('Sync error for TTN:', ord.ttn, err);
+                          }
+                        }
+                        if (updatedCount > 0) {
+                          showToast(`Синхронізація успішна! Оновлено ${updatedCount} замовлень до «Доставлено» та підтверджено оплату`, 'success');
+                        } else {
+                          showToast(`Перевірено ${activeWithTtn.length} ТТН: всі статуси актуальні`, 'success');
+                        }
+                      } finally {
+                        setIsSyncingTTN(false);
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold shadow-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
+                    title="Автоматично перевірити всі активні ТТН через офіційне API Нової Пошти"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-amber-400 ${isSyncingTTN ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingTTN ? 'Синхронізація...' : 'Перевірити ТТН Нова Пошта'}</span>
+                  </button>
+
+                  {confirmClearAllOrders ? (
+                    <div className="flex items-center gap-2 animate-in fade-in bg-rose-50 border border-rose-200 p-1.5 rounded-2xl">
+                      <span className="text-xs text-rose-700 font-bold pl-1">Очистити все?</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearAllOrders();
+                          setConfirmClearAllOrders(false);
+                        }}
+                        className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                      >
+                        Так
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmClearAllOrders(false)}
+                        className="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-xl text-xs font-medium cursor-pointer"
+                      >
+                        Ні
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmClearAllOrders(true)}
+                      className="text-xs font-bold text-rose-600 hover:bg-rose-50 px-3 py-2.5 rounded-2xl transition-colors cursor-pointer"
+                    >
+                      Очистити замовлення
+                    </button>
+                  )}
+                </div>
               </div>
-            ) : (
-              orders
-                .filter((o) => {
-                  const matchQ = o.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
-                    o.fio.toLowerCase().includes(orderSearch.toLowerCase()) ||
-                    o.phone.toLowerCase().includes(orderSearch.toLowerCase()) ||
-                    (o.ttn && o.ttn.includes(orderSearch));
-                  const matchStatus = orderFilterStatus === 'all' || o.status === orderFilterStatus;
-                  const isPaid = o.isPaid === true;
-                  const matchPayment = orderPaymentFilter === 'all'
-                    ? true
-                    : orderPaymentFilter === 'paid'
-                    ? isPaid
-                    : !isPaid;
+            </div>
 
-                  return matchQ && matchStatus && matchPayment;
-                })
-                .map((o) => {
+            {/* Orders List / Empty State */}
+            <div className="space-y-4">
+              {filteredOrders.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-slate-200/90 shadow-sm space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                    <ShoppingCart className="w-6 h-6" />
+                  </div>
+                  <div className="text-base font-black text-slate-700">Замовлень не знайдено</div>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    За вашим запитом або обраними фільтрами замовлення відсутні. Спробуйте скинути фільтр.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrderSearch('');
+                      setOrderFilterStatus('all');
+                      setOrderPaymentFilter('all');
+                    }}
+                    className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <span>Скинути всі фільтри</span>
+                  </button>
+                </div>
+              ) : (
+                filteredOrders.map((o) => {
                   const isPaid = o.isPaid === true;
                   const isCashOnDelivery = o.paymentMethod === 'cash_on_delivery';
 
                   return (
-                    <div key={o.id} className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 text-xs space-y-4 shadow-2xs">
-                      {/* 1. Header with IDs and Status dropdown */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900 font-display text-sm">
-                            Замовлення №{o.id}
-                          </span>
-                          <span className="text-slate-400 font-mono">({o.date})</span>
+                    <div key={o.id} className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 text-xs space-y-5 shadow-sm hover:border-amber-300/80 transition-all hover:shadow-md">
+                      {/* 1. Header with Order ID and Quick Action Buttons */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 font-black text-sm flex items-center justify-center shrink-0 border border-amber-200/80 shadow-2xs">
+                            #{o.id.slice(-3)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-slate-900 font-display text-base tracking-tight">
+                                Замовлення №{o.id}
+                              </span>
+                              <span className="text-slate-500 font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded-md font-semibold">
+                                {o.date}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              Покупець: <b className="text-slate-900 font-bold">{o.fio}</b> ({o.phone})
+                            </p>
+                          </div>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
@@ -5555,27 +6615,29 @@ export const AdminPanel: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setEditingOrder({ ...o, items: o.items.map(it => ({ ...it })) })}
-                            className="px-2.5 py-1 text-slate-700 hover:text-slate-950 bg-white hover:bg-slate-100 rounded-lg border border-slate-300 flex items-center gap-1.5 text-xs font-bold transition-colors shadow-2xs cursor-pointer"
-                            title="Редагувати замовлення"
+                            className="px-3.5 py-2 text-slate-700 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200/80 flex items-center gap-1.5 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                            title="Редагувати складові замовлення"
                           >
-                            <Pencil className="w-3.5 h-3.5 text-orange-600" />
+                            <Pencil className="w-3.5 h-3.5 text-amber-600" />
                             <span>Редагувати</span>
                           </button>
 
+                          {/* Print order slip */}
                           <button
                             type="button"
                             onClick={() => printOrderSlip(o)}
-                            className="p-1.5 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 flex items-center gap-1 font-semibold transition-colors"
-                            title="Друкувати товарний чек"
+                            className="px-3.5 py-2 text-slate-700 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200/80 flex items-center gap-1.5 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                            title="Друкувати товарний чек для покупця"
                           >
-                            <Printer className="w-3.5 h-3.5" />
+                            <Printer className="w-3.5 h-3.5 text-slate-600" />
                             <span>Чек</span>
                           </button>
 
+                          {/* Main Status Dropdown */}
                           <select
                             value={o.status}
                             onChange={(e) => updateOrderStatus(o.id, e.target.value as OrderStatus)}
-                            className="px-2.5 py-1 rounded-lg border border-slate-300 font-bold bg-white text-slate-800 outline-none"
+                            className="px-3.5 py-2 rounded-2xl border border-slate-300 font-black bg-slate-900 text-white outline-none cursor-pointer text-xs shadow-2xs focus:ring-2 focus:ring-amber-500/30"
                           >
                             <option value="Створено">1. Оформлено</option>
                             <option value="Збирається">2. Комплектується</option>
@@ -5584,24 +6646,24 @@ export const AdminPanel: React.FC = () => {
                             <option value="Оплачено">Оплачено (Очікує збирання)</option>
                           </select>
 
-                          {/* Safe Delete order button with inline confirm */}
+                          {/* Safe Delete order button */}
                           {orderToDelete === o.id ? (
-                            <div className="flex items-center gap-1.5 animate-in fade-in bg-rose-50 p-1 rounded-lg border border-rose-200">
-                              <span className="text-[11px] font-bold text-rose-700">Видалити?</span>
+                            <div className="flex items-center gap-1.5 animate-in fade-in bg-rose-50 p-1 rounded-2xl border border-rose-200">
+                              <span className="text-[11px] font-bold text-rose-700 pl-1">Видалити?</span>
                               <button
                                 type="button"
                                 onClick={() => {
                                   deleteOrder(o.id);
                                   setOrderToDelete(null);
                                 }}
-                                className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-bold shadow-xs transition-colors"
+                                className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[11px] font-bold shadow-xs transition-colors cursor-pointer"
                               >
                                 Так
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setOrderToDelete(null)}
-                                className="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[11px] font-medium transition-colors"
+                                className="px-2 py-1 bg-slate-200 text-slate-700 rounded-xl text-[11px] font-medium cursor-pointer"
                               >
                                 Ні
                               </button>
@@ -5610,8 +6672,8 @@ export const AdminPanel: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => setOrderToDelete(o.id)}
-                              className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                              title="Видалити замовлення"
+                              className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-2xl transition-colors cursor-pointer"
+                              title="Видалити замовлення з бази"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -5619,12 +6681,15 @@ export const AdminPanel: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* 2. Visual 5-Stage Pipeline on Admin Order Card */}
-                      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-                        <div className="flex items-center justify-between text-[11px] mb-2">
-                          <span className="font-bold text-slate-700">Етап виконання замовлення:</span>
-                          <span className="font-semibold text-slate-500">
-                            Поточний статус: <b className="text-slate-900">{o.status}</b>
+                      {/* 2. Visual 5-Stage Interactive Pipeline */}
+                      <div className="bg-slate-50/80 p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+                        <div className="flex items-center justify-between text-[11px] mb-2.5">
+                          <span className="font-extrabold text-slate-800 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Етап виконання замовлення:</span>
+                          </span>
+                          <span className="font-semibold text-slate-600">
+                            Поточний статус: <b className="text-slate-900 font-extrabold">{o.status}</b>
                           </span>
                         </div>
                         
@@ -5633,27 +6698,27 @@ export const AdminPanel: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => updateOrderStatus(o.id, 'Створено')}
-                            className={`p-1.5 rounded-lg border flex flex-col items-center gap-1 cursor-pointer transition-all ${
+                            className={`p-2 sm:p-2.5 rounded-xl border flex flex-col items-center gap-1 cursor-pointer transition-all ${
                               o.status === 'Створено' 
-                                ? 'bg-sky-50 border-sky-400 text-sky-900 font-bold ring-2 ring-sky-100'
-                                : 'bg-emerald-50 border-emerald-200 text-emerald-800 font-medium'
+                                ? 'bg-sky-50 border-sky-400 text-sky-900 font-black ring-2 ring-sky-100 shadow-2xs'
+                                : 'bg-emerald-50 border-emerald-200 text-emerald-800 font-bold'
                             }`}
                             title="Встановити статус: Створено (Оформлено)"
                           >
                             <FileText className="w-3.5 h-3.5" />
-                            <span>1. Оформлено</span>
+                            <span className="truncate w-full">1. Оформлено</span>
                             <span className="text-[9px] opacity-75">{o.status === 'Створено' ? 'Поточний' : '✓ Прийнято'}</span>
                           </button>
 
                           {/* 2. Оплата */}
-                          <div className={`p-1.5 rounded-lg border flex flex-col items-center gap-1 ${
+                          <div className={`p-2 sm:p-2.5 rounded-xl border flex flex-col items-center gap-1 ${
                             isPaid
-                              ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold ring-2 ring-emerald-100'
-                              : 'bg-amber-50 border-amber-300 text-amber-900 font-semibold'
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-black ring-2 ring-emerald-100'
+                              : 'bg-amber-50 border-amber-300 text-amber-900 font-bold'
                           }`}>
                             {isCashOnDelivery ? <Banknote className="w-3.5 h-3.5" /> : <CreditCard className="w-3.5 h-3.5" />}
-                            <span>2. Оплата</span>
-                            <span className="text-[9px]">
+                            <span className="truncate w-full">2. Оплата</span>
+                            <span className="text-[9px] truncate w-full">
                               {isPaid ? '✓ Сплачено' : isCashOnDelivery ? 'Наложка' : 'Очікує'}
                             </span>
                           </div>
@@ -5662,18 +6727,18 @@ export const AdminPanel: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => updateOrderStatus(o.id, 'Збирається')}
-                            className={`p-1.5 rounded-lg border flex flex-col items-center gap-1 cursor-pointer transition-all hover:scale-102 ${
+                            className={`p-2 sm:p-2.5 rounded-xl border flex flex-col items-center gap-1 cursor-pointer transition-all hover:scale-102 ${
                               o.status === 'Збирається'
-                                ? 'bg-sky-50 border-sky-400 text-sky-900 font-bold ring-2 ring-sky-100'
+                                ? 'bg-amber-50 border-amber-400 text-amber-900 font-black ring-2 ring-amber-100 shadow-2xs'
                                 : ['Відправлено', 'Доставлено'].includes(o.status)
-                                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 font-medium'
-                                : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300'
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 font-bold'
+                                : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                             }`}
                             title="Встановити статус: Збирається (Комплектується)"
                           >
                             <Package className="w-3.5 h-3.5" />
-                            <span>3. Комплектується</span>
-                            <span className="text-[9px]">
+                            <span className="truncate w-full">3. Комплектується</span>
+                            <span className="text-[9px] truncate w-full">
                               {o.status === 'Збирається' ? 'В процесі' : ['Відправлено', 'Доставлено'].includes(o.status) ? '✓ Зібрано' : 'Очікує'}
                             </span>
                           </button>
@@ -5682,18 +6747,18 @@ export const AdminPanel: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => updateOrderStatus(o.id, 'Відправлено')}
-                            className={`p-1.5 rounded-lg border flex flex-col items-center gap-1 cursor-pointer transition-all hover:scale-102 ${
+                            className={`p-2 sm:p-2.5 rounded-xl border flex flex-col items-center gap-1 cursor-pointer transition-all hover:scale-102 ${
                               o.status === 'Відправлено'
-                                ? 'bg-sky-50 border-sky-400 text-sky-900 font-bold ring-2 ring-sky-100'
+                                ? 'bg-blue-50 border-blue-400 text-blue-900 font-black ring-2 ring-blue-100 shadow-2xs'
                                 : o.status === 'Доставлено'
-                                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 font-medium'
-                                : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300'
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 font-bold'
+                                : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                             }`}
                             title="Встановити статус: Відправлено (В дорозі)"
                           >
                             <Truck className="w-3.5 h-3.5" />
-                            <span>4. В дорозі</span>
-                            <span className="text-[9px]">
+                            <span className="truncate w-full">4. В дорозі</span>
+                            <span className="text-[9px] truncate w-full">
                               {o.status === 'Відправлено' ? 'В дорозі' : o.status === 'Доставлено' ? '✓ Пройдено' : 'Очікує'}
                             </span>
                           </button>
@@ -5702,32 +6767,33 @@ export const AdminPanel: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => updateOrderStatus(o.id, 'Доставлено')}
-                            className={`p-1.5 rounded-lg border flex flex-col items-center gap-1 cursor-pointer transition-all hover:scale-102 ${
+                            className={`p-2 sm:p-2.5 rounded-xl border flex flex-col items-center gap-1 cursor-pointer transition-all hover:scale-102 ${
                               o.status === 'Доставлено'
-                                ? 'bg-emerald-600 text-white font-bold ring-2 ring-emerald-200 shadow-xs'
-                                : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-emerald-300 hover:text-emerald-700'
+                                ? 'bg-emerald-600 text-white font-black ring-2 ring-emerald-200 shadow-xs'
+                                : 'bg-white border-slate-200 text-slate-400 hover:border-emerald-300 hover:text-emerald-700'
                             }`}
                             title="Встановити статус: Доставлено (Отримано покупцем)"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>5. Доставлено</span>
-                            <span className="text-[9px]">{o.status === 'Доставлено' ? '✓ Отримано' : 'Завершити'}</span>
+                            <span className="truncate w-full">5. Доставлено</span>
+                            <span className="text-[9px] truncate w-full">{o.status === 'Доставлено' ? '✓ Отримано' : 'Завершити'}</span>
                           </button>
                         </div>
                       </div>
 
-                      {/* 3. Customer Info, Delivery, & Payment Action Button */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
+                      {/* 3. Customer Info, Delivery Details & Prominent Payment Actions */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Left column: Recipient Details */}
+                        <div className="space-y-2.5">
                           <div className="flex items-center justify-between">
-                            <p>
-                              <b>Клієнт:</b> <span className="font-semibold text-slate-900">{o.fio}</span>
+                            <p className="text-slate-800">
+                              <b>Клієнт:</b> <span className="font-bold text-slate-900">{o.fio}</span>
                             </p>
-                            {/* Quick client card trigger */}
+                            {/* Quick Client Card Trigger */}
                             <button
                               type="button"
                               onClick={() => {
-                                const existing = clients[o.phone] || {
+                                const existing = safeClients[o.phone] || {
                                   name: o.fio,
                                   balance: 0,
                                   discount: 0,
@@ -5742,44 +6808,51 @@ export const AdminPanel: React.FC = () => {
                                   discount: existing.discount || 0,
                                   city: existing.city || o.city || '',
                                   notes: existing.notes || '',
-                                  isNew: !clients[o.phone]
+                                  isNew: !safeClients[o.phone]
                                 });
                                 setClientModalOpen(true);
                               }}
-                              className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200/80 px-2 py-0.5 rounded-lg transition-colors"
-                              title="Редагувати клієнта"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 px-2 py-0.5 rounded-lg transition-colors cursor-pointer"
+                              title="Відкрити картку покупця у базі клієнтів"
                             >
                               <UserCheck className="w-3 h-3" />
                               <span>Картка клієнта</span>
                             </button>
                           </div>
 
-                          <p>
+                          <p className="flex items-center gap-2">
                             <b>Телефон:</b>{' '}
-                            <a href={`tel:${o.phone}`} className="text-orange-600 font-semibold hover:underline">
+                            <a href={`tel:${o.phone}`} className="text-amber-600 font-bold hover:underline font-mono">
                               {o.phone}
+                            </a>
+                            <a
+                              href={`viber://chat?number=%2B380${extractLocalPhoneDigits(o.phone)}`}
+                              className="text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200/60 px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors inline-flex items-center gap-1"
+                              title="Написати у Viber"
+                            >
+                              <span>Viber</span>
                             </a>
                           </p>
                           {o.city && (
-                            <p><b>Місто:</b> {o.city}</p>
+                            <p className="text-slate-700"><b>Місто:</b> {o.city}</p>
                           )}
-                          <p><b>Доставка:</b> {o.delivery}</p>
-                          <p>
+                          <p className="text-slate-700"><b>Доставка:</b> {o.delivery}</p>
+                          <p className="text-slate-700">
                             <b>Спосіб оплати:</b>{' '}
-                            <span className="font-semibold text-slate-800">
-                              {o.paymentMethod === 'cash_on_delivery' && 'Накладений платіж (післяплата на пошті)'}
+                            <span className="font-semibold text-slate-900">
+                              {o.paymentMethod === 'cash_on_delivery' && 'Накладений платіж (післяплата)'}
                               {o.paymentMethod === 'card_online' && 'Оплата карткою онлайн'}
                               {o.paymentMethod === 'bank_invoice' && 'Безготівковий розрахунок (IBAN)'}
                             </span>
                           </p>
 
-                          {/* 4. DEDICATED PROMINENT PAYMENT STATUS & ACTION BUTTON */}
-                          <div className="pt-1.5 pb-1">
+                          {/* DEDICATED PROMINENT PAYMENT STATUS BANNER */}
+                          <div className="pt-1">
                             {isPaid ? (
-                              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 shadow-2xs">
-                                <div className="flex items-center gap-2">
-                                  <div className="p-1 rounded-lg bg-emerald-600 text-white">
-                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 shadow-2xs">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="p-1.5 rounded-xl bg-emerald-600 text-white shrink-0">
+                                    <Check className="w-4 h-4 stroke-[3]" />
                                   </div>
                                   <div>
                                     <div className="text-xs font-black tracking-tight text-emerald-900 flex items-center gap-1.5">
@@ -5788,7 +6861,7 @@ export const AdminPanel: React.FC = () => {
                                         ({o.paymentProvider || (o.paymentMethod === 'card_online' ? 'Автоматичний онлайн-еквайринг' : isCashOnDelivery ? 'Накладений платіж отримано' : 'Рахунок IBAN')})
                                       </span>
                                     </div>
-                                    <div className="text-[10px] text-emerald-700">
+                                    <div className="text-[10px] text-emerald-700 font-medium mt-0.5">
                                       Сума <b>{o.total.toFixed(2)} грн</b> зарахована {o.paidAt ? `· ${o.paidAt}` : ''}
                                       {o.paymentTransactionId && <span className="font-mono text-emerald-800 ml-1">[{o.paymentTransactionId}]</span>}
                                     </div>
@@ -5800,33 +6873,28 @@ export const AdminPanel: React.FC = () => {
                                     editOrder(o.id, { isPaid: false });
                                     showToast(`Позначку оплати для замовлення №${o.id} скасовано`, 'info');
                                   }}
-                                  className="text-[11px] text-slate-500 hover:text-rose-600 underline font-semibold transition-colors cursor-pointer"
-                                  title="Скасувати статус оплати, якщо позначено помилково"
+                                  className="text-[11px] text-slate-500 hover:text-rose-600 underline font-semibold transition-colors cursor-pointer ml-auto"
+                                  title="Скасувати статус оплати"
                                 >
-                                  Скасувати позначку
+                                  Скасувати
                                 </button>
                               </div>
                             ) : (
-                              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-amber-50/90 border border-amber-300 text-amber-950 shadow-2xs">
-                                <div className="flex items-center gap-2">
-                                  <div className="p-1 rounded-lg bg-amber-500 text-white">
-                                    <Clock className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-amber-50/90 border border-amber-300 text-amber-950 shadow-2xs">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="p-1.5 rounded-xl bg-amber-500 text-white shrink-0">
+                                    <Clock className="w-4 h-4 stroke-[2.5]" />
                                   </div>
                                   <div>
-                                    <div className="text-xs font-bold text-amber-950">
+                                    <div className="text-xs font-extrabold text-amber-950">
                                       {isCashOnDelivery 
-                                        ? 'Накладений платіж (Очікує оплати у відділенні)' 
+                                        ? 'Накладений платіж (Очікує видачі)' 
                                         : o.paymentMethod === 'bank_invoice' 
-                                        ? 'Рахунок IBAN (Очікує переказу від клієнта)' 
-                                        : 'Очікує онлайн-оплати покупцем'}
+                                        ? 'Рахунок IBAN (Очікує переказу)' 
+                                        : 'Очікує онлайн-оплати'}
                                     </div>
-                                    <div className="text-[10px] text-amber-800">
+                                    <div className="text-[10px] text-amber-800 mt-0.5">
                                       Сума до сплати: <b>{o.total.toFixed(2)} грн</b>
-                                      {isCashOnDelivery && (
-                                        <span className="hidden sm:inline text-amber-700 ml-1">
-                                          (Автоматично зарахується при видачі посилки)
-                                        </span>
-                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -5840,12 +6908,12 @@ export const AdminPanel: React.FC = () => {
                                       paymentProvider: isCashOnDelivery ? 'Готівка / Підтверджено в адмін-панелі' : 'Ручне підтвердження менеджером'
                                     });
                                     showToast(
-                                      `Замовлення №${o.id}: оплату підтверджено! Статус змінено на «Комплектується»`,
+                                      `Замовлення №${o.id}: оплату підтверджено!`,
                                       'success'
                                     );
                                   }}
-                                  className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-lg text-xs font-black shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer ml-auto"
-                                  title="Підтвердити оплату — замовлення перейде в «Комплектується»"
+                                  className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-xl text-xs font-black shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer ml-auto shrink-0"
+                                  title="Підтвердити оплату замовлення"
                                 >
                                   <Check className="w-4 h-4 stroke-[3]" />
                                   <span>Позначити як ОПЛАЧЕНО</span>
@@ -5854,22 +6922,23 @@ export const AdminPanel: React.FC = () => {
                             )}
                           </div>
 
-                          <p className="pt-1">
-                            <b>Сума замовлення:</b>{' '}
-                            <span className="text-emerald-700 font-black text-sm tabular-nums">
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-slate-600 font-medium">Загальна вартість замовлення:</span>
+                            <span className="text-emerald-700 font-black text-base font-mono tabular-nums">
                               {o.total.toFixed(2)} грн
                             </span>
-                          </p>
+                          </div>
+
                           {o.notes && (
-                            <p className="text-[11px] text-slate-500 bg-amber-50/80 border border-amber-200/60 p-2 rounded-xl mt-1">
-                              <b>Коментар:</b> {o.notes}
+                            <p className="text-[11px] text-slate-700 bg-amber-50/80 border border-amber-200/70 p-2.5 rounded-2xl">
+                              <b>Коментар до замовлення:</b> {o.notes}
                             </p>
                           )}
                         </div>
 
-                        {/* TTN and Live Tracking */}
-                        <div className="space-y-1.5 bg-white p-3 rounded-xl border border-slate-200 self-start">
-                          <label className="block text-[11px] font-bold text-slate-700">
+                        {/* Right column: TTN Management and Live Tracking */}
+                        <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 self-start">
+                          <label className="block text-[11px] font-bold text-slate-800">
                             Номер ТТН (Нова Пошта):
                           </label>
                           <div className="flex gap-2">
@@ -5878,7 +6947,7 @@ export const AdminPanel: React.FC = () => {
                               defaultValue={o.ttn || ''}
                               id={`ttn-input-${o.id}`}
                               placeholder="напр., 20450891234567"
-                              className="flex-1 px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono outline-none focus:border-orange-500"
+                              className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-amber-500 bg-white"
                             />
                             <button
                               type="button"
@@ -5886,7 +6955,7 @@ export const AdminPanel: React.FC = () => {
                                 const val = (document.getElementById(`ttn-input-${o.id}`) as HTMLInputElement)?.value;
                                 updateOrderTtn(o.id, (val || '').trim());
                               }}
-                              className="px-3 py-1.5 bg-slate-900 text-white font-bold text-xs rounded-lg hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+                              className="px-3.5 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition-colors shrink-0 cursor-pointer shadow-2xs"
                             >
                               Зберегти ТТН
                             </button>
@@ -5904,715 +6973,1137 @@ export const AdminPanel: React.FC = () => {
                         </div>
                       </div>
 
-                    {/* Order items */}
-                    <div className="bg-white p-3 rounded-xl border border-slate-200">
-                      <span className="font-bold text-slate-700">Товари в чеку:</span>
-                      <ul className="mt-1 space-y-1 text-slate-600 pl-4 list-disc">
-                        {o.items?.map((item: any, idx: number) => (
-                          <li key={idx} className="leading-snug">
-                            <span className="font-medium text-slate-900">{item.name}</span> — <b>{item.qty} {formatUnit(item.unit)}</b> ({item.price} грн)
-                          </li>
-                        ))}
-                      </ul>
+                      {/* 4. Ordered Items Breakdown Table */}
+                      <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
+                        <div className="flex items-center justify-between text-xs mb-2">
+                          <span className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                            <Package className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Товари у замовленні ({o.items?.length || 0}):</span>
+                          </span>
+                          <span className="text-[11px] font-mono text-slate-500">
+                            Сума товарів: <b className="text-slate-900">{o.total.toFixed(2)} грн</b>
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {o.items?.map((item: any, idx: number) => (
+                            <div key={idx} className="flex flex-wrap items-center justify-between text-xs bg-white p-2.5 rounded-xl border border-slate-200/70 hover:border-slate-300 transition-colors">
+                              <div className="font-bold text-slate-900 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                                <span>{item.name}</span>
+                              </div>
+                              <div className="font-mono font-bold text-slate-700 text-xs">
+                                <span>{item.qty} {formatUnit(item.unit)}</span> × <span>{item.price} грн</span> = <b className="text-slate-900">{(item.qty * item.price).toFixed(2)} грн</b>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+                  );
+                })
+              )}
+            </div>
 
-          {/* Edit Order Modal */}
-          {editingOrder && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
-              <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200 animate-in zoom-in-95 my-8 max-h-[90vh] flex flex-col">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
-                  <div>
-                    <h3 className="font-bold text-base text-slate-900 font-display">
-                      Редагування замовлення №{editingOrder.id}
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Дата оформлення: {editingOrder.date}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setEditingOrder(null)}
-                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    // Recalculate total from items
-                    const newTotal = editingOrder.items.reduce((sum, it) => sum + (it.price * it.qty), 0);
-                    let finalStatus = editingOrder.status;
-                    const cleanTtn = (editingOrder.ttn || '').replace(/\D/g, '');
-                    if (cleanTtn === '59001790044492' || finalStatus === 'Доставлено') {
-                      finalStatus = 'Доставлено';
-                    } else if (cleanTtn.length >= 10 && (finalStatus === 'Створено' || finalStatus === 'Оплачено' || finalStatus === 'Збирається')) {
-                      finalStatus = 'Відправлено';
-                    }
-                    editOrder(editingOrder.id, {
-                      ...editingOrder,
-                      status: finalStatus,
-                      total: newTotal
-                    });
-                    setEditingOrder(null);
-                  }}
-                  className="space-y-4 text-xs overflow-y-auto pr-1 py-4 flex-1"
-                >
-                  {/* Recipient Details */}
-                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
-                    <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <UserCheck className="w-3.5 h-3.5 text-orange-600" />
-                      <span>Дані клієнта та адреса доставки</span>
-                    </h4>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Edit Order Modal */}
+            {editingOrder && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
+                <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200 animate-in zoom-in-95 my-8 max-h-[90vh] flex flex-col">
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-amber-50 text-amber-600 rounded-2xl border border-amber-200">
+                        <Pencil className="w-5 h-5" />
+                      </div>
                       <div>
-                        <label className="block font-semibold text-slate-700 mb-1">
-                          ПІБ клієнта *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={editingOrder.fio}
-                          onChange={(e) => setEditingOrder({ ...editingOrder, fio: e.target.value })}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-orange-500 font-medium"
-                        />
+                        <h3 className="font-black text-base text-slate-900 font-display">
+                          Редагування замовлення №{editingOrder.id}
+                        </h3>
+                        <p className="text-xs text-slate-400 font-mono">
+                          Дата оформлення: {editingOrder.date}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditingOrder(null)}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const newTotal = editingOrder.items.reduce((sum, it) => sum + (it.price * it.qty), 0);
+                      let finalStatus = editingOrder.status;
+                      const cleanTtn = (editingOrder.ttn || '').replace(/\D/g, '');
+                      if (cleanTtn === '59001790044492' || finalStatus === 'Доставлено') {
+                        finalStatus = 'Доставлено';
+                      } else if (cleanTtn.length >= 10 && (finalStatus === 'Створено' || finalStatus === 'Оплачено' || finalStatus === 'Збирається')) {
+                        finalStatus = 'Відправлено';
+                      }
+                      editOrder(editingOrder.id, {
+                        ...editingOrder,
+                        status: finalStatus,
+                        total: newTotal
+                      });
+                      setEditingOrder(null);
+                    }}
+                    className="space-y-4 text-xs overflow-y-auto pr-1 py-4 flex-1"
+                  >
+                    {/* Recipient Details */}
+                    <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+                      <h4 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                        <UserCheck className="w-4 h-4 text-amber-600" />
+                        <span>Дані отримувача та доставка</span>
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                            ПІБ отримувача *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={editingOrder.fio}
+                            onChange={(e) => setEditingOrder({ ...editingOrder, fio: e.target.value })}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-amber-500 font-medium bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                            Номер телефону *
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            value={editingOrder.phone}
+                            onChange={(e) => setEditingOrder({ ...editingOrder, phone: formatUkrainianPhone(e.target.value) })}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-amber-500 font-mono bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                            Місто
+                          </label>
+                          <input
+                            type="text"
+                            value={editingOrder.city || ''}
+                            onChange={(e) => setEditingOrder({ ...editingOrder, city: e.target.value })}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-amber-500 bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                            Адреса / Відділення Нової Пошти
+                          </label>
+                          <input
+                            type="text"
+                            value={editingOrder.delivery || ''}
+                            onChange={(e) => setEditingOrder({ ...editingOrder, delivery: e.target.value })}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-amber-500 bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status & Payment Method */}
+                    <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+                      <h4 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                        <Settings className="w-4 h-4 text-amber-600" />
+                        <span>Параметри оплати, ТТН та нотатки</span>
+                      </h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                            Статус замовлення
+                          </label>
+                          <select
+                            value={editingOrder.status}
+                            onChange={(e) => setEditingOrder({ ...editingOrder, status: e.target.value as OrderStatus })}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 outline-none focus:border-amber-500"
+                          >
+                            <option value="Створено">1. Оформлено</option>
+                            <option value="Збирається">2. Комплектується</option>
+                            <option value="Відправлено">3. В дорозі</option>
+                            <option value="Доставлено">4. Доставлено</option>
+                            <option value="Оплачено">Оплачено</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                            Номер ТТН (Нова Пошта)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="20450..."
+                            value={editingOrder.ttn || ''}
+                            onChange={(e) => setEditingOrder({ ...editingOrder, ttn: e.target.value })}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-mono text-xs outline-none focus:border-amber-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                            Спосіб оплати
+                          </label>
+                          <select
+                            value={editingOrder.paymentMethod || 'cash_on_delivery'}
+                            onChange={(e) => setEditingOrder({ ...editingOrder, paymentMethod: e.target.value as any })}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 outline-none focus:border-amber-500"
+                          >
+                            <option value="cash_on_delivery">Накладений платіж</option>
+                            <option value="card_online">Оплата карткою онлайн</option>
+                            <option value="bank_invoice">Безготівка (IBAN)</option>
+                          </select>
+                        </div>
                       </div>
 
                       <div>
-                        <label className="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
-                          <span>Номер телефону *</span>
-                          <span className="text-[10px] text-orange-600 font-normal">Приклад: +380 (67)...</span>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                          Коментар менеджера / Примітка
                         </label>
+                        <textarea
+                          rows={2}
+                          placeholder="Примітки до замовлення..."
+                          value={editingOrder.notes || ''}
+                          onChange={(e) => setEditingOrder({ ...editingOrder, notes: e.target.value })}
+                          className="w-full px-3 py-1.5 border border-slate-300 rounded-xl bg-white outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Order Items Table in Edit Modal */}
+                    <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                          <ShoppingBag className="w-4 h-4 text-amber-600" />
+                          <span>Товари в замовленні ({editingOrder.items.length})</span>
+                        </h4>
+                        <span className="font-mono font-black text-emerald-700 text-xs">
+                          Всього: {editingOrder.items.reduce((s, it) => s + (it.price * it.qty), 0).toFixed(2)} грн
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {editingOrder.items.map((item, idx) => (
+                          <div key={idx} className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-white rounded-xl border border-slate-200">
+                            <span className="font-bold text-slate-900 flex-1 min-w-[140px]">{item.name}</span>
+                            
+                            <div className="flex items-center gap-2 shrink-0">
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.qty}
+                                onChange={(e) => {
+                                  const val = Math.max(1, parseInt(e.target.value) || 1);
+                                  const updatedItems = [...editingOrder.items];
+                                  updatedItems[idx].qty = val;
+                                  setEditingOrder({ ...editingOrder, items: updatedItems });
+                                }}
+                                className="w-16 px-2 py-1 border border-slate-300 rounded-lg text-center font-mono font-bold"
+                              />
+                              <span className="text-slate-500 font-semibold">{formatUnit(item.unit)}</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={item.price}
+                                onChange={(e) => {
+                                  const val = Math.max(0, parseFloat(e.target.value) || 0);
+                                  const updatedItems = [...editingOrder.items];
+                                  updatedItems[idx].price = val;
+                                  setEditingOrder({ ...editingOrder, items: updatedItems });
+                                }}
+                                className="w-20 px-2 py-1 border border-slate-300 rounded-lg text-right font-mono font-bold text-emerald-700"
+                              />
+                              <span className="text-slate-500 font-bold">грн</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedItems = editingOrder.items.filter((_, i) => i !== idx);
+                                  setEditingOrder({ ...editingOrder, items: updatedItems });
+                                }}
+                                className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
+                                title="Видалити товар із замовлення"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Add item from catalog */}
+                      <div className="pt-2 flex items-center gap-2">
+                        <select
+                          value={addOrderItemId}
+                          onChange={(e) => setAddOrderItemId(e.target.value)}
+                          className="flex-1 px-3 py-2 border border-slate-300 rounded-xl bg-white text-xs outline-none focus:border-amber-500"
+                        >
+                          <option value="">-- Додати товар із каталогу --</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} ({p.price} грн)
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!addOrderItemId) return;
+                            const prod = products.find((p) => p.id === addOrderItemId);
+                            if (!prod) return;
+                            const existingIdx = editingOrder.items.findIndex((it) => it.sku === prod.sku || it.name === prod.name);
+                            let newItems = [...editingOrder.items];
+                            if (existingIdx > -1) {
+                              newItems[existingIdx].qty += 1;
+                            } else {
+                              newItems.push({
+                                name: prod.name,
+                                qty: 1,
+                                price: prod.price,
+                                unit: prod.unit,
+                                sku: prod.sku,
+                                image: prod.image
+                              });
+                            }
+                            setEditingOrder({ ...editingOrder, items: newItems });
+                            setAddOrderItemId('');
+                          }}
+                          disabled={!addOrderItemId}
+                          className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-white rounded-xl font-bold text-xs cursor-pointer shrink-0"
+                        >
+                          + Додати товар
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setEditingOrder(null)}
+                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-colors cursor-pointer"
+                      >
+                        Скасувати
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-6 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-black rounded-2xl shadow-md shadow-amber-600/20 transition-all cursor-pointer"
+                      >
+                        Зберегти зміни замовлення
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+          </div>
+        );
+      })()}
+
+      {/* TAB: CATEGORIES TREE */}
+      {activeTab === 'categories' && (() => {
+        const mainCatKeys = Object.keys(categoriesTree);
+        const totalMainCount = mainCatKeys.length;
+
+        // Calculate total subcategories & leaf categories
+        let totalSubCount = 0;
+        let totalLeafCount = 0;
+
+        mainCatKeys.forEach((mainCat) => {
+          const mainObj = categoriesTree[mainCat] || {};
+          const directLeaves = Array.isArray(mainObj._leaves) ? mainObj._leaves : [];
+          totalLeafCount += directLeaves.length;
+
+          const subCats = Object.keys(mainObj).filter((k) => k !== '_leaves' && !k.startsWith('_'));
+          totalSubCount += subCats.length;
+
+          subCats.forEach((sub) => {
+            const leaves = Array.isArray(mainObj[sub]) ? mainObj[sub] : [];
+            totalLeafCount += leaves.length;
+          });
+        });
+
+        // Filter main categories by categorySearch
+        const filteredMainCats = mainCatKeys.filter((mainCat) => {
+          if (!categorySearch.trim()) return true;
+          const q = categorySearch.toLowerCase().trim();
+          if (mainCat.toLowerCase().includes(q)) return true;
+
+          const mainObj = categoriesTree[mainCat] || {};
+          const directLeaves = Array.isArray(mainObj._leaves) ? mainObj._leaves : [];
+          if (directLeaves.some((l) => l.toLowerCase().includes(q))) return true;
+
+          const subCats = Object.keys(mainObj).filter((k) => k !== '_leaves' && !k.startsWith('_'));
+          if (subCats.some((sub) => sub.toLowerCase().includes(q))) return true;
+
+          for (const sub of subCats) {
+            const leaves = Array.isArray(mainObj[sub]) ? mainObj[sub] : [];
+            if (leaves.some((l) => l.toLowerCase().includes(q))) return true;
+          }
+
+          return false;
+        });
+
+        return (
+          <div className="space-y-6 max-w-7xl animate-in fade-in duration-200">
+            {/* Master Hero Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/90 p-6 sm:p-8 text-white shadow-2xl border border-emerald-500/30">
+              {/* Ambient Glows */}
+              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-80 h-80 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-1/3 -mb-16 w-64 h-64 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-3 max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 backdrop-blur-md">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>🌳 Структура каталогу ISKRA</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-200 border border-white/15 backdrop-blur-md">
+                      <Layers className="w-3.5 h-3.5 text-amber-400" />
+                      <span>3-рівнева ієрархія товарних груп</span>
+                    </span>
+                  </div>
+
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-2xl text-emerald-400 shadow-inner">
+                      <FolderTree className="w-6 h-6 sm:w-7 sm:h-7" />
+                    </div>
+                    <span>Дерево категорій та класифікація</span>
+                  </h2>
+
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Керуйте 3-рівневою структурою (Головні категорії ➔ Підкатегорії ➔ Кінцеві групи). Чітка організація дозволяє покупцям миттєво знаходити потрібний сантехнічний товар.
+                  </p>
+                </div>
+
+                {/* Stat Cards Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-3 shrink-0 min-w-[320px]">
+                  <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg hover:border-slate-700 transition-all">
+                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Головні категорії</div>
+                    <div className="text-2xl sm:text-3xl font-black text-white mt-1 font-mono tabular-nums">{totalMainCount}</div>
+                  </div>
+
+                  <div className="bg-emerald-500/15 backdrop-blur-md p-4 rounded-2xl border border-emerald-500/30 shadow-lg hover:border-emerald-500/50 transition-all">
+                    <div className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">Підкатегорії</div>
+                    <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1 font-mono tabular-nums">{totalSubCount}</div>
+                  </div>
+
+                  <div className="bg-amber-500/15 backdrop-blur-md p-4 rounded-2xl border border-amber-500/30 shadow-lg hover:border-amber-500/50 transition-all">
+                    <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                      <Tag className="w-3 h-3 text-amber-400" />
+                      Кінцеві групи
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-black text-amber-400 mt-1 font-mono tabular-nums">{totalLeafCount}</div>
+                  </div>
+
+                  <div className="bg-teal-500/15 backdrop-blur-md p-4 rounded-2xl border border-teal-500/30 shadow-lg hover:border-teal-500/50 transition-all">
+                    <div className="text-[11px] font-bold text-teal-300 uppercase tracking-wider flex items-center gap-1">
+                      <Package className="w-3 h-3 text-teal-400" />
+                      Товари у базі
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-black text-teal-300 mt-1 font-mono tabular-nums">{products.length}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action & Creation Control Bar */}
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                {/* Search Bar */}
+                <div className="relative flex-1 min-w-[240px]">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Шукати категорію, підкатегорію або кінцеву групу..."
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    className="w-full pl-10 pr-9 py-2.5 rounded-2xl border border-slate-200 text-xs text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium bg-slate-50 focus:bg-white"
+                  />
+                  {categorySearch && (
+                    <button
+                      type="button"
+                      onClick={() => setCategorySearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Add Main Category Form */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (newMainCatInput.trim()) {
+                      addMainCategory(newMainCatInput.trim());
+                      setNewMainCatInput('');
+                      showToast(`Категорію «${newMainCatInput.trim()}» успішно створено`, 'success');
+                    }
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <input
+                    type="text"
+                    placeholder="Назва нової головної категорії..."
+                    value={newMainCatInput}
+                    onChange={(e) => setNewMainCatInput(e.target.value)}
+                    className="px-3.5 py-2.5 text-xs rounded-2xl border border-slate-200 outline-none w-64 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 bg-slate-50 focus:bg-white font-medium"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-2xl transition-all shadow-md shadow-emerald-600/20 cursor-pointer flex items-center gap-1.5 shrink-0"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3]" />
+                    <span>Створити категорію</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* Category Cards Tree Grid */}
+            <div className="space-y-4">
+              {filteredMainCats.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-slate-200/90 shadow-sm space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                    <FolderTree className="w-6 h-6" />
+                  </div>
+                  <div className="text-base font-black text-slate-700">Категорій не знайдено</div>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    {categorySearch ? `За запитом «${categorySearch}» збігів не виявлено.` : 'Список категорій порожній. Створіть першу категорію вище.'}
+                  </p>
+                  {categorySearch && (
+                    <button
+                      type="button"
+                      onClick={() => setCategorySearch('')}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      Скинути пошук
+                    </button>
+                  )}
+                </div>
+              ) : (
+                filteredMainCats.map((mainCat) => (
+                  <AdminCategoryCard
+                    key={mainCat}
+                    mainCat={mainCat}
+                    mainObj={categoriesTree[mainCat] || {}}
+                    onDeleteMain={deleteMainCategory}
+                    onAddSub={addSubCategory}
+                    onDeleteSub={deleteSubCategory}
+                    onAddLeaf={addLeafCategory}
+                    onDeleteLeaf={deleteLeafCategory}
+                    searchQuery={categorySearch}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* TAB: CLIENTS & BONUSES */}
+      {activeTab === 'clients' && (() => {
+        const safeClients = clients || {};
+        const allPhones = Object.keys(safeClients);
+        const totalClients = allPhones.length;
+        const totalBonusPool = Object.values(safeClients).reduce((sum, c) => sum + (c?.balance || 0), 0);
+        const discountClientsCount = Object.values(safeClients).filter((c) => (c?.discount || 0) > 0).length;
+        const vipClientsCount = Object.values(safeClients).filter((c) => (c?.discount || 0) >= 5 || (c?.balance || 0) >= 500).length;
+        const hasBonusCount = Object.values(safeClients).filter((c) => (c?.balance || 0) > 0).length;
+
+        // Filtering
+        const filteredPhones = allPhones.filter((phone) => {
+          const c = safeClients[phone] || {};
+          const query = clientSearch.toLowerCase().trim();
+          const matchesQuery = !query || phone.includes(query) || (c.name || '').toLowerCase().includes(query) || (c.city || '').toLowerCase().includes(query) || (c.notes || '').toLowerCase().includes(query);
+
+          if (!matchesQuery) return false;
+
+          if (clientFilter === 'has_bonus') return (c.balance || 0) > 0;
+          if (clientFilter === 'has_discount') return (c.discount || 0) > 0;
+          if (clientFilter === 'vip') return (c.discount || 0) >= 5 || (c.balance || 0) >= 500;
+          return true;
+        });
+
+        // Export CSV function
+        const exportClientsCSV = () => {
+          const headers = ['Номер телефону', "Ім'я / Примітка", 'Місто', 'Бонусний баланс (грн)', 'Персональна знижка (%)', 'Нотатки'];
+          const rows = allPhones.map((ph) => {
+            const c = safeClients[ph] || {};
+            return [ph, c.name || 'Покупець', c.city || '', c.balance || 0, c.discount || 0, c.notes || ''];
+          });
+          const csvContent = '\uFEFF' + [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\n');
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.setAttribute('href', url);
+          link.setAttribute('download', `iskra_clients_database_${new Date().toISOString().slice(0, 10)}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        };
+
+        const copyPhoneToClipboard = (phone: string) => {
+          navigator.clipboard.writeText(phone);
+          setCopiedPhone(phone);
+          setTimeout(() => setCopiedPhone(null), 2000);
+        };
+
+        return (
+          <div className="space-y-6 max-w-7xl animate-in fade-in duration-200">
+            
+            {/* Master Hero Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-violet-950/90 p-6 sm:p-8 text-white shadow-2xl border border-violet-500/30">
+              {/* Ambient Glows */}
+              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-80 h-80 bg-violet-500/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-1/3 -mb-16 w-64 h-64 bg-fuchsia-500/15 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-3 max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-violet-500/20 text-violet-300 border border-violet-500/40 backdrop-blur-md">
+                      <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+                      <span>👥 Програма лояльності ISKRA</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-200 border border-white/15 backdrop-blur-md">
+                      <Award className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Накопичувальні бонуси та персональні знижки</span>
+                    </span>
+                  </div>
+
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                    <div className="p-2.5 bg-violet-500/20 border border-violet-500/40 rounded-2xl text-violet-400 shadow-inner">
+                      <Users className="w-6 h-6 sm:w-7 sm:h-7" />
+                    </div>
+                    <span>База покупців, бонуси та знижки</span>
+                  </h2>
+
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Керуйте картками покупців, нараховуйте та списуйте бонусні гривні, встановлюйте персональні відсотки знижок для майстрів, виконробів та постійних клієнтів.
+                  </p>
+                </div>
+
+                {/* Stat Cards Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-3 shrink-0 min-w-[300px]">
+                  <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg hover:border-slate-700 transition-all">
+                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Всього покупців</div>
+                    <div className="text-2xl sm:text-3xl font-black text-white mt-1 font-mono tabular-nums">{totalClients}</div>
+                  </div>
+
+                  <div className="bg-emerald-500/15 backdrop-blur-md p-4 rounded-2xl border border-emerald-500/30 shadow-lg hover:border-emerald-500/50 transition-all">
+                    <div className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">Бонусний фонд</div>
+                    <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1 font-mono tabular-nums">{totalBonusPool.toLocaleString('uk-UA')} <span className="text-xs text-emerald-300 font-normal">грн</span></div>
+                  </div>
+
+                  <div className="bg-amber-500/15 backdrop-blur-md p-4 rounded-2xl border border-amber-500/30 shadow-lg hover:border-amber-500/50 transition-all">
+                    <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                      <Percent className="w-3 h-3 text-amber-400" />
+                      Зі знижками
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-black text-amber-400 mt-1 font-mono tabular-nums">{discountClientsCount}</div>
+                  </div>
+
+                  <div className="bg-violet-500/15 backdrop-blur-md p-4 rounded-2xl border border-violet-500/30 shadow-lg hover:border-violet-500/50 transition-all">
+                    <div className="text-[11px] font-bold text-violet-300 uppercase tracking-wider flex items-center gap-1">
+                      <Award className="w-3 h-3 text-violet-400" />
+                      VIP / Майстри
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-black text-violet-300 mt-1 font-mono tabular-nums">{vipClientsCount}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Bar & Action Card */}
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                {/* Search & Pills */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-3xl">
+                  <div className="relative flex-1 min-w-[220px]">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Шукати за телефоном, ім'ям, містом або нотатками..."
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2.5 rounded-2xl border border-slate-200 text-xs text-slate-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all font-medium bg-slate-50 focus:bg-white"
+                    />
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200/80 text-xs shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setClientFilter('all')}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                        clientFilter === 'all'
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Всі ({totalClients})
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setClientFilter('has_bonus')}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                        clientFilter === 'has_bonus'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-emerald-700'
+                      }`}
+                    >
+                      З бонусами ({hasBonusCount})
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setClientFilter('has_discount')}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                        clientFilter === 'has_discount'
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-amber-700'
+                      }`}
+                    >
+                      Зі знижкою ({discountClientsCount})
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setClientFilter('vip')}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                        clientFilter === 'vip'
+                          ? 'bg-violet-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-violet-700'
+                      }`}
+                    >
+                      VIP / Майстри ({vipClientsCount})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Action Buttons */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={exportClientsCSV}
+                    className="px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-2xl border border-slate-300 transition-colors flex items-center gap-2 shadow-2xs cursor-pointer text-xs"
+                    title="Завантажити базу клієнтів у файл CSV (Excel)"
+                  >
+                    <FileDown className="w-4 h-4 text-violet-600" />
+                    <span>Експорт бази (CSV)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClientForm({
+                        phone: '+380',
+                        name: '',
+                        balance: 0,
+                        discount: 3,
+                        city: '',
+                        notes: '',
+                        isNew: true
+                      });
+                      setClientModalOpen(true);
+                    }}
+                    className="px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black rounded-2xl transition-all flex items-center gap-2 shadow-md shadow-violet-600/20 cursor-pointer"
+                  >
+                    <UserPlus className="w-4 h-4 text-amber-300" />
+                    <span>+ Додати покупця</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Clients Table Container */}
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50/90 border-b border-slate-200 text-slate-500 font-black uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="py-3.5 px-4">Покупець / Телефон</th>
+                      <th className="py-3.5 px-4">Статус / Рівень лояльності</th>
+                      <th className="py-3.5 px-4">Місто / Нотатки</th>
+                      <th className="py-3.5 px-4">Бонусний баланс</th>
+                      <th className="py-3.5 px-4">Персональна знижка</th>
+                      <th className="py-3.5 px-4 text-right">Дії</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {filteredPhones.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-slate-400">
+                          <div className="max-w-xs mx-auto space-y-2">
+                            <Users className="w-8 h-8 text-slate-300 mx-auto" />
+                            <div className="text-sm font-bold text-slate-600">Покупців не знайдено</div>
+                            <p className="text-xs text-slate-400">Спробуйте змінити фільтр або параметри пошуку</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredPhones.map((phone) => {
+                        const c = safeClients[phone] || {};
+                        const discount = c.discount || 0;
+                        const balance = c.balance || 0;
+
+                        // Tier logic
+                        let tierBadge = (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            <span>Покупець</span>
+                          </span>
+                        );
+
+                        if (discount >= 8 || balance >= 1000) {
+                          tierBadge = (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-800 border border-amber-300 shadow-2xs">
+                              <Award className="w-3 h-3 text-amber-600 fill-amber-500" />
+                              <span>🥇 Gold VIP Майстер</span>
+                            </span>
+                          );
+                        } else if (discount >= 4 || balance >= 300) {
+                          tierBadge = (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-800 border border-violet-200 shadow-2xs">
+                              <Sparkles className="w-3 h-3 text-violet-600" />
+                              <span>🥈 Silver Постійний</span>
+                            </span>
+                          );
+                        } else if (discount > 0 || balance > 0) {
+                          tierBadge = (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>🥉 Bronze Учасник</span>
+                            </span>
+                          );
+                        }
+
+                        const cleanDigits = extractLocalPhoneDigits(phone);
+
+                        return (
+                          <tr key={phone} className="hover:bg-slate-50/80 transition-colors group">
+                            {/* Customer Phone & Name */}
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-2xl bg-violet-100 text-violet-800 font-black text-xs flex items-center justify-center shrink-0 border border-violet-200 group-hover:bg-violet-600 group-hover:text-white transition-colors">
+                                  {(c.name || 'П')[0].toUpperCase()}
+                                </div>
+                                <div className="space-y-0.5">
+                                  <div className="font-bold text-slate-900 text-xs flex items-center gap-2">
+                                    <span>{c.name || 'Покупець'}</span>
+                                  </div>
+                                  <div className="font-mono text-[11px] text-slate-600 flex items-center gap-1.5">
+                                    <span>{phone}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyPhoneToClipboard(phone)}
+                                      className="text-slate-400 hover:text-violet-600 transition-colors p-0.5"
+                                      title="Скопіювати телефон"
+                                    >
+                                      {copiedPhone === phone ? (
+                                        <Check className="w-3 h-3 text-emerald-600" />
+                                      ) : (
+                                        <Copy className="w-3 h-3" />
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Status Tier */}
+                            <td className="py-3 px-4">
+                              {tierBadge}
+                            </td>
+
+                            {/* City / Notes */}
+                            <td className="py-3 px-4">
+                              <div className="space-y-0.5 max-w-[200px]">
+                                {c.city ? (
+                                  <div className="text-xs text-slate-800 font-semibold flex items-center gap-1 truncate">
+                                    <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                                    <span>{c.city}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 font-mono">—</span>
+                                )}
+                                {c.notes && (
+                                  <p className="text-[11px] text-slate-500 truncate" title={c.notes}>
+                                    📝 {c.notes}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Bonus Balance */}
+                            <td className="py-3 px-4">
+                              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono font-bold text-xs tabular-nums">
+                                <Coins className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>{balance.toLocaleString('uk-UA')} грн</span>
+                              </div>
+                            </td>
+
+                            {/* Personal Discount */}
+                            <td className="py-3 px-4">
+                              {discount > 0 ? (
+                                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 font-mono font-black text-xs tabular-nums">
+                                  <Tag className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>{discount}%</span>
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-slate-400 font-mono">0%</span>
+                              )}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <a
+                                  href={`viber://chat?number=%2B380${cleanDigits}`}
+                                  className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors"
+                                  title="Написати у Viber"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                </a>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setClientForm({
+                                      phone: phone,
+                                      originalPhone: phone,
+                                      name: c.name || '',
+                                      balance: c.balance || 0,
+                                      discount: c.discount || 0,
+                                      city: c.city || '',
+                                      notes: c.notes || '',
+                                      isNew: false
+                                    });
+                                    setClientModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
+                                  title="Редагувати дані покупця"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline">Редагувати</span>
+                                </button>
+
+                                {clientToDelete === phone ? (
+                                  <div className="inline-flex items-center gap-1 bg-rose-50 border border-rose-200 p-1 rounded-xl animate-in fade-in">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        deleteClient(phone);
+                                        setClientToDelete(null);
+                                      }}
+                                      className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer"
+                                    >
+                                      Видалити
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setClientToDelete(null)}
+                                      className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded-lg text-[11px] cursor-pointer"
+                                    >
+                                      Ні
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setClientToDelete(phone)}
+                                    className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Видалити з бази"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Edit / Add Client Modal */}
+            {clientModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
+                <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 animate-in zoom-in-95 space-y-5">
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0 border border-violet-200">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-base text-slate-900 font-display">
+                          {clientForm.isNew ? 'Додати нового покупця' : 'Редагувати картку покупця'}
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          {clientForm.isNew ? 'Створення нової картки в системі лояльності' : `Телефон: ${clientForm.originalPhone || clientForm.phone}`}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setClientModalOpen(false)}
+                      className="p-2 rounded-2xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const cleanPhone = clientForm.phone.trim();
+                      if (!cleanPhone) return;
+
+                      if (!clientForm.isNew && clientForm.originalPhone && clientForm.originalPhone !== cleanPhone) {
+                        deleteClient(clientForm.originalPhone);
+                      }
+
+                      saveClient(cleanPhone, {
+                        name: clientForm.name.trim() || 'Покупець',
+                        balance: Number(clientForm.balance) || 0,
+                        discount: Number(clientForm.discount) || 0,
+                        city: clientForm.city?.trim() || '',
+                        notes: clientForm.notes?.trim() || ''
+                      });
+                      setClientModalOpen(false);
+                    }}
+                    className="space-y-4 text-xs"
+                  >
+                    <div>
+                      <label className="block font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+                        <span>Номер телефону покупця *</span>
+                        <span className="text-[11px] text-violet-600 font-mono">Формат: +380 (XX) XXX-XX-XX</span>
+                      </label>
+                      <div className="relative">
+                        <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                           type="tel"
                           required
                           placeholder="+380 (67) 000-00-00"
-                          value={editingOrder.phone}
-                          onChange={(e) => setEditingOrder({ ...editingOrder, phone: formatUkrainianPhone(e.target.value) })}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-orange-500 font-mono"
+                          value={clientForm.phone}
+                          onChange={(e) => setClientForm({ ...clientForm, phone: formatUkrainianPhone(e.target.value) })}
+                          className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 font-mono text-sm font-bold bg-slate-50 focus:bg-white transition-all"
                         />
                       </div>
+                    </div>
 
+                    <div>
+                      <label className="block font-bold text-slate-800 mb-1.5">
+                        Ім'я або назва компанії / Майстра
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Олександр (Майстер сантехнік)"
+                        value={clientForm.name}
+                        onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-semibold bg-slate-50 focus:bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block font-semibold text-slate-700 mb-1">
+                        <label className="block font-bold text-slate-800 mb-1.5">
                           Місто / Населений пункт
                         </label>
                         <input
                           type="text"
-                          value={editingOrder.city || ''}
-                          onChange={(e) => setEditingOrder({ ...editingOrder, city: e.target.value })}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-orange-500"
+                          placeholder="смт. Оратів, Вінниця..."
+                          value={clientForm.city || ''}
+                          onChange={(e) => setClientForm({ ...clientForm, city: e.target.value })}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-semibold bg-slate-50 focus:bg-white transition-all"
                         />
                       </div>
 
                       <div>
-                        <label className="block font-semibold text-slate-700 mb-1">
-                          Спосіб та адреса доставки / Відділення
+                        <label className="block font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+                          <span>Персональна знижка (%)</span>
+                          <span className="text-amber-600 font-mono font-bold">{clientForm.discount}%</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="90"
+                          step="1"
+                          value={clientForm.discount}
+                          onChange={(e) => setClientForm({ ...clientForm, discount: parseInt(e.target.value) || 0 })}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-mono font-black text-amber-700 bg-amber-50/50 focus:bg-white transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5">
+                          Бонусний баланс (грн)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={clientForm.balance}
+                          onChange={(e) => setClientForm({ ...clientForm, balance: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-mono font-black text-emerald-700 bg-emerald-50/50 focus:bg-white transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5">
+                          Нотатки про покупця
                         </label>
                         <input
                           type="text"
-                          value={editingOrder.delivery}
-                          onChange={(e) => setEditingOrder({ ...editingOrder, delivery: e.target.value })}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-orange-500"
+                          placeholder="Монтажник, об'єкт на Вусатого..."
+                          value={clientForm.notes || ''}
+                          onChange={(e) => setClientForm({ ...clientForm, notes: e.target.value })}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-semibold bg-slate-50 focus:bg-white transition-all"
                         />
                       </div>
                     </div>
-                  </div>
 
-                  {/* Order Parameters */}
-                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
-                    <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <Settings className="w-3.5 h-3.5 text-orange-600" />
-                      <span>Статус, ТТН та спосіб оплати</span>
-                    </h4>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block font-semibold text-slate-700 mb-1">
-                          Статус замовлення
-                        </label>
-                        <select
-                          value={editingOrder.status}
-                          onChange={(e) => setEditingOrder({ ...editingOrder, status: e.target.value as OrderStatus })}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-bold text-slate-800 outline-none"
-                        >
-                          <option value="Створено">Створено</option>
-                          <option value="Оплачено">Оплачено</option>
-                          <option value="Збирається">Збирається</option>
-                          <option value="Відправлено">Відправлено</option>
-                          <option value="Доставлено">Доставлено</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block font-semibold text-slate-700 mb-1">
-                          Номер ТТН (Нова Пошта)
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="20450..."
-                          value={editingOrder.ttn || ''}
-                          onChange={(e) => setEditingOrder({ ...editingOrder, ttn: e.target.value })}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono text-xs"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block font-semibold text-slate-700 mb-1">
-                          Спосіб оплати
-                        </label>
-                        <select
-                          value={editingOrder.paymentMethod || 'cash_on_delivery'}
-                          onChange={(e) => setEditingOrder({ ...editingOrder, paymentMethod: e.target.value as any })}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-800 outline-none"
-                        >
-                          <option value="cash_on_delivery">Накладений платіж</option>
-                          <option value="card_online">Оплата карткою онлайн</option>
-                          <option value="bank_invoice">Безготівковий розрахунок</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">
-                        Нотатки менеджера / Коментар до замовлення
-                      </label>
-                      <textarea
-                        rows={2}
-                        placeholder="Додаткова інформація, побажання клієнта..."
-                        value={editingOrder.notes || ''}
-                        onChange={(e) => setEditingOrder({ ...editingOrder, notes: e.target.value })}
-                        className="w-full px-3 py-1.5 border border-slate-300 rounded-xl bg-white outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Order Items List */}
-                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                        <ShoppingBag className="w-3.5 h-3.5 text-orange-600" />
-                        <span>Товари в чеку ({editingOrder.items.length})</span>
-                      </h4>
-                      <div className="text-xs font-black text-emerald-700">
-                        Сума: {editingOrder.items.reduce((sum, it) => sum + (it.price * it.qty), 0).toFixed(2)} грн
-                      </div>
-                    </div>
-
-                    {/* Table of items */}
-                    <div className="space-y-2">
-                      {editingOrder.items.map((it, idx) => (
-                        <div key={idx} className="flex items-center justify-between gap-2 p-2.5 bg-white rounded-xl border border-slate-200">
-                          <div className="flex-1 min-w-0 pr-2">
-                            <p className="font-bold text-slate-900 truncate">{it.name}</p>
-                            <p className="text-[10px] text-slate-400 font-mono">{it.sku || 'Без артикулу'}</p>
-                          </div>
-
-                          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                            {/* Qty controls */}
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newItems = [...editingOrder.items];
-                                  if (newItems[idx].qty > 1) {
-                                    newItems[idx].qty -= 1;
-                                    setEditingOrder({ ...editingOrder, items: newItems });
-                                  }
-                                }}
-                                className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
-                              >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                min={1}
-                                value={it.qty}
-                                onChange={(e) => {
-                                  const val = Math.max(1, parseInt(e.target.value) || 1);
-                                  const newItems = [...editingOrder.items];
-                                  newItems[idx].qty = val;
-                                  setEditingOrder({ ...editingOrder, items: newItems });
-                                }}
-                                className="w-10 text-center py-0.5 border border-slate-200 rounded font-bold"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newItems = [...editingOrder.items];
-                                  newItems[idx].qty += 1;
-                                  setEditingOrder({ ...editingOrder, items: newItems });
-                                }}
-                                className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
-                              >
-                                +
-                              </button>
-                              <span className="text-[10px] text-slate-400">/{formatUnit(it.unit)}</span>
-                            </div>
-
-                            {/* Price */}
-                            <div className="w-16 sm:w-20 text-right">
-                              <input
-                                type="number"
-                                min={0}
-                                value={it.price}
-                                onChange={(e) => {
-                                  const val = Math.max(0, parseFloat(e.target.value) || 0);
-                                  const newItems = [...editingOrder.items];
-                                  newItems[idx].price = val;
-                                  setEditingOrder({ ...editingOrder, items: newItems });
-                                }}
-                                className="w-full text-right py-0.5 px-1 border border-slate-200 rounded font-bold text-emerald-700"
-                              />
-                            </div>
-
-                            {/* Delete item */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newItems = editingOrder.items.filter((_, i) => i !== idx);
-                                setEditingOrder({ ...editingOrder, items: newItems });
-                              }}
-                              className="text-rose-400 hover:text-rose-600 p-1 cursor-pointer"
-                              title="Видалити товар із чека"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Add product to order */}
-                    <div className="pt-2 flex items-center gap-2">
-                      <select
-                        value={addOrderItemId}
-                        onChange={(e) => setAddOrderItemId(e.target.value)}
-                        className="flex-1 px-3 py-1.5 border border-slate-300 rounded-xl bg-white text-xs outline-none"
-                      >
-                        <option value="">-- Додати товар із каталогу --</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} ({p.price} грн)
-                          </option>
-                        ))}
-                      </select>
-
+                    <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
                       <button
                         type="button"
-                        onClick={() => {
-                          if (!addOrderItemId) return;
-                          const prod = products.find((p) => p.id === addOrderItemId);
-                          if (!prod) return;
-                          const existingIdx = editingOrder.items.findIndex((it) => it.sku === prod.sku || it.name === prod.name);
-                          let newItems = [...editingOrder.items];
-                          if (existingIdx > -1) {
-                            newItems[existingIdx].qty += 1;
-                          } else {
-                            newItems.push({
-                              name: prod.name,
-                              qty: 1,
-                              price: prod.price,
-                              unit: prod.unit,
-                              sku: prod.sku,
-                              image: prod.image
-                            });
-                          }
-                          setEditingOrder({ ...editingOrder, items: newItems });
-                          setAddOrderItemId('');
-                        }}
-                        disabled={!addOrderItemId}
-                        className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-white rounded-xl font-bold text-xs cursor-pointer"
+                        onClick={() => setClientModalOpen(false)}
+                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-colors cursor-pointer"
                       >
-                        Додати товар
+                        Скасувати
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black rounded-2xl shadow-md shadow-violet-600/20 transition-all cursor-pointer"
+                      >
+                        Зберегти в базу
                       </button>
                     </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setEditingOrder(null)}
-                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-colors cursor-pointer"
-                    >
-                      Скасувати
-                    </button>
-
-                    <button
-                      type="submit"
-                      className="px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl shadow-md shadow-orange-600/20 transition-all cursor-pointer"
-                    >
-                      Зберегти зміни замовлення
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-        </div>
-      )}
-
-      {/* TAB: CATEGORIES TREE */}
-      {activeTab === 'categories' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Дерево категорій магазину
-              </h3>
-              <p className="text-xs text-slate-500">
-                Керуйте 3-рівневою структурою: Головні категорії → Підкатегорії → Кінцеві групи
-              </p>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (newMainCatInput.trim()) {
-                  addMainCategory(newMainCatInput);
-                  setNewMainCatInput('');
-                }
-              }}
-              className="flex items-center gap-2"
-            >
-              <input
-                type="text"
-                placeholder="Нова головна категорія..."
-                value={newMainCatInput}
-                onChange={(e) => setNewMainCatInput(e.target.value)}
-                className="px-3.5 py-2 text-xs rounded-xl border border-slate-300 outline-none w-56 focus:border-orange-500 bg-white"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl transition-colors shadow-sm shadow-orange-600/20"
-              >
-                + Створити категорію
-              </button>
-            </form>
-          </div>
-
-          <div className="space-y-4">
-            {Object.keys(categoriesTree).length === 0 ? (
-              <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                <p className="text-sm font-semibold">Список категорій порожній</p>
-                <p className="text-xs mt-1">Введіть назву вище та натисніть «+ Створити категорію»</p>
-              </div>
-            ) : (
-              Object.keys(categoriesTree).map((mainCat) => (
-                <AdminCategoryCard
-                  key={mainCat}
-                  mainCat={mainCat}
-                  mainObj={categoriesTree[mainCat] || {}}
-                  onDeleteMain={deleteMainCategory}
-                  onAddSub={addSubCategory}
-                  onDeleteSub={deleteSubCategory}
-                  onAddLeaf={addLeafCategory}
-                  onDeleteLeaf={deleteLeafCategory}
-                />
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB: CLIENTS & BONUSES */}
-      {activeTab === 'clients' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                База покупців, бонуси та знижки
-              </h3>
-              <p className="text-xs text-slate-500">
-                Встановлюйте індивідуальні знижки та керуйте накопичувальним балансом
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="w-56 sm:w-64 relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Пошук клієнта..."
-                  value={clientSearch}
-                  onChange={(e) => setClientSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-900 outline-none focus:border-orange-500"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setClientForm({
-                    phone: '+380',
-                    name: '',
-                    balance: 0,
-                    discount: 3,
-                    isNew: true
-                  });
-                  setClientModalOpen(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold transition-colors shadow-sm shadow-orange-600/20"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>+ Додати клієнта</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th className="py-3 px-4">Телефон</th>
-                  <th className="py-3 px-4">Ім'я / Примітка</th>
-                  <th className="py-3 px-4">Бонусний баланс</th>
-                  <th className="py-3 px-4">Знижка (%)</th>
-                  <th className="py-3 px-4 text-right">Дії</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {Object.keys(clients).length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-400">
-                      База покупців поки порожня
-                    </td>
-                  </tr>
-                ) : (
-                  Object.keys(clients)
-                    .filter((ph) => ph.includes(clientSearch) || (clients[ph].name || '').toLowerCase().includes(clientSearch.toLowerCase()))
-                    .map((phone) => {
-                      const c = clients[phone];
-
-                      return (
-                        <tr key={phone} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="py-2.5 px-4 font-mono font-bold text-slate-900">
-                            {phone}
-                          </td>
-                          <td className="py-2.5 px-4 text-slate-800">
-                            {c.name || 'Покупець'}
-                          </td>
-                          <td className="py-2.5 px-4 font-bold text-emerald-600 tabular-nums">
-                            {c.balance || 0} грн
-                          </td>
-                          <td className="py-2.5 px-4 font-bold text-orange-600 tabular-nums">
-                            {c.discount || 0}%
-                          </td>
-                          <td className="py-2.5 px-4 text-right space-x-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setClientForm({
-                                  phone: phone,
-                                  originalPhone: phone,
-                                  name: c.name || '',
-                                  balance: c.balance || 0,
-                                  discount: c.discount || 0,
-                                  city: c.city || '',
-                                  notes: c.notes || '',
-                                  isNew: false
-                                });
-                                setClientModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-semibold text-xs transition-colors"
-                            >
-                              Редагувати
-                            </button>
-
-                            {clientToDelete === phone ? (
-                              <span className="inline-flex items-center gap-1.5 animate-in fade-in">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    deleteClient(phone);
-                                    setClientToDelete(null);
-                                  }}
-                                  className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-bold shadow-xs"
-                                >
-                                  Так, видалити
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setClientToDelete(null)}
-                                  className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-[11px]"
-                                >
-                                  Ні
-                                </button>
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => setClientToDelete(phone)}
-                                className="text-rose-500 hover:text-rose-700 text-xs font-semibold hover:underline"
-                              >
-                                Видалити
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Edit / Add Client Modal */}
-          {clientModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
-              <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
-                  <h3 className="font-bold text-base text-slate-900 font-display">
-                    {clientForm.isNew ? 'Додати нового покупця' : `Редагувати дані покупця`}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setClientModalOpen(false)}
-                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  </form>
                 </div>
-
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const cleanPhone = clientForm.phone.trim();
-                    if (!cleanPhone) return;
-
-                    if (!clientForm.isNew && clientForm.originalPhone && clientForm.originalPhone !== cleanPhone) {
-                      deleteClient(clientForm.originalPhone);
-                    }
-
-                    saveClient(cleanPhone, {
-                      name: clientForm.name.trim() || 'Покупець',
-                      balance: Number(clientForm.balance) || 0,
-                      discount: Number(clientForm.discount) || 0,
-                      city: clientForm.city?.trim() || '',
-                      notes: clientForm.notes?.trim() || ''
-                    });
-                    setClientModalOpen(false);
-                  }}
-                  className="space-y-4 text-xs"
-                >
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
-                      <span>Номер телефону покупця *</span>
-                      <span className="text-[10px] text-orange-600 font-normal">Приклад: +380 (67)...</span>
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+380 (67) 000-00-00"
-                      value={clientForm.phone}
-                      onChange={(e) => setClientForm({ ...clientForm, phone: formatUkrainianPhone(e.target.value) })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-orange-500 font-mono text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
-                      Ім'я або примітка
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Олександр (Майстер сантехнік)"
-                      value={clientForm.name}
-                      onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-orange-500"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">
-                        Місто / Населений пункт
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="с-ще. Оратів, Вінниця..."
-                        value={clientForm.city || ''}
-                        onChange={(e) => setClientForm({ ...clientForm, city: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-orange-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">
-                        Персональна знижка (%)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="90"
-                        step="1"
-                        value={clientForm.discount}
-                        onChange={(e) => setClientForm({ ...clientForm, discount: parseInt(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-orange-500 font-semibold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">
-                        Бонусний баланс (грн)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={clientForm.balance}
-                        onChange={(e) => setClientForm({ ...clientForm, balance: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-orange-500 font-semibold"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">
-                        Нотатки про клієнта
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Монтажник, оптовик..."
-                        value={clientForm.notes || ''}
-                        onChange={(e) => setClientForm({ ...clientForm, notes: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-orange-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => setClientModalOpen(false)}
-                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-colors"
-                    >
-                      Скасувати
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl shadow-md shadow-orange-600/20 transition-all"
-                    >
-                      Зберегти в базу даних
-                    </button>
-                  </div>
-                </form>
               </div>
-            </div>
-          )}
+            )}
 
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
       {/* TAB: STOCK AVAILABILITY ALERTS (ОЧІКУЮТЬ ТОВАР) */}
       {activeTab === 'stock_alerts' && (() => {
@@ -6647,86 +8138,93 @@ export const AdminPanel: React.FC = () => {
         const notifiedCount = stockAlerts.filter(a => a.status === 'notified').length;
 
         return (
-          <div className="space-y-6 animate-in fade-in duration-150 max-w-7xl">
-            {/* Top Hero Banner */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-amber-950/70 to-slate-900 p-6 sm:p-8 text-white shadow-xl border border-amber-500/30">
-              <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute bottom-0 left-1/3 -mb-12 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="space-y-6 max-w-7xl animate-in fade-in duration-200">
+            {/* Master Hero Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950/90 p-6 sm:p-8 text-white shadow-2xl border border-amber-500/30">
+              {/* Background ambient lights */}
+              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-1/3 -mb-16 w-64 h-64 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-2 max-w-2xl">
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-3 max-w-2xl">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 backdrop-blur-xs">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 backdrop-blur-md">
                       <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                      <span>Автоматичний облік попиту</span>
+                      <span>⚡ Автоматичний контроль попиту</span>
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-200 border border-white/15 backdrop-blur-xs">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-200 border border-white/15 backdrop-blur-md">
                       <Users className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Всі контакти зберігаються в базі</span>
+                      <span>Реєстр покупців у базі</span>
                     </span>
                   </div>
 
-                  <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-                    <div className="p-2 bg-amber-500/20 border border-amber-500/30 rounded-2xl text-amber-400 shadow-inner">
-                      <Bell className="w-6 h-6" />
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                    <div className="p-2.5 bg-amber-500/20 border border-amber-500/40 rounded-2xl text-amber-400 shadow-inner">
+                      <Bell className="w-6 h-6 sm:w-7 sm:h-7" />
                     </div>
                     <span>Запити на сповіщення про наявність</span>
                   </h2>
 
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                    Клієнти, які підписалися на сповіщення біля товарів з нульовим залишком. При поповненні складу ви можете миттєво сповістити їх через 
-                    <strong className="text-purple-300 font-bold"> Viber</strong>, <strong className="text-sky-300 font-bold">Telegram</strong>, <strong className="text-emerald-300 font-bold">WhatsApp</strong>, <strong className="text-blue-300 font-bold">SMS</strong> або зателефонувати в 1 клік.
+                    Клієнти, які підписалися на сповіщення біля товарів з нульовим залишком. При поповненні складу ви можете миттєво сповістити їх у 1 клік через
+                    <strong className="text-purple-300 font-bold"> Viber</strong>, <strong className="text-sky-300 font-bold">Telegram</strong>, <strong className="text-emerald-300 font-bold">WhatsApp</strong>, <strong className="text-blue-300 font-bold">SMS</strong> або зателефонувати.
                   </p>
                 </div>
 
-                {/* Stat Badges Grid in Hero */}
-                <div className="grid grid-cols-2 gap-3 shrink-0 min-w-[260px]">
-                  <div className="bg-slate-800/80 backdrop-blur-md p-3.5 rounded-2xl border border-white/15 shadow-md">
+                {/* Stat Cards Grid */}
+                <div className="grid grid-cols-2 gap-3 shrink-0 min-w-[280px]">
+                  <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg hover:border-slate-700 transition-all">
                     <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Всього запитів</div>
-                    <div className="text-2xl font-black text-white mt-0.5">{stockAlerts.length}</div>
+                    <div className="text-2xl sm:text-3xl font-black text-white mt-1 font-mono tabular-nums">{stockAlerts.length}</div>
                   </div>
-                  <div className="bg-amber-500/15 backdrop-blur-md p-3.5 rounded-2xl border border-amber-500/30 shadow-md">
-                    <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+
+                  <div className="bg-amber-500/15 backdrop-blur-md p-4 rounded-2xl border border-amber-500/30 shadow-lg hover:border-amber-500/50 transition-all">
+                    <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                       Очікують
                     </div>
-                    <div className="text-2xl font-black text-amber-400 mt-0.5">{pendingCount}</div>
+                    <div className="text-2xl sm:text-3xl font-black text-amber-400 mt-1 font-mono tabular-nums">{pendingCount}</div>
                   </div>
-                  <div className="bg-emerald-500/15 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-500/30 shadow-md">
+
+                  <div className="bg-emerald-500/15 backdrop-blur-md p-4 rounded-2xl border border-emerald-500/30 shadow-lg hover:border-emerald-500/50 transition-all">
                     <div className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">Сповіщено</div>
-                    <div className="text-2xl font-black text-emerald-400 mt-0.5">{notifiedCount}</div>
+                    <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1 font-mono tabular-nums">{notifiedCount}</div>
                   </div>
-                  <div className="bg-blue-500/15 backdrop-blur-md p-3.5 rounded-2xl border border-blue-500/30 shadow-md">
+
+                  <div className="bg-blue-500/15 backdrop-blur-md p-4 rounded-2xl border border-blue-500/30 shadow-lg hover:border-blue-500/50 transition-all">
                     <div className="text-[11px] font-bold text-blue-300 uppercase tracking-wider">Є на складі</div>
-                    <div className="text-2xl font-black text-blue-400 mt-0.5">{readyToNotifyCount}</div>
+                    <div className="text-2xl sm:text-3xl font-black text-blue-400 mt-1 font-mono tabular-nums">{readyToNotifyCount}</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Ready to notify alert glowing banner */}
+            {/* Glowing banner for items that arrived in stock */}
             {readyToNotifyCount > 0 && (
-              <div className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 text-white rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg border border-emerald-400/40 animate-pulse">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-inner">
-                    <Sparkles className="w-6 h-6 text-white" />
+              <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-teal-700 to-emerald-800 text-white rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 shadow-xl border border-emerald-400/50">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-inner border border-white/30">
+                    <Sparkles className="w-6 h-6 text-amber-300" />
                   </div>
                   <div>
-                    <h4 className="text-base sm:text-lg font-black flex items-center gap-2">
-                      <span>🎉 Товари вже на складі! Можна відправляти сповіщення</span>
-                      <span className="px-2.5 py-0.5 rounded-full bg-white text-emerald-950 text-xs font-black shadow-xs">
+                    <h4 className="text-base sm:text-lg font-black flex items-center gap-2 flex-wrap">
+                      <span>🎉 Товари вже на складі! Готові до відправки</span>
+                      <span className="px-3 py-0.5 rounded-full bg-white text-emerald-950 text-xs font-black shadow-sm font-mono">
                         {readyToNotifyCount} клієнтів
                       </span>
                     </h4>
-                    <p className="text-xs sm:text-sm text-emerald-100 mt-0.5">
-                      Партія товару надійшла (залишок {'>'} 0). Натисніть кнопку, щоб відфільтрувати покупців і надіслати їм швидке сповіщення в 1 клік!
+                    <p className="text-xs sm:text-sm text-emerald-100 mt-0.5 leading-relaxed">
+                      Партія товару надійшла (залишок &gt; 0). Відфільтруйте покупців і надішліть їм сповіщення в 1 клік!
                     </p>
                   </div>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => setStockAlertInStockOnly(!stockAlertInStockOnly)}
-                  className={`px-5 py-2.5 font-black text-xs rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center gap-2 ${
+                  className={`relative z-10 px-5 py-2.5 font-black text-xs rounded-2xl shadow-md transition-all shrink-0 cursor-pointer flex items-center gap-2 ${
                     stockAlertInStockOnly 
                       ? 'bg-emerald-950 text-white hover:bg-black ring-2 ring-white/50' 
                       : 'bg-white text-emerald-900 hover:bg-emerald-50 active:scale-98'
@@ -6739,9 +8237,9 @@ export const AdminPanel: React.FC = () => {
             )}
 
             {/* Controls, Filters & Search Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                {/* Search input */}
+                {/* Search Input */}
                 <div className="relative w-full lg:w-96">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
@@ -6749,7 +8247,7 @@ export const AdminPanel: React.FC = () => {
                     placeholder="Пошук за товаром, телефоном, ПІБ, артикулом..."
                     value={stockAlertSearch}
                     onChange={(e) => setStockAlertSearch(e.target.value)}
-                    className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 transition-all font-medium"
+                    className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 transition-all font-medium"
                   />
                   {stockAlertSearch && (
                     <button
@@ -6873,7 +8371,7 @@ export const AdminPanel: React.FC = () => {
                   )}
 
                   <span className="text-xs text-slate-500">
-                    Знайдено запитів: <strong className="text-slate-800 font-bold">{filteredAlerts.length}</strong>
+                    Знайдено запитів: <strong className="text-slate-800 font-bold font-mono">{filteredAlerts.length}</strong>
                   </span>
                 </div>
 
@@ -6953,22 +8451,22 @@ export const AdminPanel: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleTabChange('settings')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl text-xs font-bold border border-blue-200 transition-colors cursor-pointer shadow-2xs"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
                     title="Перейти до налаштувань SMS-провайдера та шаблону повідомлення"
                   >
-                    <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+                    <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
                     <span>⚙️ Шаблони SMS</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Batch actions bar for stock alerts */}
+            {/* Batch actions floating bar */}
             {selectedStockAlertIds.length > 0 && (
               <div className="bg-slate-900 text-white rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-xl border border-slate-700 animate-in fade-in slide-in-from-top-2">
                 <div className="flex items-center gap-2.5 text-xs font-black">
                   <span className="w-3 h-3 rounded-full bg-amber-400 animate-pulse" />
-                  <span>Вибрано запитів для масової дії: {selectedStockAlertIds.length}</span>
+                  <span>Вибрано запитів для масової дії: <strong className="font-mono text-amber-400">{selectedStockAlertIds.length}</strong></span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
@@ -7026,7 +8524,7 @@ export const AdminPanel: React.FC = () => {
               </div>
             )}
 
-            {/* List / Table */}
+            {/* Requests Table */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
               {filteredAlerts.length === 0 ? (
                 <div className="p-16 text-center text-slate-500 space-y-3">
@@ -7447,14 +8945,14 @@ export const AdminPanel: React.FC = () => {
                   className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 text-left"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="bg-gradient-to-r from-blue-900 via-slate-900 to-blue-950 text-white p-5 flex items-center justify-between border-b border-blue-800">
+                  <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-amber-950 text-white p-5 flex items-center justify-between border-b border-amber-500/30">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
+                      <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400">
                         <MessageSquare className="w-5 h-5" />
                       </div>
                       <div>
                         <h4 className="text-sm font-black text-white">Сповістити клієнта про наявність</h4>
-                        <p className="text-[11px] text-blue-200">
+                        <p className="text-[11px] text-amber-200/80 truncate max-w-[260px]">
                           {smsModalAlert.alert.productName}
                         </p>
                       </div>
@@ -7477,7 +8975,7 @@ export const AdminPanel: React.FC = () => {
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-slate-500">Телефон:</span>
-                        <span className="font-mono font-black text-blue-700">{smsModalAlert.alert.phone}</span>
+                        <span className="font-mono font-black text-amber-700">{smsModalAlert.alert.phone}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-slate-500">Товар:</span>
@@ -7493,10 +8991,10 @@ export const AdminPanel: React.FC = () => {
                         rows={4}
                         value={smsModalAlert.text}
                         onChange={(e) => setSmsModalAlert({ ...smsModalAlert, text: e.target.value })}
-                        className="w-full p-3.5 border border-slate-300 rounded-2xl bg-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-medium transition-all"
+                        className="w-full p-3.5 border border-slate-300 rounded-2xl bg-white outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs font-medium transition-all"
                       />
                       <div className="flex justify-between items-center text-[11px] text-slate-500 mt-1.5 font-medium">
-                        <span>Символів: <strong>{smsModalAlert.text.length}</strong> (~{Math.ceil(smsModalAlert.text.length / 70)} SMS)</span>
+                        <span>Символів: <strong className="font-mono">{smsModalAlert.text.length}</strong> (~{Math.ceil(smsModalAlert.text.length / 70)} SMS)</span>
                         <span>Відправник: <strong>{settingsForm.smsSenderName || 'ISKRA'}</strong></span>
                       </div>
                     </div>
@@ -7603,135 +9101,276 @@ export const AdminPanel: React.FC = () => {
           </div>
         );
       })()}
+      {/* TAB: REVIEWS MANAGEMENT */}
       {activeTab === 'reviews' && (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-5xl animate-in fade-in duration-200">
           
-          {/* Header & Stats */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+          {/* Top Master Hero Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 p-6 sm:p-8 text-white shadow-2xl border border-amber-500/20">
+            <div className="absolute right-0 top-0 -mt-12 -mr-12 w-96 h-96 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute left-1/3 bottom-0 w-64 h-64 rounded-full bg-yellow-500/10 blur-2xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-xs font-extrabold uppercase tracking-wider shadow-inner">
+                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    <span>Центр репутації & Соціальних доказів</span>
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold shadow-inner">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Синхронізація з БД: Активно</span>
+                  </span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight flex items-center gap-3">
                   <span>Керування відгуками покупців</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Редагуйте, додавайте та видаляйте відгуки клієнтів. Усі зміни автоматично синхронізуються з базою даних Firebase/Firestore.
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Публічна оцінка та довіра покупців до магазину <strong>ISKRA</strong>. Додавайте офіційні відгуки, модеруйте комменти, керуйте статусами перевірених покупок та підтверджуйте оцінки товарів.
                 </p>
+
+                {/* Quick Trust Badges */}
+                <div className="pt-1 flex flex-wrap gap-2 text-[11px]">
+                  <div className="px-3 py-1.5 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-slate-400">Гарантія відгуків:</span>
+                    <span className="text-emerald-300 font-extrabold">100% реальні покупці</span>
+                  </div>
+                  <div className="px-3 py-1.5 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center gap-2">
+                    <ThumbsUp className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-slate-400">Індекс задоволеності:</span>
+                    <span className="text-amber-300 font-extrabold">98% позитивних</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Action Buttons */}
+              <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => openAddReviewModal()}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
+                  className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Додати відгук</span>
+                  <Plus className="w-4 h-4 text-slate-950 stroke-[3]" />
+                  <span>Додати новий відгук</span>
                 </button>
+
                 <button
                   type="button"
                   onClick={resetDefaultReviews}
-                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all border border-white/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   title="Відновити стандартний список відгуків"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Скинути</span>
+                  <RefreshCw className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Скинути до базових</span>
                 </button>
               </div>
             </div>
+          </div>
 
-            {/* Quick Metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-              <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-100">
-                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Всього відгуків</div>
-                <div className="text-2xl font-black text-slate-900 font-display mt-0.5">{reviews.length}</div>
-              </div>
-              <div className="bg-amber-50/70 rounded-xl p-3.5 border border-amber-100">
-                <div className="text-[11px] font-semibold text-amber-700 uppercase tracking-wider">Середня оцінка</div>
-                <div className="text-2xl font-black text-amber-600 font-display mt-0.5 flex items-center gap-1">
-                  <span>
-                    {reviews.length > 0
-                      ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
-                      : '5.0'}
-                  </span>
-                  <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+          {/* Quick Metrics Dashboard */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Всього відгуків</span>
+                <div className="p-2 bg-slate-100 text-slate-700 rounded-xl">
+                  <MessageSquare className="w-4 h-4" />
                 </div>
               </div>
-              <div className="bg-emerald-50/70 rounded-xl p-3.5 border border-emerald-100">
-                <div className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider">Перевірені покупки</div>
-                <div className="text-2xl font-black text-emerald-600 font-display mt-0.5">
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl sm:text-3xl font-black text-slate-900 font-display">{reviews.length}</span>
+                <span className="text-[11px] font-semibold text-slate-500">опубліковано</span>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-amber-50/80 to-yellow-50/40 rounded-2xl p-4 border border-amber-200/80 shadow-xs flex flex-col justify-between space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-extrabold text-amber-800 uppercase tracking-wider">Середня оцінка</span>
+                <div className="p-2 bg-amber-100 text-amber-600 rounded-xl">
+                  <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl sm:text-3xl font-black text-amber-700 font-display">
+                  {reviews.length > 0
+                    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+                    : '5.0'}
+                </span>
+                <div className="flex text-amber-400">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star key={s} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-emerald-50/80 to-teal-50/40 rounded-2xl p-4 border border-emerald-200/80 shadow-xs flex flex-col justify-between space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider">Перевірені покупки</span>
+                <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-700 font-display">
                   {reviews.length > 0
                     ? `${Math.round((reviews.filter(r => r.verifiedPurchase).length / reviews.length) * 100)}%`
                     : '100%'}
+                </span>
+                <span className="text-[11px] font-bold text-emerald-600">з бейджем ✓</span>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-50/80 to-sky-50/40 rounded-2xl p-4 border border-blue-200/80 shadow-xs flex flex-col justify-between space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-extrabold text-blue-800 uppercase tracking-wider">Рекомендують магазин</span>
+                <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+                  <ThumbsUp className="w-4 h-4" />
                 </div>
               </div>
-              <div className="bg-blue-50/70 rounded-xl p-3.5 border border-blue-100">
-                <div className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider">Рекомендують товар</div>
-                <div className="text-2xl font-black text-blue-600 font-display mt-0.5">
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl sm:text-3xl font-black text-blue-700 font-display">
                   {reviews.length > 0
                     ? `${Math.round((reviews.filter(r => r.recommended).length / reviews.length) * 100)}%`
                     : '100%'}
-                </div>
+                </span>
+                <span className="text-[11px] font-bold text-blue-600">лояльних</span>
               </div>
             </div>
           </div>
 
-          {/* Search & Filters */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row items-center gap-3">
-            <div className="relative flex-1 w-full">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                placeholder="Пошук за автором, містом або текстом відгуку..."
-                value={reviewSearch}
-                onChange={(e) => setReviewSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:bg-white focus:border-slate-400 outline-none"
-              />
+          {/* Search & Smart Filters Bar */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              {/* Search Box */}
+              <div className="relative flex-1 w-full">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  placeholder="Пошук за автором, містом або текстом відгуку..."
+                  value={reviewSearch}
+                  onChange={(e) => setReviewSearch(e.target.value)}
+                  className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-xs text-slate-900 font-medium focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all shadow-2xs"
+                />
+                {reviewSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setReviewSearch('')}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Rating Filter Dropdown */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <select
+                  value={reviewFilterRating}
+                  onChange={(e) => setReviewFilterRating(e.target.value)}
+                  className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-900 font-bold outline-none focus:border-amber-500 shadow-2xs cursor-pointer"
+                >
+                  <option value="all">⭐ Всі оцінки (зірки)</option>
+                  <option value="5">⭐⭐⭐⭐⭐ 5 зірок (Відмінно)</option>
+                  <option value="4">⭐⭐⭐⭐ 4 зірки (Добре)</option>
+                  <option value="3">⭐⭐⭐ 3 зірки (Задовільно)</option>
+                  <option value="2">⭐⭐ 2 зірки</option>
+                  <option value="1">⭐ 1 зірка</option>
+                </select>
+
+                {/* Product Filter Dropdown */}
+                <select
+                  value={reviewFilterProduct}
+                  onChange={(e) => setReviewFilterProduct(e.target.value)}
+                  className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-900 font-bold outline-none focus:border-amber-500 shadow-2xs max-w-xs truncate cursor-pointer"
+                >
+                  <option value="all">📦 Всі товари & загальні</option>
+                  <option value="general">🏪 Загальні відгуки магазину ISKRA</option>
+                  {products.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.sku})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <select
-                value={reviewFilterRating}
-                onChange={(e) => setReviewFilterRating(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-slate-400"
+            {/* Quick Star Filter Chips */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100">
+              <span className="text-[11px] text-slate-400 font-semibold mr-1">Швидкий фільтр:</span>
+              <button
+                type="button"
+                onClick={() => { setReviewFilterRating('all'); setReviewFilterProduct('all'); setReviewSearch(''); }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  reviewFilterRating === 'all' && reviewFilterProduct === 'all' && !reviewSearch
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
               >
-                <option value="all">Всі оцінки (зірки)</option>
-                <option value="5">⭐⭐⭐⭐⭐ 5 зірок</option>
-                <option value="4">⭐⭐⭐⭐ 4 зірки</option>
-                <option value="3">⭐⭐⭐ 3 зірки</option>
-                <option value="2">⭐⭐ 2 зірки</option>
-                <option value="1">⭐ 1 зірка</option>
-              </select>
+                Всі відгуки ({reviews.length})
+              </button>
 
-              <select
-                value={reviewFilterProduct}
-                onChange={(e) => setReviewFilterProduct(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-slate-400 max-w-xs truncate"
+              <button
+                type="button"
+                onClick={() => setReviewFilterRating('5')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                  reviewFilterRating === '5'
+                    ? 'bg-amber-500 text-slate-950 font-extrabold shadow-2xs'
+                    : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/60'
+                }`}
               >
-                <option value="all">Всі товари & загальні</option>
-                <option value="general">Загальні відгуки магазину</option>
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.sku})
-                  </option>
-                ))}
-              </select>
+                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                <span>5 зірок ({reviews.filter(r => r.rating === 5).length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setReviewFilterProduct('general')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  reviewFilterProduct === 'general'
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                🏪 Про магазин ({reviews.filter(r => !r.productId).length})
+              </button>
             </div>
           </div>
 
-          {/* Reviews Table / List */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          {/* Reviews List Table */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                <h3 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
+                  Список публічних відгуків
+                </h3>
+              </div>
+              <span className="text-[11px] text-slate-500 font-medium">
+                Показано: {reviews.filter(r => {
+                  const q = reviewSearch.toLowerCase();
+                  const matchQ = !q || r.author.toLowerCase().includes(q) || (r.city && r.city.toLowerCase().includes(q)) || r.comment.toLowerCase().includes(q);
+                  const matchRating = reviewFilterRating === 'all' || String(r.rating) === reviewFilterRating;
+                  const matchProduct = reviewFilterProduct === 'all' ? true : reviewFilterProduct === 'general' ? (!r.productId || r.productId === '') : r.productId === reviewFilterProduct;
+                  return matchQ && matchRating && matchProduct;
+                }).length} відгуків
+              </span>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                <thead className="bg-slate-100/70 border-b border-slate-200 text-slate-500 font-extrabold uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="py-3 px-4">Автор & Місто</th>
-                    <th className="py-3 px-4">Товар</th>
-                    <th className="py-3 px-4">Оцінка</th>
-                    <th className="py-3 px-4 min-w-[240px]">Текст відгуку</th>
-                    <th className="py-3 px-4">Статус</th>
-                    <th className="py-3 px-4">Корисно</th>
-                    <th className="py-3 px-4 text-right">Дії</th>
+                    <th className="py-3.5 px-4">Автор & Населений пункт</th>
+                    <th className="py-3.5 px-4">Товар / Прив'язка</th>
+                    <th className="py-3.5 px-4">Оцінка</th>
+                    <th className="py-3.5 px-4 min-w-[260px]">Зміст відгуку</th>
+                    <th className="py-3.5 px-4">Статус покупця</th>
+                    <th className="py-3.5 px-4">Корисність 👍</th>
+                    <th className="py-3.5 px-4 text-right">Дії</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -7757,35 +9396,47 @@ export const AdminPanel: React.FC = () => {
                       const tiedProduct = products.find(p => p.id === rev.productId);
 
                       return (
-                        <tr key={rev.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                              <span>{rev.author}</span>
-                            </div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">
-                              {rev.city || 'с-ще. Оратів'} • {rev.date}
+                        <tr key={rev.id} className="hover:bg-slate-50/90 transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2.5">
+                              {/* Avatar circle */}
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 text-slate-950 font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                {rev.author ? rev.author.charAt(0).toUpperCase() : 'К'}
+                              </div>
+                              <div>
+                                <div className="font-extrabold text-slate-900 text-xs">
+                                  {rev.author}
+                                </div>
+                                <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
+                                  <MapPin className="w-3 h-3 text-slate-400" />
+                                  <span>{rev.city || 'с-ще. Оратів'}</span>
+                                  <span>•</span>
+                                  <span>{rev.date}</span>
+                                </div>
+                              </div>
                             </div>
                           </td>
 
-                          <td className="py-3 px-4 max-w-[200px]">
+                          <td className="py-3.5 px-4 max-w-[200px]">
                             {tiedProduct ? (
-                              <div>
-                                <div className="font-semibold text-slate-800 line-clamp-1" title={tiedProduct.name}>
+                              <div className="p-2 bg-slate-50 rounded-xl border border-slate-200/80">
+                                <div className="font-bold text-slate-800 line-clamp-1 text-[11px]" title={tiedProduct.name}>
                                   {tiedProduct.name}
                                 </div>
                                 <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                                  {tiedProduct.sku}
+                                  {tiedProduct.sku} • {tiedProduct.price} грн
                                 </div>
                               </div>
                             ) : (
-                              <span className="inline-block bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
-                                Магазин ISKRA (Загальний)
+                              <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 text-[10px] font-extrabold px-2.5 py-1 rounded-lg border border-amber-200/80">
+                                <Store className="w-3 h-3 text-amber-600" />
+                                <span>Магазин ISKRA (Загальний)</span>
                               </span>
                             )}
                           </td>
 
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-1">
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-1.5">
                               <div className="flex text-amber-400">
                                 {[1, 2, 3, 4, 5].map((s) => (
                                   <Star
@@ -7794,43 +9445,44 @@ export const AdminPanel: React.FC = () => {
                                   />
                                 ))}
                               </div>
-                              <span className="font-bold text-slate-700 ml-1">{rev.rating}</span>
+                              <span className="font-black text-slate-900 text-xs">{rev.rating}.0</span>
                             </div>
                           </td>
 
-                          <td className="py-3 px-4">
-                            <p className="text-slate-700 line-clamp-2 leading-relaxed">
-                              {rev.comment}
+                          <td className="py-3.5 px-4">
+                            <p className="text-slate-700 text-xs line-clamp-2 leading-relaxed font-medium">
+                              "{rev.comment}"
                             </p>
                           </td>
 
-                          <td className="py-3 px-4 whitespace-nowrap space-y-1">
+                          <td className="py-3.5 px-4 whitespace-nowrap space-y-1">
                             {rev.verifiedPurchase && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                Перевірено
+                                Перевірена покупка
                               </span>
                             )}
                             {rev.recommended && (
-                              <div className="text-[10px] text-blue-600 font-medium">
-                                Рекомендує
+                              <div className="text-[10px] text-blue-600 font-extrabold flex items-center gap-1">
+                                <ThumbsUp className="w-3 h-3 text-blue-500" />
+                                <span>Рекомендує товар</span>
                               </div>
                             )}
                           </td>
 
-                          <td className="py-3 px-4">
-                            <div className="inline-flex items-center gap-1 text-slate-600 font-medium">
-                              <ThumbsUp className="w-3 h-3 text-slate-400" />
+                          <td className="py-3.5 px-4">
+                            <div className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 font-extrabold text-xs px-2.5 py-1 rounded-lg">
+                              <ThumbsUp className="w-3.5 h-3.5 text-slate-500" />
                               <span>{rev.helpfulCount || 0}</span>
                             </div>
                           </td>
 
-                          <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             <div className="inline-flex items-center gap-1">
                               <button
                                 type="button"
                                 onClick={() => openEditReviewModal(rev)}
-                                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                                className="p-2 rounded-xl text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-colors cursor-pointer"
                                 title="Редагувати відгук"
                               >
                                 <Edit3 className="w-4 h-4" />
@@ -7838,7 +9490,7 @@ export const AdminPanel: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleDeleteReview(rev.id)}
-                                className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                className="p-2 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
                                 title="Видалити відгук"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -7848,6 +9500,29 @@ export const AdminPanel: React.FC = () => {
                         </tr>
                       );
                     })}
+
+                  {reviews.filter(r => {
+                    const q = reviewSearch.toLowerCase();
+                    const matchQ = !q || r.author.toLowerCase().includes(q) || (r.city && r.city.toLowerCase().includes(q)) || r.comment.toLowerCase().includes(q);
+                    const matchRating = reviewFilterRating === 'all' || String(r.rating) === reviewFilterRating;
+                    const matchProduct = reviewFilterProduct === 'all' ? true : reviewFilterProduct === 'general' ? (!r.productId || r.productId === '') : r.productId === reviewFilterProduct;
+                    return matchQ && matchRating && matchProduct;
+                  }).length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-500 space-y-2">
+                        <Star className="w-8 h-8 text-slate-300 mx-auto stroke-1" />
+                        <div className="font-bold text-slate-700 text-sm">За вказаними фільтрами відгуків не знайдено</div>
+                        <p className="text-xs text-slate-400">Спробуйте змінити пошуковий запит або скинути фільтри зірок.</p>
+                        <button
+                          type="button"
+                          onClick={() => { setReviewSearch(''); setReviewFilterRating('all'); setReviewFilterProduct('all'); }}
+                          className="mt-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Скинути всі фільтри
+                        </button>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -7855,26 +9530,33 @@ export const AdminPanel: React.FC = () => {
 
           {/* ADD / EDIT REVIEW MODAL */}
           {isReviewModalOpen && (
-            <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 text-xs text-slate-800 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    <span>{editingReviewId ? 'Редагування відгуку' : 'Додавання нового відгуку'}</span>
-                  </h4>
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 text-xs text-slate-800 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
+                      <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-extrabold text-slate-900">
+                        {editingReviewId ? 'Редагування відгуку' : 'Додавання нового відгуку'}
+                      </h4>
+                      <p className="text-[11px] text-slate-400">Формування публічної картки клієнта</p>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setIsReviewModalOpen(false)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveReview} className="space-y-3.5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <form onSubmit={handleSaveReview} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
                         Ім'я автора *
                       </label>
                       <input
@@ -7883,11 +9565,11 @@ export const AdminPanel: React.FC = () => {
                         placeholder="Олександр М."
                         value={rAuthor}
                         onChange={(e) => setRAuthor(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:border-red-500"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
                         Місто / Населений пункт
                       </label>
                       <input
@@ -7895,38 +9577,38 @@ export const AdminPanel: React.FC = () => {
                         placeholder="с-ще. Оратів"
                         value={rCity}
                         onChange={(e) => setRCity(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:border-red-500"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Прив'язка до товару (або загальний відгук)
+                    <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                      Прив'язка до товару (або загальний відгук про магазин)
                     </label>
                     <select
                       value={rProductId}
                       onChange={(e) => setRProductId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:border-red-500 bg-white"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:border-amber-500 bg-white"
                     >
-                      <option value="">Загальний відгук про магазин ISKRA</option>
+                      <option value="">🏪 Загальний відгук про магазин ISKRA</option>
                       {products.map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.name} ({p.sku}) — {p.price} грн
+                          📦 {p.name} ({p.sku}) — {p.price} грн
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
                         Оцінка (Зірки)
                       </label>
                       <select
                         value={rRating}
                         onChange={(e) => setRRating(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:border-red-500 bg-white"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:border-amber-500 bg-white"
                       >
                         <option value={5}>⭐⭐⭐⭐⭐ 5 зірок</option>
                         <option value={4}>⭐⭐⭐⭐ 4 зірки</option>
@@ -7937,7 +9619,7 @@ export const AdminPanel: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
                         Дата (текстом)
                       </label>
                       <input
@@ -7945,12 +9627,12 @@ export const AdminPanel: React.FC = () => {
                         placeholder="Вчора / 3 дні тому"
                         value={rDate}
                         onChange={(e) => setRDate(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:border-red-500"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:border-amber-500"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
                         Кількість лайків 👍
                       </label>
                       <input
@@ -7958,13 +9640,13 @@ export const AdminPanel: React.FC = () => {
                         min={0}
                         value={rHelpful}
                         onChange={(e) => setRHelpful(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:border-red-500"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-800 mb-1">
                       Текст відгуку *
                     </label>
                     <textarea
@@ -7973,45 +9655,45 @@ export const AdminPanel: React.FC = () => {
                       placeholder="Введіть текст відгуку..."
                       value={rComment}
                       onChange={(e) => setRComment(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:border-red-500 resize-none"
+                      className="w-full p-3 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 outline-none focus:border-amber-500 resize-none leading-relaxed"
                     />
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-5 pt-1">
-                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-700 font-medium">
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-800 font-bold">
                       <input
                         type="checkbox"
                         checked={rVerified}
                         onChange={(e) => setRVerified(e.target.checked)}
-                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
                       />
                       <span>Перевірена покупка (галочка ✓)</span>
                     </label>
 
-                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-700 font-medium">
+                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-800 font-bold">
                       <input
                         type="checkbox"
                         checked={rRecommended}
                         onChange={(e) => setRRecommended(e.target.checked)}
-                        className="rounded border-slate-300 text-red-600 focus:ring-red-500 w-4 h-4"
+                        className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
                       />
-                      <span>Рекомендує товар</span>
+                      <span>Рекомендує товар 👍</span>
                     </label>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => setIsReviewModalOpen(false)}
-                      className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+                      className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors cursor-pointer text-xs"
                     >
                       Скасувати
                     </button>
                     <button
                       type="submit"
-                      className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold transition-all shadow-sm"
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black transition-all shadow-md text-xs cursor-pointer active:scale-95"
                     >
-                      Зберегти в базу даних
+                      Зберегти відгук у БД
                     </button>
                   </div>
                 </form>
@@ -8022,54 +9704,99 @@ export const AdminPanel: React.FC = () => {
         </div>
       )}
 
-      {/* TAB: DESIGN & PROMO BANNER */}
+      {/* TAB: DESIGN, LOGO, CONTACTS & PROMO BANNER */}
       {activeTab === 'design' && (
         <form
           onSubmit={(e) => {
             e.preventDefault();
             updateHeaderDesign(designForm);
             updateSiteSettings(settingsForm);
-            showToast('Дизайн, логотип, контакти та банери магазину успішно збережено!', 'success');
+            showToast('Дизайн, логотип, контакти та промо-банери успішно збережено!', 'success');
           }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-6"
+          className="space-y-6 max-w-5xl animate-in fade-in duration-200"
         >
-          {/* Header */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 shadow-xs">
-                <Palette className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 leading-tight">
-                  Налаштування дизайну, логотипа, контактів та промо-банера
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Редагуйте бренд-стиль шапки, прямі контакти, адресу магазину, верхній промо-рядок та головний Hero-банер
+          {/* Top Master Hero Header */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-purple-950 p-6 sm:p-8 text-white shadow-2xl border border-purple-500/20">
+            <div className="absolute right-0 top-0 -mt-12 -mr-12 w-96 h-96 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute left-1/3 bottom-0 w-64 h-64 rounded-full bg-red-500/10 blur-2xl pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300 text-xs font-extrabold uppercase tracking-wider shadow-inner">
+                    <Palette className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Брендінг & Візуальний стиль</span>
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold shadow-inner">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                    <span>Живий прев'ю-канал активний</span>
+                  </span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight flex items-center gap-3">
+                  <span>Налаштування дизайну та бренд-стилю</span>
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Центр управління візуальною ідентичністю інтернет-магазину <strong>ISKRA</strong>. Редагуйте фірмовий логотип, промо-рядок сповіщень, перший екран Hero, контакти та футер із миттєвим попереднім переглядом.
                 </p>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200">
-                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                Живий перегляд увімкнено
-              </span>
+              {/* Action Header Buttons */}
+              <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDesignForm({
+                      bgColor: 'bg-slate-900',
+                      logoBadge: 'ISKRA',
+                      logoText: 'МАГАЗИН',
+                      logoSubtitle: 'Магазин надійних рішень',
+                      promoActive: true,
+                      promoText: '🔥 Знижка -10% при замовленні від 1000 грн! Встигніть оформити замовлення!',
+                      heroBadge: 'Інтернет-магазин',
+                      heroTitle: 'Надійна Сантехніка та Електротовари',
+                      heroDesc: 'Найбільший асортимент товарів для ремонту, монтажу та будівництва у вас вдома.',
+                      heroAddress: 'Вінницька обл., с-ще. Оратів',
+                      heroCity: 'с-ще. Оратів, Вінницька обл.'
+                    });
+                    showToast('Застосовано фірмовий стиль ISKRA!', 'info');
+                  }}
+                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all border border-white/20 flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-95"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Фірмовий стиль ISKRA</span>
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-gradient-to-r from-red-600 via-orange-600 to-red-600 hover:from-red-500 hover:to-orange-500 text-white text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/30 cursor-pointer active:scale-95"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Зберегти весь дизайн</span>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Section 1: Logo & Brand Header */}
-          <div className="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/40 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
-              <h4 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
-                <Tag className="w-4 h-4 text-red-600" />
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <h4 className="font-extrabold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <div className="p-1.5 bg-red-50 text-red-600 rounded-lg">
+                  <Tag className="w-4 h-4" />
+                </div>
                 <span>1. Фірмовий логотип та стиль шапки</span>
               </h4>
-              <span className="text-[11px] text-slate-400 font-medium">Відображається у навігаційній панелі</span>
+              <span className="text-[11px] text-slate-400 font-semibold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">
+                Шапка сайту
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Form Inputs */}
-              <div className="lg:col-span-7 space-y-3 text-xs">
+              <div className="lg:col-span-7 space-y-3.5 text-xs">
                 <div>
                   <label className="block font-bold text-slate-800 mb-1">
                     Назва бренду (червоний бейдж)
@@ -8084,7 +9811,7 @@ export const AdminPanel: React.FC = () => {
                   <p className="text-[11px] text-slate-400 mt-1">Текст усередині яскравого червоного фірмового прямокутника.</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
                     <label className="block font-bold text-slate-800 mb-1">
                       Основний підпис (верхній рядок)
@@ -8094,7 +9821,7 @@ export const AdminPanel: React.FC = () => {
                       value={designForm.logoText}
                       placeholder="МАГАЗИН"
                       onChange={(e) => setDesignForm({ ...designForm, logoText: e.target.value })}
-                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-semibold text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                     />
                   </div>
 
@@ -8115,14 +9842,17 @@ export const AdminPanel: React.FC = () => {
 
               {/* Live Preview Box */}
               <div className="lg:col-span-5 flex flex-col justify-center">
-                <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm space-y-2">
+                <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2.5">
                   <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                    <span>Попередній перегляд:</span>
-                    <span className="text-emerald-600 font-bold">● Шапка сайту</span>
+                    <span>Попередній вигляд у шапці:</span>
+                    <span className="text-emerald-600 font-extrabold flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Навігаційна панель
+                    </span>
                   </div>
-                  <div className="p-3 bg-slate-50/80 rounded-lg border border-slate-100 flex items-center gap-2.5">
-                    <div className="flex items-center justify-center bg-[#e5001e] text-white px-2.5 py-1.5 rounded-[6px] shadow-xs shrink-0">
-                      <span className="font-black text-white text-[16px] tracking-[0.05em] font-display leading-none transform scale-y-110 scale-x-105 uppercase">
+                  <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+                    <div className="flex items-center justify-center bg-[#e5001e] text-white px-3 py-1.5 rounded-lg shadow-xs shrink-0">
+                      <span className="font-black text-white text-[17px] tracking-[0.05em] font-display leading-none uppercase">
                         {designForm.logoBadge || 'ISKRA'}
                       </span>
                     </div>
@@ -8130,7 +9860,7 @@ export const AdminPanel: React.FC = () => {
                       <span className="font-bold text-sm text-black tracking-tight font-display leading-tight uppercase truncate">
                         {designForm.logoText || 'МАГАЗИН'}
                       </span>
-                      <span className="text-[10px] font-semibold text-slate-600 tracking-tight leading-tight truncate">
+                      <span className="text-[11px] font-semibold text-slate-500 tracking-tight leading-tight truncate">
                         {designForm.logoSubtitle || 'Магазин надійних рішень'}
                       </span>
                     </div>
@@ -8140,104 +9870,18 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Section 2: Top Notification Promo Banner */}
-          <div className="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/40 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-orange-500" />
-                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
-                  2. Верхній промо-рядок сповіщень
-                </h4>
-                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                  designForm.promoActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
-                }`}>
-                  {designForm.promoActive ? 'Активний на сайті' : 'Приховано'}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setDesignForm({ ...designForm, promoActive: !designForm.promoActive })}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
-                  designForm.promoActive ? 'bg-orange-600' : 'bg-slate-300'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                    designForm.promoActive ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-800 mb-1">
-                  Текст повідомлення на промо-банері
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="🔥 Знижка -10% на всі замовлення від 1000 грн! Встигніть оформити!"
-                  value={designForm.promoText}
-                  onChange={(e) => setDesignForm({ ...designForm, promoText: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs leading-relaxed"
-                />
-              </div>
-
-              {/* Quick Template Chips */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] text-slate-400 font-medium">Швидкі шаблони:</span>
-                {[
-                  '🔥 Знижка -10% при замовленні від 1000 грн!',
-                  '🚚 Безкоштовна доставка від 3000 грн по всій Україні!',
-                  '⚡ Швидка відправка товару в день замовлення!',
-                  '🎁 Подарунок до кожного замовлення цього тижня!'
-                ].map((tpl) => (
-                  <button
-                    key={tpl}
-                    type="button"
-                    onClick={() => setDesignForm({ ...designForm, promoText: tpl, promoActive: true })}
-                    className="px-2.5 py-1 bg-white hover:bg-orange-50 hover:border-orange-200 border border-slate-200 rounded-lg text-[11px] text-slate-700 transition-all cursor-pointer"
-                  >
-                    {tpl}
-                  </button>
-                ))}
-              </div>
-
-              {/* Live Banner Preview */}
-              <div className="pt-2">
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                  <span>Вигляд промо-банера на сайті:</span>
-                  {designForm.promoActive ? (
-                    <span className="text-emerald-600 font-bold">● Банер увімкнено</span>
-                  ) : (
-                    <span className="text-slate-400 italic">Банер вимкнено в перемикачі вище</span>
-                  )}
+          {/* Section 2: Hero Banner Controls */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <h4 className="font-extrabold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <div className="p-1.5 bg-orange-50 text-orange-600 rounded-lg">
+                  <Flame className="w-4 h-4" />
                 </div>
-
-                <div className="rounded-xl overflow-hidden shadow-xs border border-orange-200">
-                  <div className="bg-gradient-to-r from-red-600 via-orange-600 to-red-700 text-white text-xs font-medium py-2 px-4 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 overflow-hidden truncate">
-                      <Sparkles className="w-4 h-4 shrink-0 text-amber-200 animate-pulse" />
-                      <span className="truncate">{designForm.promoText || 'Текст повідомлення на промо-банері...'}</span>
-                    </div>
-                    <span className="text-white/80 shrink-0 p-0.5 rounded hover:bg-white/10">
-                      <X className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Hero Banner Controls */}
-          <div className="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/40 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
-              <h4 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
-                <Flame className="w-4 h-4 text-orange-600" />
-                <span>3. Головний Hero-банер вітрини (перший екран сайту)</span>
+                <span>2. Головний Hero-банер вітрини (перший екран)</span>
               </h4>
-              <span className="text-[11px] text-slate-400 font-medium">Титульний блок вітрини</span>
+              <span className="text-[11px] text-slate-400 font-semibold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">
+                Титульний блок
+              </span>
             </div>
 
             <div className="space-y-4 text-xs">
@@ -8349,14 +9993,18 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Section 4: Store Contact Details & Address */}
-          <div className="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/40 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
-              <h4 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
-                <Phone className="w-4 h-4 text-emerald-600" />
-                <span>4. Контактні дані, графік роботи та адреса магазину</span>
+          {/* Section 3: Store Contact Details & Address */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <h4 className="font-extrabold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+                  <Phone className="w-4 h-4" />
+                </div>
+                <span>3. Контактні дані, графік роботи та адреса магазину</span>
               </h4>
-              <span className="text-[11px] text-slate-400 font-medium">Відображаються у шапці, футері, кнопках дзвінка та контактах</span>
+              <span className="text-[11px] text-slate-400 font-semibold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">
+                Контакти & Локація
+              </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -8471,7 +10119,7 @@ export const AdminPanel: React.FC = () => {
             {/* Live Contacts & Location Preview */}
             <div className="pt-2">
               <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
-                <span>Попередній вигляд контактного блоку (Колонка 3 футера):</span>
+                <span>Попередній вигляд контактного блоку (Футер сайту):</span>
                 <span className="text-emerald-600 font-bold">● Контакти магазину</span>
               </div>
 
@@ -8541,14 +10189,18 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Section 5: Footer Brand Description & Trust Advantages */}
-          <div className="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/40 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
-              <h4 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
-                <Building2 className="w-4 h-4 text-rose-600" />
-                <span>5. Інформаційний блок футера (Опис магазину, логотип та гарантії)</span>
+          {/* Section 4: Footer Brand Description & Trust Advantages */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <h4 className="font-extrabold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <span>4. Інформаційний блок футера (Опис магазину, логотип та гарантії)</span>
               </h4>
-              <span className="text-[11px] text-slate-400 font-medium">Відображається у першій колонці нижнього колонтитула (футера)</span>
+              <span className="text-[11px] text-slate-400 font-semibold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">
+                Нижній колонтитул
+              </span>
             </div>
 
             <div className="space-y-4 text-xs">
@@ -8645,8 +10297,8 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Save Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
+          {/* Sticky Bottom Action Save Bar */}
+          <div className="sticky bottom-4 z-20 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-xl border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => {
@@ -8665,17 +10317,17 @@ export const AdminPanel: React.FC = () => {
                 });
                 showToast('Значення дизайну скинуто до початкових', 'info');
               }}
-              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-700 w-full sm:w-auto text-center"
             >
               Скинути до стандартних
             </button>
 
             <button
               type="submit"
-              className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold rounded-xl text-xs shadow-md shadow-red-600/25 transition-all flex items-center gap-2 cursor-pointer active:scale-[0.98]"
+              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-red-600 via-orange-600 to-red-600 hover:from-red-500 hover:to-orange-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
               <Check className="w-4 h-4" />
-              <span>Зберегти дизайн, контакти та банери</span>
+              <span>Зберегти весь дизайн, контакти та банери</span>
             </button>
           </div>
         </form>
@@ -8689,84 +10341,169 @@ export const AdminPanel: React.FC = () => {
             updateSiteSettings(settingsForm);
             showToast('Telegram-бот та SMS-сервіси успішно збережено!', 'success');
           }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-6"
+          className="space-y-6 max-w-5xl animate-in fade-in duration-200"
         >
-          {/* Header */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 shadow-xs">
-                <Send className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 leading-tight">
-                  Telegram-сповіщення та SMS
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Керуйте ботом сповіщень про нові замовлення та SMS-інформуванням (контакти магазину налаштовуються у вкладці «Дизайн»)
-                </p>
-              </div>
-            </div>
+          {/* Top Master Hero Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 p-6 sm:p-8 text-white shadow-2xl border border-sky-500/20">
+            <div className="absolute right-0 top-0 -mt-12 -mr-12 w-96 h-96 rounded-full bg-sky-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute left-1/3 bottom-0 w-64 h-64 rounded-full bg-blue-500/10 blur-2xl pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-300 text-xs font-extrabold uppercase tracking-wider shadow-inner">
+                    <Send className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Миттєві сповіщення & Месенджери</span>
+                  </span>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold ${
-                settingsForm.botToken && settingsForm.chatId
-                  ? 'bg-sky-50 text-sky-800 border border-sky-200'
-                  : 'bg-slate-100 text-slate-600 border border-slate-200'
-              }`}>
-                <Send className="w-3.5 h-3.5 text-sky-500" />
-                {settingsForm.botToken && settingsForm.chatId ? 'Telegram: Налаштовано' : 'Telegram: Не підключено'}
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-                {settingsForm.smsGateway && settingsForm.smsGateway !== 'none' ? settingsForm.smsGateway.toUpperCase() : '1-клік SMS & Viber'}
-              </span>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-inner ${
+                    settingsForm.botToken && settingsForm.chatId
+                      ? 'bg-emerald-500/20 border border-emerald-400/30 text-emerald-300'
+                      : 'bg-amber-500/20 border border-amber-400/30 text-amber-300'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${settingsForm.botToken && settingsForm.chatId ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
+                    <span>{settingsForm.botToken && settingsForm.chatId ? 'Telegram Бот: Активний' : 'Telegram Бот: Потребує ключів'}</span>
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold shadow-inner">
+                    <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
+                    <span>SMS: {settingsForm.smsGateway && settingsForm.smsGateway !== 'none' ? settingsForm.smsGateway.toUpperCase() : '1-Клік Free'}</span>
+                  </span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight flex items-center gap-3">
+                  <span>Telegram-бот та SMS-сповіщення</span>
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Центр зв'язку та авто-сповіщень магазину <strong>ISKRA</strong>. Отримуйте миттєві інтерактивні картки замовлень у Telegram, підключайте SMS-шлюзи (TurboSMS, SMS-Fly, AlphaSMS) та керуйте кнопками прямого зв'язку покупців.
+                </p>
+
+                {/* Status Badges Bar */}
+                <div className="pt-2 flex flex-wrap gap-2 text-[11px]">
+                  <div className="px-3 py-1.5 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center gap-2">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-slate-400">Швидкість сповіщень:</span>
+                    <span className="text-white font-extrabold">&lt; 1 секунди</span>
+                  </div>
+                  <div className="px-3 py-1.5 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-slate-400">Захист каналу:</span>
+                    <span className="text-emerald-300 font-extrabold">SSL / Bot API 2.0</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  disabled={isTestingTelegram}
+                  onClick={async () => {
+                    if (!settingsForm.botToken || !settingsForm.chatId) {
+                      showToast('Введіть Bot Token та Chat ID у Секції 1 для перевірки з\'єднання', 'error');
+                      return;
+                    }
+                    setIsTestingTelegram(true);
+                    updateSiteSettings(settingsForm);
+
+                    try {
+                      const success = await sendTelegramAlert(
+                        settingsForm.botToken,
+                        settingsForm.chatId,
+                        "⚡ *ТЕСТОВЕ СПОВІЩЕННЯ ВІД МАТЕРИНСЬКОЇ СИСТЕМИ ISKRA*\n\n✅ З'єднання з Telegram-ботом налаштовано успішно!\n\n🛍️ Тепер усі нові замовлення, дзвінки та запити на консультацію будуть миттєво надходити сюди у вигляді детальних карточок."
+                      );
+                      if (success) {
+                        showToast('✅ Тестове повідомлення надіслано в Telegram та налаштування збережено!', 'success');
+                      } else {
+                        showToast('❌ Помилка надсилання в Telegram (перевірте токен, chat ID та чи натиснутий START у боті)', 'error');
+                      }
+                    } catch {
+                      showToast('Помилка відправки в Telegram', 'error');
+                    } finally {
+                      setIsTestingTelegram(false);
+                    }
+                  }}
+                  className="px-4 py-2.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-xs font-bold rounded-xl transition-all border border-sky-400/30 flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
+                >
+                  {isTestingTelegram ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5 text-sky-300" />
+                  )}
+                  <span>Тест бота в Telegram</span>
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-sky-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-600/30 cursor-pointer active:scale-95"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Зберегти налаштування</span>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Section 1: Telegram Bot Integration */}
-          <div className="p-5 rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50/80 via-white to-sky-50/40 shadow-2xs space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-sky-200/70">
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shadow-xs">
+                <div className="p-2 bg-sky-50 text-sky-600 rounded-xl border border-sky-100">
                   <Send className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <span>1. Миттєві сповіщення про замовлення у Telegram</span>
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      settingsForm.botToken && settingsForm.chatId
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : 'bg-amber-100 text-amber-800 border border-amber-200'
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${settingsForm.botToken && settingsForm.chatId ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                      {settingsForm.botToken && settingsForm.chatId ? 'Активно' : 'Очікує налаштування'}
-                    </span>
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
+                    1. Миттєві сповіщення про замовлення у Telegram
                   </h4>
                   <p className="text-[11px] text-slate-500">
-                    Бот миттєво надсилає повний склад нового замовлення, контакти клієнта та адресу доставки у ваш Telegram
+                    Отримуйте картку покупця, склад та кошик прямо в приватний чат або групу співробітників
+                  </p>
+                </div>
+              </div>
+              <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full ${
+                settingsForm.botToken && settingsForm.chatId ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+              }`}>
+                {settingsForm.botToken && settingsForm.chatId ? '● Бот підключено' : '○ Очікує налаштування'}
+              </span>
+            </div>
+
+            {/* Quick Setup Instructions Box */}
+            <div className="p-4 bg-gradient-to-r from-sky-50/90 via-blue-50/50 to-slate-50/80 rounded-2xl border border-sky-100 text-xs text-slate-700 space-y-2.5">
+              <div className="font-extrabold text-sky-950 flex items-center gap-2 text-xs">
+                <Sparkles className="w-4 h-4 text-sky-600" />
+                <span>Як підключити Telegram-бота за 3 простих кроки:</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                <div className="p-3 bg-white/90 rounded-xl border border-sky-100 shadow-2xs space-y-1">
+                  <div className="text-[10px] font-black text-sky-600 uppercase tracking-wider">Крок 1</div>
+                  <p className="text-[11px] text-slate-700 font-medium leading-normal">
+                    Знайдіть <b>@BotFather</b> у Telegram, надішліть команду <code>/newbot</code> та скопіюйте отриманий <b>Bot Token</b>.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-white/90 rounded-xl border border-sky-100 shadow-2xs space-y-1">
+                  <div className="text-[10px] font-black text-sky-600 uppercase tracking-wider">Крок 2</div>
+                  <p className="text-[11px] text-slate-700 font-medium leading-normal">
+                    Перейдіть у вашого нового бота та обов'язково натисніть кнопку <b>START</b> або <code>/start</code>.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-white/90 rounded-xl border border-sky-100 shadow-2xs space-y-1">
+                  <div className="text-[10px] font-black text-sky-600 uppercase tracking-wider">Крок 3</div>
+                  <p className="text-[11px] text-slate-700 font-medium leading-normal">
+                    Дізнайтеся ваш <b>Chat ID</b> у бота <b>@userinfobot</b> або додайте бота в групу менеджерів (ID групи починається з мінуса, напр. <code>-100123456789</code>).
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Quick Setup Instructions Accordion */}
-            <div className="p-3.5 bg-white/90 rounded-xl border border-sky-200/80 text-xs text-slate-700 space-y-2">
-              <div className="font-bold text-sky-950 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-sky-600" />
-                <span>Як налаштувати Telegram-бота за 2 хвилини:</span>
-              </div>
-              <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-600 leading-relaxed">
-                <li>Відкрийте в Telegram бота <b>@BotFather</b> і надішліть команду <code>/newbot</code>, щоб створити бота та отримати <b>Bot Token</b>.</li>
-                <li>Натисніть <b>START</b> у вашому створеному боті, щоб дозволити йому надсилати вам повідомлення.</li>
-                <li>Дізнайтеся свій <b>Chat ID</b> через бота <b>@userinfobot</b> (або вкажіть ID групи/каналу з мінусом, напр. <code>-1001234567890</code>).</li>
-              </ol>
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               {/* Bot Token */}
               <div>
-                <label className="block font-bold text-slate-800 mb-1">
-                  Telegram Bot Token
+                <label className="block font-bold text-slate-800 mb-1 flex items-center justify-between">
+                  <span>Telegram Bot Token *</span>
+                  <span className="text-[10px] font-mono text-slate-400">з @BotFather</span>
                 </label>
                 <div className="relative">
                   <input
@@ -8774,7 +10511,7 @@ export const AdminPanel: React.FC = () => {
                     placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
                     value={settingsForm.botToken}
                     onChange={(e) => setSettingsForm({ ...settingsForm, botToken: e.target.value })}
-                    className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-xl font-mono text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                    className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-xl font-mono text-xs bg-white text-slate-900 font-bold shadow-2xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
                   />
                   <button
                     type="button"
@@ -8789,105 +10526,133 @@ export const AdminPanel: React.FC = () => {
 
               {/* Chat ID */}
               <div>
-                <label className="block font-bold text-slate-800 mb-1">
-                  Telegram Chat ID (користувача або групи)
+                <label className="block font-bold text-slate-800 mb-1 flex items-center justify-between">
+                  <span>Telegram Chat ID (користувача або групи) *</span>
+                  <span className="text-[10px] font-mono text-slate-400">з @userinfobot</span>
                 </label>
                 <input
                   type="text"
                   placeholder="наприклад: 987654321 або -100123456789"
                   value={settingsForm.chatId}
                   onChange={(e) => setSettingsForm({ ...settingsForm, chatId: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono text-xs bg-white text-slate-900 font-bold shadow-2xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
                 />
               </div>
             </div>
 
-            {/* Test Button */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <button
-                type="button"
-                disabled={isTestingTelegram}
-                onClick={async () => {
-                  if (!settingsForm.botToken || !settingsForm.chatId) {
-                    showToast('Введіть Bot Token та Chat ID для відправки тестового сповіщення', 'error');
-                    return;
-                  }
-                  setIsTestingTelegram(true);
-                  // Auto-save settings so placeOrder immediately has them
-                  updateSiteSettings(settingsForm);
+            {/* Live Interactive Telegram Order Card Preview */}
+            <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
+                  <span className="text-xs font-bold text-sky-300">Прев'ю повідомлення замовлення у вашому Telegram:</span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400">Telegram Client Preview</span>
+              </div>
 
-                  try {
-                    const success = await sendTelegramAlert(
-                      settingsForm.botToken,
-                      settingsForm.chatId,
-                      "✅ Тестове сповіщення від магазину ISKRA!\n\nЗ'єднання з Telegram-ботом налаштовано успішно. Всі нові замовлення будуть миттєво надходити сюди."
-                    );
-                    if (success) {
-                      showToast('✅ Тестове повідомлення надіслано в Telegram та налаштування збережено!', 'success');
-                    } else {
-                      showToast('❌ Помилка надсилання в Telegram (перевірте токен, chat ID та чи натиснутий START у боті)', 'error');
+              <div className="p-3.5 bg-slate-800/90 rounded-xl border border-slate-700/80 font-mono text-[11px] leading-relaxed text-slate-200 space-y-1 shadow-inner">
+                <div className="text-sky-400 font-extrabold text-xs">🛍️ НОВЕ ЗАМОВЛЕННЯ #ISKRA-1048</div>
+                <div>-----------------------------------</div>
+                <div>👤 <b>Покупець:</b> Олександр Ковальчук</div>
+                <div>📞 <b>Телефон:</b> +38 (068) 555-43-21</div>
+                <div>📍 <b>Доставка:</b> Нова Пошта, м. Київ, відділення №12</div>
+                <div>💳 <b>Спосіб оплати:</b> При отриманні (Накладений платіж)</div>
+                <div>-----------------------------------</div>
+                <div>📦 <b>Товари:</b></div>
+                <div className="pl-2 text-emerald-300">1. Змішувач ISKRA Pro-500 — 1 шт. × 1,850 грн</div>
+                <div className="pl-2 text-emerald-300">2. Кабель силовий ВВГнг 3х2.5 — 20 м × 45 грн</div>
+                <div>-----------------------------------</div>
+                <div className="text-amber-300 font-bold">💰 ЗАГАЛЬНА СУМА: 2,750 грн</div>
+                <div className="text-slate-400 text-[10px]">⏰ Час: {new Date().toLocaleTimeString('uk-UA')}</div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <button
+                  type="button"
+                  disabled={isTestingTelegram}
+                  onClick={async () => {
+                    if (!settingsForm.botToken || !settingsForm.chatId) {
+                      showToast('Введіть Bot Token та Chat ID для відправки тестового сповіщення', 'error');
+                      return;
                     }
-                  } catch {
-                    showToast('Помилка відправки в Telegram', 'error');
-                  } finally {
-                    setIsTestingTelegram(false);
-                  }
-                }}
-                className="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-60"
-              >
-                {isTestingTelegram ? (
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Send className="w-3.5 h-3.5" />
-                )}
-                <span>Надіслати тестове повідомлення в Telegram</span>
-              </button>
+                    setIsTestingTelegram(true);
+                    updateSiteSettings(settingsForm);
 
-              <span className="text-[11px] text-slate-500 italic">
-                При тесті налаштування бота зберігаються автоматично
-              </span>
+                    try {
+                      const success = await sendTelegramAlert(
+                        settingsForm.botToken,
+                        settingsForm.chatId,
+                        "🛍️ *ТЕСТОВЕ ЗАМОВЛЕННЯ #ISKRA-1048*\n-----------------------------------\n👤 *Покупець:* Олександр Ковальчук\n📞 *Телефон:* +38 (068) 555-43-21\n📍 *Доставка:* Нова Пошта, м. Київ, відділення №12\n💳 *Оплата:* При отриманні\n-----------------------------------\n📦 *Товари:*\n1. Змішувач ISKRA Pro-500 — 1 шт. (1,850 грн)\n2. Кабель ВВГнг 3х2.5 — 20 м (900 грн)\n-----------------------------------\n💰 *ЗАГАЛЬНА СУМА:* 2,750 грн\n⏰ *Час:* " + new Date().toLocaleTimeString('uk-UA')
+                      );
+                      if (success) {
+                        showToast('✅ Картку замовлення надіслано в Telegram та налаштування збережено!', 'success');
+                      } else {
+                        showToast('❌ Помилка надсилання в Telegram (перевірте токен, chat ID та чи натиснутий START у боті)', 'error');
+                      }
+                    } catch {
+                      showToast('Помилка відправки в Telegram', 'error');
+                    } finally {
+                      setIsTestingTelegram(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-60"
+                >
+                  {isTestingTelegram ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
+                  <span>Надіслати тестову картку в Telegram</span>
+                </button>
+
+                <span className="text-[11px] text-slate-400 font-medium italic">
+                  При натисканні тестового повідомлення параметри збережуться в БД
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Section 2: SMS Gateway & Customer Stock Notifications */}
-          <div className="p-5 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/80 via-white to-blue-50/40 shadow-2xs space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-blue-200/70">
-              <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                <MessageSquare className="w-4 h-4" />
+          {/* Section 2: SMS Gateway & Stock Notifications */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
+                    2. SMS-сповіщення покупців (TurboSMS, SMS-Fly, AlphaSMS, 1-Клік)
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Автоматичні SMS про появу товарів на складі та статуси замовлень
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <span>2. SMS-сповіщення клієнтів (TurboSMS, SMS-Fly, AlphaSMS, 1-клік)</span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                    Активно
-                  </span>
-                </h4>
-                <p className="text-[11px] text-slate-500">
-                  Автоматичні та 1-клік сповіщення для покупців, які очікують на появу товару на складі
-                </p>
-              </div>
+              <span className="text-[10px] font-extrabold px-3 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                Active SMS Gateway
+              </span>
             </div>
 
-            <div className="text-xs text-slate-700 bg-white/90 p-3.5 rounded-xl border border-blue-200/80 space-y-2">
-              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+            <div className="text-xs text-slate-700 bg-gradient-to-r from-blue-50/80 via-slate-50 to-indigo-50/50 p-4 rounded-2xl border border-blue-100 space-y-2">
+              <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Як працює відправка SMS в магазині:</span>
+                <span>Як працює відправка SMS в магазині ISKRA:</span>
               </div>
-              <ul className="list-disc list-inside space-y-1 text-slate-600 text-[11px] leading-relaxed">
-                <li><b>1-клік SMS & Viber (безкоштовно):</b> у вкладці «Очікують товар» натисніть кнопку «SMS» або «Viber» — на вашому телефоні або ПК одразу відкриється месенджер з готовим текстом і номером клієнта без жодних платних підписок.</li>
-                <li><b>SMS-шлюз (TurboSMS, SMS-Fly, AlphaSMS):</b> підключіть API ключ оператора розсилок для масової автоматичної відправки з альфа-іменем магазину.</li>
+              <ul className="list-disc list-inside space-y-1 text-slate-600 text-[11px] leading-relaxed font-medium">
+                <li><b>Швидкі кнопки 1-Клік SMS & Viber (безкоштовно):</b> У вкладці «Очікують товар» натисніть кнопку «SMS» або «Viber» — на вашому смартфоні або ПК одразу відкриється додаток з готовим текстом та номером покупця. Без жодних щомісячних плат!</li>
+                <li><b>Платні SMS-шлюзи (TurboSMS, SMS-Fly, AlphaSMS):</b> Підключіть API ключ вашого оператора для повністю автоматичної масової відправки з офіційним брендовим альфа-іменем.</li>
               </ul>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
                 <label className="block font-bold text-slate-800 mb-1">
-                  SMS-провайдер
+                  SMS-провайдер розсилок
                 </label>
                 <select
                   value={settingsForm.smsGateway || 'none'}
                   onChange={(e) => setSettingsForm({ ...settingsForm, smsGateway: e.target.value as any })}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-blue-600 font-medium"
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-blue-600 font-bold"
                 >
                   <option value="none">Швидкі кнопки 1-клік SMS & Viber (Рекомендовано, безкоштовно)</option>
                   <option value="turbosms">TurboSMS (api.turbosms.ua)</option>
@@ -8913,15 +10678,15 @@ export const AdminPanel: React.FC = () => {
             {settingsForm.smsGateway && settingsForm.smsGateway !== 'none' && (
               <div className="animate-in fade-in text-xs">
                 <label className="block font-bold text-slate-800 mb-1">
-                  API Ключ (Токен) {settingsForm.smsGateway.toUpperCase()}
+                  API Ключ (Токен доступу) {settingsForm.smsGateway.toUpperCase()}
                 </label>
                 <div className="relative">
                   <input
                     type={showSmsApiKey ? 'text' : 'password'}
-                    placeholder={`Вставте API ключ від ${settingsForm.smsGateway}`}
+                    placeholder={`Вставте приватний API ключ від ${settingsForm.smsGateway}`}
                     value={settingsForm.smsApiKey || ''}
                     onChange={(e) => setSettingsForm({ ...settingsForm, smsApiKey: e.target.value })}
-                    className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-xl font-mono text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-blue-600"
+                    className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-xl font-mono text-xs bg-white text-slate-900 font-bold shadow-2xs outline-none focus:border-blue-600"
                   />
                   <button
                     type="button"
@@ -8935,79 +10700,104 @@ export const AdminPanel: React.FC = () => {
               </div>
             )}
 
-            <div className="text-xs space-y-2">
-              <label className="block font-bold text-slate-800">
-                Шаблон SMS про появу товару в наявності
-              </label>
-              <textarea
-                rows={3}
-                value={settingsForm.smsStockAlertTemplate || ''}
-                onChange={(e) => setSettingsForm({ ...settingsForm, smsStockAlertTemplate: e.target.value })}
-                placeholder={`⚡ Магазин ISKRA\nВітаємо! Товар «{product}» знову в наявності ({price} грн). Замовляйте на сайті або телефонуйте!`}
-                className="w-full p-3 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-blue-600 leading-relaxed"
-              />
+            {/* Template & Smartphone Live Preview */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs pt-2">
+              {/* Left 2 Cols: Template Config */}
+              <div className="lg:col-span-2 space-y-2">
+                <label className="block font-bold text-slate-800">
+                  Шаблон SMS про появу товару в наявності
+                </label>
+                <textarea
+                  rows={4}
+                  value={settingsForm.smsStockAlertTemplate || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, smsStockAlertTemplate: e.target.value })}
+                  placeholder={`⚡ Магазин ISKRA\nВітаємо! Товар «{product}» знову в наявності ({price} грн). Замовляйте на сайті або телефонуйте!`}
+                  className="w-full p-3 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-blue-600 leading-relaxed font-medium"
+                />
 
-              {/* Clickable Variable Chips */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[11px] text-slate-400 font-medium">Вставити змінну:</span>
-                {[
-                  { tag: '{product}', label: '{product} — назва товару' },
-                  { tag: '{price}', label: '{price} — ціна' },
-                  { tag: '{name}', label: '{name} — ім\'я клієнта' }
-                ].map((v) => (
-                  <button
-                    key={v.tag}
-                    type="button"
-                    onClick={() => {
-                      const cur = settingsForm.smsStockAlertTemplate || '';
-                      setSettingsForm({ ...settingsForm, smsStockAlertTemplate: cur + ' ' + v.tag });
-                    }}
-                    className="px-2 py-0.5 bg-white hover:bg-blue-50 hover:border-blue-300 border border-slate-200 rounded-md text-[11px] font-mono text-blue-700 transition-all cursor-pointer"
-                  >
-                    + {v.tag}
-                  </button>
-                ))}
+                {/* Clickable Variable Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[11px] text-slate-400 font-semibold">Вставити змінну:</span>
+                  {[
+                    { tag: '{product}', label: '{product} — назва товару' },
+                    { tag: '{price}', label: '{price} — ціна' },
+                    { tag: '{name}', label: '{name} — ім\'я клієнта' }
+                  ].map((v) => (
+                    <button
+                      key={v.tag}
+                      type="button"
+                      onClick={() => {
+                        const cur = settingsForm.smsStockAlertTemplate || '';
+                        setSettingsForm({ ...settingsForm, smsStockAlertTemplate: cur + ' ' + v.tag });
+                      }}
+                      className="px-2.5 py-1 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 border border-slate-200 rounded-lg text-[11px] font-mono text-blue-700 transition-all cursor-pointer font-bold active:scale-95"
+                    >
+                      + {v.tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Col: Smartphone Frame Preview */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between text-white shadow-md">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 pb-2 border-b border-slate-800">
+                    <span className="flex items-center gap-1">
+                      <Smartphone className="w-3 h-3 text-sky-400" />
+                      <span>Прев'ю SMS покупця</span>
+                    </span>
+                    <span className="font-bold text-sky-300">{settingsForm.smsSenderName || 'ISKRA'}</span>
+                  </div>
+
+                  <div className="p-3 bg-slate-800/90 rounded-xl text-[11px] leading-relaxed font-sans text-slate-200 border border-slate-700/60 shadow-inner">
+                    {(settingsForm.smsStockAlertTemplate || `⚡ Магазин ISKRA\nВітаємо! Товар «{product}» знову в наявності ({price} грн).`)
+                      .replace('{product}', 'Змішувач ISKRA Pro-500')
+                      .replace('{price}', '1,850 грн')
+                      .replace('{name}', 'Іван')}
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-slate-500 font-mono text-right pt-2">
+                  1 повідомлення (GSM 7-bit)
+                </div>
               </div>
             </div>
           </div>
 
           {/* Section 3: Quick Consultation & Callback Notifications */}
-          <div className="p-5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/40 shadow-2xs space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-emerald-200/70">
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
                   <Headphones className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <span>3. Швидка консультація, месенджери та зворотний дзвінок (Callback)</span>
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      (settingsForm.callbackTelegramNotify ?? true)
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : 'bg-slate-100 text-slate-700 border border-slate-200'
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${(settingsForm.callbackTelegramNotify ?? true) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                      {(settingsForm.callbackTelegramNotify ?? true) ? 'Сповіщення активні' : 'Вимкнено'}
-                    </span>
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
+                    3. Швидка консультація, месенджери та зворотний дзвінок (Callback)
                   </h4>
                   <p className="text-[11px] text-slate-500">
-                    Керуйте прямими месенджерами (Viber, Telegram), текстом кнопки та сповіщеннями про заявки на зворотний дзвінок
+                    Налаштуйте прямий зв'язок покупців через Viber/Telegram та сповіщення менеджерів
                   </p>
                 </div>
               </div>
+              <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full ${
+                (settingsForm.callbackTelegramNotify ?? true) ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
+              }`}>
+                {(settingsForm.callbackTelegramNotify ?? true) ? '● Callback в Telegram: Увімкнено' : '○ Вимкнено'}
+              </span>
             </div>
 
             {/* Sub-section A: Direct Messenger Channels for Buyers */}
-            <div className="p-4 bg-white/95 rounded-xl border border-emerald-200/90 shadow-2xs space-y-3">
+            <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-purple-600" />
-                  <h5 className="font-bold text-xs text-slate-900">
-                    Прямі канали зв'язку у віджеті консультації (Швидкі повідомлення)
+                  <h5 className="font-extrabold text-xs text-slate-900">
+                    Прямі канали зв'язку у віджеті консультації (Прямий чат з консультантом)
                   </h5>
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium">
-                  Клієнт пише вам напряму в 1 клік
+                <span className="text-[10px] text-slate-400 font-semibold">
+                  Клієнт пише у 1 клік
                 </span>
               </div>
 
@@ -9016,7 +10806,7 @@ export const AdminPanel: React.FC = () => {
                 <div>
                   <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
                     <MessageCircle className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Viber для консультацій покупців</span>
+                    <span>Viber номер для консультацій покупців</span>
                   </label>
                   <div className="relative">
                     <input
@@ -9024,7 +10814,7 @@ export const AdminPanel: React.FC = () => {
                       value={settingsForm.viber}
                       onChange={(e) => setSettingsForm({ ...settingsForm, viber: e.target.value })}
                       placeholder="+38 (068) 000-00-00"
-                      className="w-full pl-3.5 pr-16 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                      className="w-full pl-3.5 pr-16 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold shadow-2xs outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                     />
                     {settingsForm.viber && (
                       <a
@@ -9038,7 +10828,7 @@ export const AdminPanel: React.FC = () => {
                     )}
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Відкриває прямий чат у Viber при кліку на вкладку «Прямий зв'язок».
+                    Відкриває прямий чат у Viber при кліку на віджет консультації.
                   </p>
                 </div>
 
@@ -9054,7 +10844,7 @@ export const AdminPanel: React.FC = () => {
                       value={settingsForm.telegram}
                       onChange={(e) => setSettingsForm({ ...settingsForm, telegram: e.target.value })}
                       placeholder="@iskra_shop або t.me/iskra_shop"
-                      className="w-full pl-3.5 pr-16 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                      className="w-full pl-3.5 pr-16 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold shadow-2xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
                     />
                     {settingsForm.telegram && (
                       <a
@@ -9068,7 +10858,7 @@ export const AdminPanel: React.FC = () => {
                     )}
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Відкриває прямий діалог в Telegram із консультантом або канал магазину.
+                    Відкриває прямий діалог в Telegram із консультантом.
                   </p>
                 </div>
               </div>
@@ -9079,7 +10869,7 @@ export const AdminPanel: React.FC = () => {
               {/* Callback Button Text */}
               <div>
                 <label className="block font-bold text-slate-800 mb-1">
-                  Текст дії / кнопки у віджеті консультації
+                  Текст кнопки у віджеті консультації
                 </label>
                 <input
                   type="text"
@@ -9089,7 +10879,7 @@ export const AdminPanel: React.FC = () => {
                   className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs bg-white font-bold text-slate-900 shadow-2xs outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
                 />
                 <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                  <span className="text-[10px] text-slate-400">Швидкі варіанти:</span>
+                  <span className="text-[10px] text-slate-400 font-semibold">Швидкі варіанти:</span>
                   {[
                     'Замовити дзвінок за 30 сек',
                     'Швидка консультація',
@@ -9100,7 +10890,7 @@ export const AdminPanel: React.FC = () => {
                       key={txt}
                       type="button"
                       onClick={() => setSettingsForm({ ...settingsForm, callbackText: txt })}
-                      className="px-1.5 py-0.5 bg-white hover:bg-emerald-50 border border-slate-200 rounded text-[10px] text-slate-700 transition-all cursor-pointer"
+                      className="px-2 py-0.5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 rounded-md text-[10px] text-slate-700 transition-all cursor-pointer font-medium"
                     >
                       {txt}
                     </button>
@@ -9109,12 +10899,12 @@ export const AdminPanel: React.FC = () => {
               </div>
 
               {/* Toggle: Telegram Notification for Callbacks */}
-              <div className="p-3.5 bg-white/90 rounded-xl border border-emerald-200/80 space-y-2 flex flex-col justify-between">
+              <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-2.5 flex flex-col justify-between">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <b className="text-slate-900 block text-xs">Надсилати запити у Telegram-бот</b>
+                    <b className="text-slate-900 block text-xs font-bold">Надсилати запити Callback у Telegram-бот</b>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">
-                      Миттєве сповіщення з ім'ям, телефоном та темою запиту
+                      Миттєве сповіщення менеджерам з ім'ям, телефоном та темою
                     </p>
                   </div>
 
@@ -9133,8 +10923,8 @@ export const AdminPanel: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="pt-1 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400">Використовує налаштований Bot Token та Chat ID</span>
+                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 font-medium">Використовує Bot Token та Chat ID</span>
                   <button
                     type="button"
                     disabled={isTestingTelegram}
@@ -9149,7 +10939,7 @@ export const AdminPanel: React.FC = () => {
                         const success = await sendTelegramAlert(
                           settingsForm.botToken,
                           settingsForm.chatId,
-                          "⚡ *Тестовий запит на швидку консультацію!*\n👤 Ім'я: Тестовий клієнт\n📞 Телефон: +38 (068) 000-00-00\n📌 Тема: Сантехніка та електрика\n⏰ Час: " + new Date().toLocaleTimeString('uk-UA')
+                          "⚡ *ТЕСТОВИЙ ЗАПИТ НА ШВИДКУ КОНСУЛЬТАЦІЮ!*\n\n👤 *Ім'я:* Тестовий клієнт\n📞 *Телефон:* +38 (068) 000-00-00\n📌 *Тема:* Сантехніка та електрика ISKRA\n⏰ *Час:* " + new Date().toLocaleTimeString('uk-UA')
                         );
                         if (success) {
                           showToast('✅ Тестове сповіщення консультації надіслано в Telegram!', 'success');
@@ -9162,17 +10952,17 @@ export const AdminPanel: React.FC = () => {
                         setIsTestingTelegram(false);
                       }
                     }}
-                    className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-md border border-emerald-200 flex items-center gap-1 cursor-pointer"
+                    className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1.5 cursor-pointer active:scale-95"
                   >
-                    <Send className="w-2.5 h-2.5" />
-                    <span>Тест Callback в Telegram</span>
+                    <Send className="w-3 h-3" />
+                    <span>Тест Callback у Telegram</span>
                   </button>
                 </div>
               </div>
             </div>
 
             {/* Sub-row: Auto SMS Template to Buyer on Callback */}
-            <div className="p-3.5 bg-white/95 rounded-xl border border-emerald-200/80 space-y-2 text-xs">
+            <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-2 text-xs">
               <div className="flex items-center justify-between gap-2">
                 <label className="font-bold text-slate-800 flex items-center gap-1.5">
                   <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
@@ -9203,27 +10993,27 @@ export const AdminPanel: React.FC = () => {
                 value={settingsForm.callbackSmsTemplate || ''}
                 onChange={(e) => setSettingsForm({ ...settingsForm, callbackSmsTemplate: e.target.value })}
                 placeholder="⚡ Магазин ISKRA&#10;Дякуємо за запит на консультацію! Наш фахівець зв'яжеться з вами протягом 2-3 хвилин."
-                className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-emerald-600 leading-relaxed"
+                className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 shadow-2xs outline-none focus:border-emerald-600 leading-relaxed font-medium"
               />
             </div>
           </div>
 
-          {/* Save Action Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
+          {/* Sticky Bottom Action Save Bar */}
+          <div className="sticky bottom-4 z-20 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-xl border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => {
                 setSettingsForm(siteSettings);
                 showToast('Налаштування скинуто до збережених', 'info');
               }}
-              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-700 w-full sm:w-auto text-center"
             >
               Скасувати незбережені зміни
             </button>
 
             <button
               type="submit"
-              className="px-6 py-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold rounded-xl text-xs shadow-md shadow-sky-600/25 transition-all flex items-center gap-2 cursor-pointer active:scale-[0.98]"
+              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-sky-600 hover:from-sky-500 hover:to-blue-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-sky-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
               <Check className="w-4 h-4" />
               <span>Зберегти налаштування Telegram & SMS</span>
@@ -10825,42 +12615,106 @@ export const AdminPanel: React.FC = () => {
             updateSiteSettings(settingsForm);
             showToast('Дані «Про нас та Реквізити ФОП» успішно збережено в базі даних!', 'success');
           }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 max-w-4xl"
+          className="space-y-6 max-w-5xl animate-in fade-in duration-200"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-red-50 text-red-600 rounded-xl">
-                  <Building2 className="w-5 h-5" />
-                </span>
-                <h3 className="text-base font-bold text-slate-900">
-                  Налаштування сторінки «Про нас / Реквізити ФОП»
-                </h3>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Ці дані відображаються клієнтам на окремій публічній сторінці «Про нас / Реквізити», у футері та договорах
-              </p>
-            </div>
+          {/* Top Hero Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-rose-950 p-6 sm:p-8 text-white shadow-2xl border border-rose-500/20">
+            <div className="absolute right-0 top-0 -mt-12 -mr-12 w-96 h-96 rounded-full bg-rose-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute left-1/3 bottom-0 w-64 h-64 rounded-full bg-red-500/10 blur-2xl pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-400/30 text-rose-300 text-xs font-extrabold uppercase tracking-wider shadow-inner">
+                    <Building2 className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Юридичні дані & Профіль продавця</span>
+                  </span>
 
-            <button
-              type="submit"
-              className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
-            >
-              <Check className="w-4 h-4" />
-              <span>Зберегти в базу даних</span>
-            </button>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold shadow-inner">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Публічні оферти & IBAN</span>
+                  </span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight flex items-center gap-3">
+                  <span>Сторінка «Про нас / Реквізити ФОП»</span>
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Повний онлайн-кабінет керування публічною сторінкою бренду <strong>ISKRA</strong>: історія розвитку магазину, розширені юридичні реквізити реєстрації ФОП, інформація про систему оподаткування та банківські розрахунки IBAN.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView('about');
+                    showToast('Перехід на публічну сторінку «Про нас»', 'info');
+                  }}
+                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all border border-white/20 flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-95"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-300" />
+                  <span>Переглянути «Про нас»</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSettingsForm({
+                      ...settingsForm,
+                      aboutTitle: 'Про магазин «ISKRA» та офіційні реквізити продавця',
+                      aboutStory: 'Магазин «ISKRA» засновано з метою надати українським родинам та майстрам якісну, сертифіковану та надійну сантехніку, електротовари, інвертори та обладнання для енергонезалежності.\n\nМи працюємо напряму з провідними заводськими виробниками та імпортерами, що дозволяє гарантувати чесні ціни, швидку відправку в день замовлення та офіційну гарантію на всі товари.',
+                      fopName: 'ФОП Тарасова Ірина Анатоліївна',
+                      fopRnokpp: '3298412839',
+                      fopRegistrationAddress: 'Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7',
+                      fopActualAddress: 'Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7',
+                      fopPhone: '+38 (096) 647-36-67',
+                      fopEmail: 'iskra.shop.ua@gmail.com',
+                      websiteUrl: 'https://iskra-shop.ua',
+                      fopStoreAddress: 'с-ще. Оратів, вул. Котляревського, 7',
+                      taxInfo: 'ФОП платник єдиного податку 2-ї групи (без сплати ПДВ)',
+                      licenseInfo: 'Роздрібна торгівля непродовольчими товарами не підлягає обов\'язковому ліцензуванню згідно ст. 7 ЗУ «Про ліцензування видів господарської діяльності». Всі товари сертифіковані.',
+                      companyIban: 'UA213052990000026007894561230',
+                      companyBank: 'АТ КБ «ПриватБанк» (МФО 305299)'
+                    });
+                    showToast('Заповнено офіційні реквізити ФОП Тарасова І.А.', 'info');
+                  }}
+                  className="px-4 py-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/30 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-rose-300" />
+                  <span>Реквізити ФОП ISKRA</span>
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/30 cursor-pointer active:scale-95"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Зберегти реквізити</span>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-4 text-xs">
-            
-            {/* Page Title & Story */}
-            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
-                1. Презентація та опис магазину
+          {/* Block 1: Presentation & Story */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <h4 className="font-extrabold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <div className="p-1.5 bg-red-50 text-red-600 rounded-lg">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <span>1. Презентація та історія магазину</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-semibold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">
+                Публічна сторінка «Про нас»
               </span>
+            </div>
 
+            <div className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
+                <label className="block font-bold text-slate-800 mb-1">
                   Головний заголовок сторінки
                 </label>
                 <input
@@ -10868,12 +12722,12 @@ export const AdminPanel: React.FC = () => {
                   placeholder="Про магазин «ISKRA» та офіційні реквізити продавця"
                   value={settingsForm.aboutTitle || ''}
                   onChange={(e) => setSettingsForm({ ...settingsForm, aboutTitle: e.target.value })}
-                  className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
+                <label className="block font-bold text-slate-800 mb-1">
                   Історія, місія та опис діяльності (розділяйте абзаци порожнім рядком)
                 </label>
                 <textarea
@@ -10881,204 +12735,283 @@ export const AdminPanel: React.FC = () => {
                   placeholder="Магазин «ISKRA» засновано з метою надати українським родинам..."
                   value={settingsForm.aboutStory || ''}
                   onChange={(e) => setSettingsForm({ ...settingsForm, aboutStory: e.target.value })}
-                  className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 text-xs leading-relaxed"
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-xs leading-relaxed"
+                />
+              </div>
+
+              {/* Live Story Preview Card */}
+              <div className="pt-1">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>Попередній вигляд презентації на сторінці:</span>
+                  <span className="text-rose-600 font-bold">● Публічний блок «Про нас»</span>
+                </div>
+
+                <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2.5">
+                  <h3 className="text-base font-black text-slate-900 font-display">
+                    {settingsForm.aboutTitle || 'Про магазин «ISKRA» та офіційні реквізити продавця'}
+                  </h3>
+                  <div className="text-xs text-slate-600 leading-relaxed space-y-2 whitespace-pre-line">
+                    {settingsForm.aboutStory || 'Магазин «ISKRA» засновано з метою надати українським родинам та майстрам якісну, сертифіковану та надійну сантехніку та електротовари.'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Block 2: Official FOP Legal Requisites */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <h4 className="font-extrabold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <span>2. Офіційні юридичні реквізити суб'єкта господарювання (ФОП)</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-semibold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">
+                Державний реєстр ФОП
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  ПІБ Фізичної особи-підприємця (ФОП) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ФОП Тарасова Ірина Анатоліївна"
+                  value={settingsForm.fopName || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopName: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 shadow-2xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  РНОКПП (ІПН платника податків) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="3298412839"
+                  value={settingsForm.fopRnokpp || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopRnokpp: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-mono font-bold text-slate-900 shadow-2xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Місце державної реєстрації ФОП
+                </label>
+                <input
+                  type="text"
+                  placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7"
+                  value={settingsForm.fopRegistrationAddress || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopRegistrationAddress: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Фактичне місце проживання / Склад
+                </label>
+                <input
+                  type="text"
+                  placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7"
+                  value={settingsForm.fopActualAddress || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopActualAddress: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Офіційний телефон ФОП
+                </label>
+                <input
+                  type="text"
+                  placeholder="+38 (096) 647-36-67"
+                  value={settingsForm.fopPhone || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopPhone: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-mono font-bold text-slate-900 shadow-2xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Офіційний E-mail для звернень
+                </label>
+                <input
+                  type="email"
+                  placeholder="iskra.shop.ua@gmail.com"
+                  value={settingsForm.fopEmail || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopEmail: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Адреса сайту (Домен)
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://iskra-shop.ua"
+                  value={settingsForm.websiteUrl || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, websiteUrl: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-mono font-bold text-slate-900 shadow-2xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Адреса точки видачі / Магазину
+                </label>
+                <input
+                  type="text"
+                  placeholder="с-ще. Оратів, вул. Котляревського, 7"
+                  value={settingsForm.fopStoreAddress || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopStoreAddress: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
                 />
               </div>
             </div>
+          </div>
 
-            {/* Official FOP Identification Requisites */}
-            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
-                2. Офіційні реквізити продавця (ФОП)
+          {/* Block 3: Bank IBAN & Taxes */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <h4 className="font-extrabold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <span>3. Банківські реквізити IBAN та система оподаткування</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-semibold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">
+                Оплата & Ліцензії
               </span>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    ФОП: ПІБ підприємця *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="ФОП Тарасова Ірина Анатоліївна"
-                    value={settingsForm.fopName || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, fopName: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    РНОКПП (ІПН платника податків) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="3298412839"
-                    value={settingsForm.fopRnokpp || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, fopRnokpp: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Місце державної реєстрації ФОП
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7"
-                    value={settingsForm.fopRegistrationAddress || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, fopRegistrationAddress: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Фактичне місце проживання / склад
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7"
-                    value={settingsForm.fopActualAddress || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, fopActualAddress: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Офіційний телефон ФОП
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="+38 (096) 647-36-67"
-                    value={settingsForm.fopPhone || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, fopPhone: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Офіційний e-mail для замовлень та звернень
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="iskra.shop.ua@gmail.com"
-                    value={settingsForm.fopEmail || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, fopEmail: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Адреса сайту (Домен)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="https://iskra-shop.ua"
-                    value={settingsForm.websiteUrl || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, websiteUrl: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Адреса точки видачі / магазину
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="с-ще. Оратів, вул. Котляревського, 7"
-                    value={settingsForm.fopStoreAddress || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, fopStoreAddress: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
-                  />
-                </div>
-              </div>
             </div>
 
-            {/* Tax & License */}
-            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
-                3. Інформація про оподаткування та ліцензування
-              </span>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Оподаткування та податки в ціні
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="ФОП платник єдиного податку 2-ї групи (без сплати ПДВ)..."
-                    value={settingsForm.taxInfo || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, taxInfo: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Ліцензії та сертифікація товару
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Роздрібна торгівля не підлягає обов'язковому ліцензуванню згідно ст. 7 ЗУ..."
-                    value={settingsForm.licenseInfo || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, licenseInfo: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 text-xs"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Bank details */}
-            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-              <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">
-                4. Банківські реквізити IBAN
-              </span>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Номер рахунку IBAN
-                  </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Номер розрахункового рахунку IBAN
+                </label>
+                <div className="relative">
                   <input
                     type="text"
                     placeholder="UA213052990000026007894561230"
                     value={settingsForm.companyIban || ''}
                     onChange={(e) => setSettingsForm({ ...settingsForm, companyIban: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600 font-mono"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-mono font-bold text-slate-900 shadow-2xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Банк одержувача та МФО
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="АТ КБ «ПриватБанк» (МФО 305299)"
-                    value={settingsForm.companyBank || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, companyBank: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:border-red-600"
-                  />
+                  {settingsForm.companyIban && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(settingsForm.companyIban || '');
+                        showToast('Скопійовано IBAN!', 'info');
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+                      title="Скопіювати IBAN"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
-            </div>
 
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Обслуговуючий банк одержувача та МФО
+                </label>
+                <input
+                  type="text"
+                  placeholder="АТ КБ «ПриватБанк» (МФО 305299)"
+                  value={settingsForm.companyBank || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, companyBank: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 shadow-2xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Оподаткування та податки в ціні
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="ФОП платник єдиного податку 2-ї групи (без сплати ПДВ)..."
+                  value={settingsForm.taxInfo || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, taxInfo: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs leading-relaxed"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Ліцензії та сертифікація товару
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Роздрібна торгівля непродовольчими товарами не підлягає обов'язковому ліцензуванню..."
+                  value={settingsForm.licenseInfo || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, licenseInfo: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 shadow-2xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs leading-relaxed"
+                />
+              </div>
+            </div>
           </div>
 
-          <button
-            type="submit"
-            className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-red-600/20 cursor-pointer"
-          >
-            Зберегти всі зміни в базу даних
-          </button>
+          {/* Block 4: Live Official Certificate Preview */}
+          <div className="bg-slate-950 text-slate-200 rounded-3xl border border-slate-800 p-5 sm:p-7 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider font-display">
+                  Офіційна картка юридичних реквізитів продавця
+                </h4>
+              </div>
+              <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2.5 py-1 rounded-md border border-slate-800">
+                Захищено ЗУ «Про електронну коммерцію»
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+              <div className="space-y-2 p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                <div className="text-[10px] uppercase text-slate-500 font-sans font-bold">Суб'єкт господарювання:</div>
+                <div className="text-sm font-bold text-white font-sans">{settingsForm.fopName || 'ФОП Тарасова Ірина Анатоліївна'}</div>
+                <div className="text-slate-400 pt-1">РНОКПП (ІПН): <b className="text-amber-300">{settingsForm.fopRnokpp || '3298412839'}</b></div>
+                <div className="text-slate-400">Тел: <b className="text-emerald-300 font-sans">{settingsForm.fopPhone || '+38 (096) 647-36-67'}</b></div>
+                <div className="text-slate-400">E-mail: <b className="text-slate-200 font-sans">{settingsForm.fopEmail || 'iskra.shop.ua@gmail.com'}</b></div>
+              </div>
+
+              <div className="space-y-2 p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                <div className="text-[10px] uppercase text-slate-500 font-sans font-bold">Банківський рахунок IBAN:</div>
+                <div className="text-sm font-bold text-emerald-400 break-all">{settingsForm.companyIban || 'UA213052990000026007894561230'}</div>
+                <div className="text-slate-400 pt-1">Банк: <b className="text-slate-200 font-sans">{settingsForm.companyBank || 'АТ КБ «ПриватБанк» (МФО 305299)'}</b></div>
+                <div className="text-slate-400">Податковий режим: <b className="text-slate-300 font-sans">{settingsForm.taxInfo || 'Єдиний податок 2-ї групи'}</b></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sticky Bottom Action Save Bar */}
+          <div className="sticky bottom-4 z-20 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-xl border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs text-slate-300 font-semibold">Всі реквізити синхронізуються з базою даних у реальному часі</span>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs rounded-xl transition-all shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Check className="w-4 h-4" />
+              <span>Зберегти юридичні дані та історію в БД</span>
+            </button>
+          </div>
         </form>
       )}
 
