@@ -85,6 +85,12 @@ import {
   Zap,
   Headphones,
   PhoneCall,
+  QrCode,
+  Smartphone,
+  Info,
+  Store,
+  Navigation,
+  Globe,
   X
 } from 'lucide-react';
 import { 
@@ -101,7 +107,15 @@ import { UkrSkladSyncModal } from './UkrSkladSyncModal';
 import { CsvImportModal } from './CsvImportModal';
 import { formatUnit, formatPriceUnit, normalizeStorageUnit } from '../utils/unitFormatter';
 import { getProductBrand, matchProductSearch } from '../utils/brandHelper';
-import { trackNovaPoshtaTTN, searchUkrposhtaOffices, UkrposhtaOffice } from '../services/deliveryService';
+import { 
+  trackNovaPoshtaTTN, 
+  searchUkrposhtaOffices, 
+  searchNovaPoshtaCities,
+  getNovaPoshtaWarehouses,
+  UkrposhtaOffice,
+  DeliveryCity,
+  DeliveryWarehouse
+} from '../services/deliveryService';
 import { sendTelegramAlert } from '../utils/telegramHelper';
 import { 
   checkAdminSecurityStatus, 
@@ -692,10 +706,20 @@ export const AdminPanel: React.FC = () => {
   const [adminNavGroup, setAdminNavGroup] = useState<'all' | 'sales' | 'services' | 'settings'>('all');
   const [adminTabSearch, setAdminTabSearch] = useState('');
 
-  // Ukrposhta test state in Admin
+  // Delivery Tab State
+  const [showNpApiKey, setShowNpApiKey] = useState(false);
+  const [showUpToken, setShowUpToken] = useState(false);
+  const [copyDeliveryFeedback, setCopyDeliveryFeedback] = useState<string | null>(null);
+  const [npCityTestQuery, setNpCityTestQuery] = useState('Вінниця');
+  const [npCityTestResults, setNpCityTestResults] = useState<DeliveryCity[]>([]);
+  const [npWarehouseTestResults, setNpWarehouseTestResults] = useState<DeliveryWarehouse[]>([]);
+  const [selectedNpTestCity, setSelectedNpTestCity] = useState<DeliveryCity | null>(null);
+  const [isTestingNp, setIsTestingNp] = useState(false);
+  const [isTestingNpWh, setIsTestingNpWh] = useState(false);
   const [upTestQuery, setUpTestQuery] = useState('22600');
   const [upTestResults, setUpTestResults] = useState<UkrposhtaOffice[]>([]);
   const [isTestingUp, setIsTestingUp] = useState(false);
+  const [deliveryActivePreviewTab, setDeliveryActivePreviewTab] = useState<'np' | 'up' | 'pickup'>('np');
 
   // Reviews Tab State
   const [reviewSearch, setReviewSearch] = useState('');
@@ -720,6 +744,11 @@ export const AdminPanel: React.FC = () => {
   const [batchPriceInput, setBatchPriceInput] = useState<number | string>('');
   const [batchStockInput, setBatchStockInput] = useState<number | string>('');
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
+
+  // Payments Tab State
+  const [showPaymentSecret, setShowPaymentSecret] = useState(false);
+  const [copyPaymentFeedback, setCopyPaymentFeedback] = useState<string | null>(null);
+  const [paymentPreviewSimulated, setPaymentPreviewSimulated] = useState(false);
 
   const filteredProducts = products.filter((p) => {
     const matchQ = matchProductSearch(p, productSearch);
@@ -6606,72 +6635,212 @@ export const AdminPanel: React.FC = () => {
         const notifiedCount = stockAlerts.filter(a => a.status === 'notified').length;
 
         return (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            {/* Ready to notify alert banner */}
+          <div className="space-y-6 animate-in fade-in duration-150 max-w-7xl">
+            {/* Top Hero Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-amber-950/70 to-slate-900 p-6 sm:p-8 text-white shadow-xl border border-amber-500/30">
+              <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-1/3 -mb-12 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-2 max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 backdrop-blur-xs">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                      <span>Автоматичний облік попиту</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-200 border border-white/15 backdrop-blur-xs">
+                      <Users className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Всі контакти зберігаються в базі</span>
+                    </span>
+                  </div>
+
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+                    <div className="p-2 bg-amber-500/20 border border-amber-500/30 rounded-2xl text-amber-400 shadow-inner">
+                      <Bell className="w-6 h-6" />
+                    </div>
+                    <span>Запити на сповіщення про наявність</span>
+                  </h2>
+
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Клієнти, які підписалися на сповіщення біля товарів з нульовим залишком. При поповненні складу ви можете миттєво сповістити їх через 
+                    <strong className="text-purple-300 font-bold"> Viber</strong>, <strong className="text-sky-300 font-bold">Telegram</strong>, <strong className="text-emerald-300 font-bold">WhatsApp</strong>, <strong className="text-blue-300 font-bold">SMS</strong> або зателефонувати в 1 клік.
+                  </p>
+                </div>
+
+                {/* Stat Badges Grid in Hero */}
+                <div className="grid grid-cols-2 gap-3 shrink-0 min-w-[260px]">
+                  <div className="bg-slate-800/80 backdrop-blur-md p-3.5 rounded-2xl border border-white/15 shadow-md">
+                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Всього запитів</div>
+                    <div className="text-2xl font-black text-white mt-0.5">{stockAlerts.length}</div>
+                  </div>
+                  <div className="bg-amber-500/15 backdrop-blur-md p-3.5 rounded-2xl border border-amber-500/30 shadow-md">
+                    <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                      Очікують
+                    </div>
+                    <div className="text-2xl font-black text-amber-400 mt-0.5">{pendingCount}</div>
+                  </div>
+                  <div className="bg-emerald-500/15 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-500/30 shadow-md">
+                    <div className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">Сповіщено</div>
+                    <div className="text-2xl font-black text-emerald-400 mt-0.5">{notifiedCount}</div>
+                  </div>
+                  <div className="bg-blue-500/15 backdrop-blur-md p-3.5 rounded-2xl border border-blue-500/30 shadow-md">
+                    <div className="text-[11px] font-bold text-blue-300 uppercase tracking-wider">Є на складі</div>
+                    <div className="text-2xl font-black text-blue-400 mt-0.5">{readyToNotifyCount}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Ready to notify alert glowing banner */}
             {readyToNotifyCount > 0 && (
-              <div className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 text-white rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-inner">
-                    <Sparkles className="w-5 h-5 text-white" />
+              <div className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 text-white rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg border border-emerald-400/40 animate-pulse">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-inner">
+                    <Sparkles className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h4 className="text-sm sm:text-base font-black flex items-center gap-2">
-                      <span>🎉 Товари вже на складі!</span>
-                      <span className="px-2 py-0.5 rounded-full bg-white text-emerald-900 text-xs font-black">
-                        {readyToNotifyCount} очікують
+                    <h4 className="text-base sm:text-lg font-black flex items-center gap-2">
+                      <span>🎉 Товари вже на складі! Можна відправляти сповіщення</span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-white text-emerald-950 text-xs font-black shadow-xs">
+                        {readyToNotifyCount} клієнтів
                       </span>
                     </h4>
-                    <p className="text-xs text-emerald-100 mt-0.5">
-                      Партія товару надійшла (залишок {'>'} 0). Надішліть покупцям швидке SMS або напишіть у Viber в 1 клік!
+                    <p className="text-xs sm:text-sm text-emerald-100 mt-0.5">
+                      Партія товару надійшла (залишок {'>'} 0). Натисніть кнопку, щоб відфільтрувати покупців і надіслати їм швидке сповіщення в 1 клік!
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setStockAlertInStockOnly(!stockAlertInStockOnly)}
-                  className={`px-4 py-2 font-bold text-xs rounded-xl shadow-xs transition-all shrink-0 cursor-pointer ${
+                  className={`px-5 py-2.5 font-black text-xs rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center gap-2 ${
                     stockAlertInStockOnly 
-                      ? 'bg-emerald-950 text-white hover:bg-black' 
+                      ? 'bg-emerald-950 text-white hover:bg-black ring-2 ring-white/50' 
                       : 'bg-white text-emerald-900 hover:bg-emerald-50 active:scale-98'
                   }`}
                 >
-                  {stockAlertInStockOnly ? 'Показати всі запити' : `Показати готові до SMS (${readyToNotifyCount})`}
+                  <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <span>{stockAlertInStockOnly ? 'Показати всі запити' : `Показати готові до SMS (${readyToNotifyCount})`}</span>
                 </button>
               </div>
             )}
 
-            {/* Header & Stats Banner */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                      <Bell className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                        <span>Запити на сповіщення про наявність</span>
-                        {pendingCount > 0 && (
-                          <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500 text-slate-950 animate-pulse">
-                            {pendingCount} очікують
-                          </span>
-                        )}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Покупці, які залишили телефон біля товарів, яких немає на складі (0 шт). Зателефонуйте їм або надішліть SMS при надходженні партії.
-                      </p>
-                    </div>
-                  </div>
+            {/* Controls, Filters & Search Card */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                {/* Search input */}
+                <div className="relative w-full lg:w-96">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Пошук за товаром, телефоном, ПІБ, артикулом..."
+                    value={stockAlertSearch}
+                    onChange={(e) => setStockAlertSearch(e.target.value)}
+                    className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 transition-all font-medium"
+                  />
+                  {stockAlertSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setStockAlertSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
 
+                {/* Status Tabs */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStockAlertStatusFilter('all');
+                      setStockAlertInStockOnly(false);
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                      stockAlertStatusFilter === 'all' && !stockAlertInStockOnly
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <span>Усі</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                      stockAlertStatusFilter === 'all' && !stockAlertInStockOnly ? 'bg-slate-800 text-slate-200' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {stockAlerts.length}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStockAlertStatusFilter('pending');
+                      setStockAlertInStockOnly(false);
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                      stockAlertStatusFilter === 'pending' && !stockAlertInStockOnly
+                        ? 'bg-amber-500 text-slate-950 shadow-sm'
+                        : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/60'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    <span>Очікують</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950 text-amber-300 font-mono font-bold">
+                      {pendingCount}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStockAlertInStockOnly(true);
+                      setStockAlertStatusFilter('pending');
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                      stockAlertInStockOnly
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200/60'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Є на складі</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-900 text-emerald-100 font-mono font-bold">
+                      {readyToNotifyCount}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStockAlertStatusFilter('notified');
+                      setStockAlertInStockOnly(false);
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                      stockAlertStatusFilter === 'notified' && !stockAlertInStockOnly
+                        ? 'bg-emerald-700 text-white shadow-sm'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Сповіщено</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700 font-mono font-bold">
+                      {notifiedCount}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Secondary Toolbar (Active filters & Actions) */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
                 <div className="flex items-center gap-2 flex-wrap">
                   {stockAlertInStockOnly && (
-                    <div className="flex items-center gap-1.5 bg-emerald-100 text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-300">
-                      <span>Тільки ті, що вже на складі</span>
+                    <div className="flex items-center gap-1.5 bg-emerald-100 text-emerald-900 px-3 py-1 rounded-full text-xs font-bold border border-emerald-300 shadow-2xs">
+                      <span>✓ Тільки ті, що є на складі</span>
                       <button
                         type="button"
                         onClick={() => setStockAlertInStockOnly(false)}
-                        className="hover:text-emerald-950 ml-1 cursor-pointer"
+                        className="hover:text-emerald-950 ml-1 cursor-pointer font-black"
                       >
                         ×
                       </button>
@@ -6679,21 +6848,27 @@ export const AdminPanel: React.FC = () => {
                   )}
 
                   {stockAlertFilterProduct && (
-                    <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-xs text-amber-900">
+                    <div className="flex items-center gap-2 bg-amber-50 border border-amber-300 px-3 py-1 rounded-full text-xs text-amber-900 shadow-2xs">
                       <span>Фільтр товару: <b>{stockAlertFilterProduct}</b></span>
                       <button
                         type="button"
                         onClick={() => setStockAlertFilterProduct('')}
-                        className="text-amber-700 hover:text-amber-950 font-bold ml-1 cursor-pointer"
+                        className="text-amber-800 hover:text-amber-950 font-black ml-1 cursor-pointer"
                       >
-                        × Скинути
+                        ×
                       </button>
                     </div>
                   )}
 
+                  <span className="text-xs text-slate-500">
+                    Знайдено запитів: <strong className="text-slate-800 font-bold">{filteredAlerts.length}</strong>
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
                   {notifiedCount > 0 && (
                     isConfirmingClearNotifiedAlerts ? (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-900 rounded-xl text-xs border border-emerald-300 animate-in fade-in shadow-2xs">
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-900 rounded-xl text-xs border border-emerald-300 animate-in fade-in shadow-2xs">
                         <span className="font-semibold text-[11px]">Очистити {notifiedCount} сповіщених?</span>
                         <button
                           type="button"
@@ -6729,7 +6904,7 @@ export const AdminPanel: React.FC = () => {
 
                   {stockAlerts.length > 0 && (
                     isConfirmingClearAllAlerts ? (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-900 rounded-xl text-xs border border-rose-300 animate-in fade-in shadow-2xs">
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-900 rounded-xl text-xs border border-rose-300 animate-in fade-in shadow-2xs">
                         <span className="font-bold text-[11px]">Видалити всі {stockAlerts.length}?</span>
                         <button
                           type="button"
@@ -6770,103 +6945,18 @@ export const AdminPanel: React.FC = () => {
                     title="Перейти до налаштувань SMS-провайдера та шаблону повідомлення"
                   >
                     <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-                    <span>⚙️ Налаштування SMS & TurboSMS</span>
+                    <span>⚙️ Шаблони SMS</span>
                   </button>
                 </div>
-              </div>
-
-              {/* 3 Metric Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                  <span className="text-xs text-slate-500 font-medium">Всього підписок</span>
-                  <div className="text-2xl font-black text-slate-900 mt-1">
-                    {stockAlerts.length}
-                  </div>
-                </div>
-
-                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200/70">
-                  <span className="text-xs text-amber-800 font-semibold flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span>Очікують дзвінка / надходження</span>
-                  </span>
-                  <div className="text-2xl font-black text-amber-950 mt-1">
-                    {pendingCount}
-                  </div>
-                </div>
-
-                <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200/70">
-                  <span className="text-xs text-emerald-800 font-semibold flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Вже сповіщено</span>
-                  </span>
-                  <div className="text-2xl font-black text-emerald-950 mt-1">
-                    {notifiedCount}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Filter and Search Bar */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
-              <div className="relative w-full sm:w-80">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Пошук за товаром, телефоном, ПІБ..."
-                  value={stockAlertSearch}
-                  onChange={(e) => setStockAlertSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-amber-500 focus:bg-white"
-                />
-              </div>
-
-              <div className="flex items-center gap-1.5 self-start sm:self-auto w-full sm:w-auto overflow-x-auto">
-                <button
-                  type="button"
-                  onClick={() => setStockAlertStatusFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    stockAlertStatusFilter === 'all'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  Усі ({stockAlerts.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStockAlertStatusFilter('pending')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
-                    stockAlertStatusFilter === 'pending'
-                      ? 'bg-amber-500 text-slate-950 shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  <span>Очікують</span>
-                  {pendingCount > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-950 text-white font-mono">
-                      {pendingCount}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStockAlertStatusFilter('notified')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    stockAlertStatusFilter === 'notified'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  Сповіщено ({notifiedCount})
-                </button>
               </div>
             </div>
 
             {/* Batch actions bar for stock alerts */}
             {selectedStockAlertIds.length > 0 && (
-              <div className="bg-slate-900 text-white rounded-2xl p-3 sm:px-5 flex flex-wrap items-center justify-between gap-3 shadow-md animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-center gap-2 text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                  <span>Вибрано запитів: {selectedStockAlertIds.length}</span>
+              <div className="bg-slate-900 text-white rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-xl border border-slate-700 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-2.5 text-xs font-black">
+                  <span className="w-3 h-3 rounded-full bg-amber-400 animate-pulse" />
+                  <span>Вибрано запитів для масової дії: {selectedStockAlertIds.length}</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
@@ -6876,9 +6966,10 @@ export const AdminPanel: React.FC = () => {
                       setSelectedStockAlertIds([]);
                       showToast(`Позначено ${selectedStockAlertIds.length} запитів як сповіщені`, 'success');
                     }}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs"
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
                   >
-                    Позначити сповіщеними
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>Позначити всі як «Сповіщено»</span>
                   </button>
                   {isConfirmingBulkDeleteAlerts ? (
                     <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-900/90 text-white rounded-xl text-xs border border-rose-500 animate-in fade-in">
@@ -6906,7 +6997,7 @@ export const AdminPanel: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsConfirmingBulkDeleteAlerts(true)}
-                      className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Видалити обрані ({selectedStockAlertIds.length})</span>
@@ -6915,36 +7006,36 @@ export const AdminPanel: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedStockAlertIds([])}
-                    className="px-2.5 py-1.5 text-slate-300 hover:text-white text-xs cursor-pointer font-medium"
+                    className="px-3 py-1.5 text-slate-300 hover:text-white text-xs cursor-pointer font-medium hover:bg-slate-800 rounded-xl"
                   >
-                    Скасувати вибір
+                    Скасувати
                   </button>
                 </div>
               </div>
             )}
 
             {/* List / Table */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
               {filteredAlerts.length === 0 ? (
-                <div className="p-12 text-center text-slate-500 space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 mx-auto flex items-center justify-center">
-                    <Bell className="w-6 h-6" />
+                <div className="p-16 text-center text-slate-500 space-y-3">
+                  <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-500 mx-auto flex items-center justify-center border border-amber-200 shadow-inner">
+                    <Bell className="w-8 h-8" />
                   </div>
-                  <h4 className="text-sm font-bold text-slate-800">
+                  <h4 className="text-base font-black text-slate-900">
                     {stockAlertSearch || stockAlertStatusFilter !== 'all' || stockAlertFilterProduct
-                      ? 'Запитів за такими фільтрами не знайдено'
-                      : 'Поки немає жодного запиту на сповіщення'}
+                      ? 'За обраними фільтрами запитів не знайдено'
+                      : 'Запитів на сповіщення про наявність поки немає'}
                   </h4>
-                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                    Коли покупці натискатимуть «Повідомити про наявність» на товарах із залишком 0 шт, вони з'являтимуться в цьому списку.
+                  <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                    Коли покупці натискатимуть кнопку «Повідомити про наявність» на картках товарів із залишком 0 шт, їхні заявки з'являтимуться тут для швидкого дзвінка або відправки SMS.
                   </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[10px]">
+                    <thead className="bg-slate-50/90 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[10px] font-black">
                       <tr>
-                        <th className="py-3 px-3 w-10 text-center">
+                        <th className="py-3.5 px-3.5 w-10 text-center">
                           <input
                             type="checkbox"
                             checked={
@@ -6962,16 +7053,16 @@ export const AdminPanel: React.FC = () => {
                                 setSelectedStockAlertIds(prev => prev.filter(id => !filteredIds.has(id)));
                               }
                             }}
-                            className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
-                            title="Вибрати всі відфільтровані"
+                            className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                            title="Вибрати всі"
                           />
                         </th>
-                        <th className="py-2.5 px-2 text-center w-20">Час / Дата</th>
-                        <th className="py-2.5 px-3">Товар</th>
-                        <th className="py-2.5 px-2.5 text-center">Наявність</th>
-                        <th className="py-2.5 px-3 text-left">Клієнт / Зв'язок</th>
-                        <th className="py-2.5 px-2.5 text-center">Статус</th>
-                        <th className="py-2.5 px-3 text-left">Сповіщення та дії</th>
+                        <th className="py-3.5 px-3 text-center w-24">Дата / Час</th>
+                        <th className="py-3.5 px-4 min-w-[220px]">Товар</th>
+                        <th className="py-3.5 px-3 text-center">Склад</th>
+                        <th className="py-3.5 px-4">Клієнт та контакт</th>
+                        <th className="py-3.5 px-3 text-center">Статус</th>
+                        <th className="py-3.5 px-4 text-left">Швидке сповіщення (1 клік)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -6985,10 +7076,14 @@ export const AdminPanel: React.FC = () => {
                           <tr 
                             key={alert.id} 
                             className={`transition-colors ${
-                              isSelected ? 'bg-amber-50/60' : 'hover:bg-slate-50/80'
+                              isSelected 
+                                ? 'bg-amber-50/70' 
+                                : isNowInStock && alert.status === 'pending'
+                                ? 'bg-emerald-50/40 hover:bg-emerald-50/70'
+                                : 'hover:bg-slate-50/80'
                             }`}
                           >
-                            <td className="py-2.5 px-2 text-center">
+                            <td className="py-3 px-3.5 text-center">
                               <input
                                 type="checkbox"
                                 checked={isSelected}
@@ -6999,131 +7094,136 @@ export const AdminPanel: React.FC = () => {
                                     setSelectedStockAlertIds(prev => prev.filter(id => id !== alert.id));
                                   }
                                 }}
-                                className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                                className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
                               />
                             </td>
 
-                            {/* Compact Time / Date */}
-                            <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                            {/* Time / Date */}
+                            <td className="py-3 px-3 text-center whitespace-nowrap">
                               <div className="inline-flex flex-col items-center leading-tight font-mono">
-                                <span className="text-[12px] font-bold text-slate-800">
+                                <span className="text-[12px] font-bold text-slate-900">
                                   {new Date(alert.createdAt).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
-                                <span className="text-[10px] text-slate-400">
-                                  {new Date(alert.createdAt).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                <span className="text-[10px] text-slate-400 font-sans mt-0.5">
+                                  {new Date(alert.createdAt).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                 </span>
                               </div>
                             </td>
 
-                            <td className="py-2.5 px-3">
-                              <div className="flex items-center gap-2 max-w-[200px]">
+                            {/* Product */}
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-3 max-w-[280px]">
                                 {alert.productImage ? (
                                   <img
                                     src={getSafeImageUrl(alert.productImage)}
                                     alt=""
-                                    className="w-8 h-8 rounded-lg object-contain bg-slate-50 border border-slate-200 p-0.5 shrink-0"
+                                    className="w-10 h-10 rounded-xl object-contain bg-white border border-slate-200 p-1 shrink-0 shadow-2xs"
                                   />
                                 ) : (
-                                  <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-slate-400">
-                                    <Package className="w-3.5 h-3.5" />
+                                  <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-slate-400">
+                                    <Package className="w-4 h-4" />
                                   </div>
                                 )}
-                                <div className="min-w-0">
-                                  <div className="font-bold text-slate-900 truncate leading-snug text-xs" title={alert.productName}>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-slate-900 truncate leading-snug text-xs hover:text-amber-700" title={alert.productName}>
                                     {alert.productName}
                                   </div>
-                                  <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
-                                    {alert.productSku && <span>Арт: {alert.productSku}</span>}
-                                    {alert.productPrice && <span className="font-semibold text-slate-600">• {alert.productPrice} грн</span>}
+                                  <div className="text-[10px] text-slate-500 font-mono flex items-center gap-2 mt-0.5">
+                                    {alert.productSku && <span className="px-1.5 py-0.2 bg-slate-100 rounded text-slate-600 font-semibold">Арт: {alert.productSku}</span>}
+                                    {alert.productPrice && <span className="font-bold text-slate-800">{alert.productPrice} грн</span>}
                                   </div>
                                 </div>
                               </div>
                             </td>
 
-                            <td className="py-2.5 px-2.5 text-center whitespace-nowrap">
+                            {/* Stock status */}
+                            <td className="py-3 px-3 text-center whitespace-nowrap">
                               {isNowInStock ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px] animate-pulse">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                  <span>{currentStock} шт (є!)</span>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 font-black text-xs border border-emerald-300 shadow-2xs animate-pulse">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                                  <span>{currentStock} шт (Є!)</span>
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium text-[11px]">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 font-medium text-[11px]">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
                                   <span>0 шт</span>
                                 </span>
                               )}
                             </td>
 
-                            <td className="py-2.5 px-3">
-                              <div className="min-w-[140px]">
-                                <div className="font-bold text-slate-900 text-xs flex items-center gap-1 flex-wrap">
+                            {/* Client & Phone */}
+                            <td className="py-3 px-4">
+                              <div className="min-w-[150px]">
+                                <div className="font-black text-slate-900 text-xs flex items-center gap-1.5 flex-wrap">
                                   <span>{alert.name || 'Покупець'}</span>
-                                  {alert.channel === 'whatsapp' && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                                      🟢 WhatsApp
-                                    </span>
-                                  )}
-                                  {alert.channel === 'telegram' && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] font-bold">
-                                      ✈️ Telegram
-                                    </span>
-                                  )}
                                   {alert.channel === 'viber' && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-bold">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-bold">
                                       💬 Viber
                                     </span>
                                   )}
+                                  {alert.channel === 'telegram' && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] font-bold">
+                                      ✈️ Telegram
+                                    </span>
+                                  )}
+                                  {alert.channel === 'whatsapp' && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                      🟢 WhatsApp
+                                    </span>
+                                  )}
                                   {alert.channel === 'sms' && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-bold">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-bold">
                                       ✉️ SMS
                                     </span>
                                   )}
                                   {alert.channel === 'call' && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10px] font-bold">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10px] font-bold">
                                       📞 Дзвінок
                                     </span>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-1.5 mt-0.5">
+
+                                <div className="flex items-center gap-1.5 mt-1">
                                   <a
                                     href={`tel:${alert.phone}`}
-                                    className="font-mono text-amber-700 hover:text-amber-900 font-bold flex items-center gap-1 text-[11px] underline"
+                                    className="font-mono text-amber-800 hover:text-amber-950 font-bold flex items-center gap-1 text-xs underline bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200"
                                   >
-                                    <Phone className="w-2.5 h-2.5" />
+                                    <Phone className="w-3 h-3 text-amber-600" />
                                     <span>{alert.phone}</span>
                                   </a>
                                   <button
                                     type="button"
                                     onClick={() => {
                                       navigator.clipboard.writeText(alert.phone);
-                                      showToast('Номер скопійовано', 'info');
+                                      showToast('Номер скопійовано: ' + alert.phone, 'info');
                                     }}
-                                    className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                                    title="Скопіювати номер"
+                                    className="text-slate-400 hover:text-slate-700 p-1 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+                                    title="Скопіювати номер телефону"
                                   >
-                                    <Copy className="w-2.5 h-2.5" />
+                                    <Copy className="w-3 h-3" />
                                   </button>
                                 </div>
                               </div>
                             </td>
 
-                            <td className="py-2.5 px-2.5 text-center whitespace-nowrap">
+                            {/* Status */}
+                            <td className="py-3 px-3 text-center whitespace-nowrap">
                               {alert.status === 'pending' ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-[11px]">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300">
+                                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                                   <span>Очікує</span>
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
-                                  <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
+                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300">
+                                  <Check className="w-3.5 h-3.5 text-emerald-700 stroke-[3]" />
                                   <span>Сповіщено</span>
                                 </span>
                               )}
                             </td>
 
-                            <td className="py-2.5 px-3 text-left whitespace-nowrap">
-                              <div className="flex items-center justify-start gap-1.5 flex-wrap">
-                                {/* 1-Click Notifications Buttons */}
+                            {/* Action Buttons (1-click messenger / SMS dispatch) */}
+                            <td className="py-3 px-4 text-left whitespace-nowrap">
+                              <div className="flex items-center justify-start gap-2">
                                 {(() => {
                                   const smsMessage = formatStockAlertSms(
                                     settingsForm.smsStockAlertTemplate,
@@ -7137,8 +7237,8 @@ export const AdminPanel: React.FC = () => {
                                   const waUrl = generateWhatsAppUrl(alert.phone, smsMessage);
 
                                   return (
-                                    <div className="inline-flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 gap-0.5">
-                                      {/* Viber Button */}
+                                    <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1 shadow-2xs">
+                                      {/* Viber */}
                                       <a
                                         href={viberUrl}
                                         target="_blank"
@@ -7149,18 +7249,18 @@ export const AdminPanel: React.FC = () => {
                                           }
                                           showToast('Відкрито діалог у Viber', 'info');
                                         }}
-                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors ${
+                                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-all ${
                                           alert.channel === 'viber'
-                                            ? 'bg-purple-600 text-white shadow-2xs'
+                                            ? 'bg-purple-600 text-white shadow-xs'
                                             : 'text-purple-700 hover:bg-purple-50'
                                         }`}
-                                        title="Написати клієнту у Viber"
+                                        title="Написати у Viber"
                                       >
-                                        <MessageCircle className="w-3 h-3" />
+                                        <MessageCircle className="w-3.5 h-3.5" />
                                         <span>Viber</span>
                                       </a>
 
-                                      {/* Telegram Button */}
+                                      {/* Telegram */}
                                       <a
                                         href={tgUrl}
                                         target="_blank"
@@ -7171,18 +7271,18 @@ export const AdminPanel: React.FC = () => {
                                           }
                                           showToast('Відкрито Telegram', 'info');
                                         }}
-                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors ${
+                                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-all ${
                                           alert.channel === 'telegram'
-                                            ? 'bg-sky-500 text-white shadow-2xs'
+                                            ? 'bg-sky-500 text-white shadow-xs'
                                             : 'text-sky-700 hover:bg-sky-50'
                                         }`}
-                                        title="Написати клієнту в Telegram"
+                                        title="Написати в Telegram"
                                       >
-                                        <Send className="w-3 h-3" />
-                                        <span>Telegram</span>
+                                        <Send className="w-3.5 h-3.5" />
+                                        <span>TG</span>
                                       </a>
 
-                                      {/* WhatsApp Button */}
+                                      {/* WhatsApp */}
                                       <a
                                         href={waUrl}
                                         target="_blank"
@@ -7191,22 +7291,22 @@ export const AdminPanel: React.FC = () => {
                                           if (alert.status === 'pending') {
                                             updateStockAlertStatus(alert.id, 'notified');
                                           }
-                                          showToast('Відкрито WhatsApp з готовим текстом', 'info');
+                                          showToast('Відкрито WhatsApp', 'info');
                                         }}
-                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors ${
+                                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-all ${
                                           alert.channel === 'whatsapp'
-                                            ? 'bg-emerald-600 text-white shadow-2xs'
+                                            ? 'bg-emerald-600 text-white shadow-xs'
                                             : 'text-emerald-700 hover:bg-emerald-50'
                                         }`}
-                                        title="Написати клієнту у WhatsApp"
+                                        title="Написати у WhatsApp"
                                       >
-                                        <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                                        <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                                           <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
                                         </svg>
-                                        <span>WhatsApp</span>
+                                        <span>WA</span>
                                       </a>
 
-                                      {/* SMS Button */}
+                                      {/* SMS */}
                                       <a
                                         href={smsUrl}
                                         onClick={() => {
@@ -7215,28 +7315,28 @@ export const AdminPanel: React.FC = () => {
                                           }
                                           showToast('Відкрито SMS з готовим текстом', 'info');
                                         }}
-                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors ${
+                                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-all ${
                                           alert.channel === 'sms'
-                                            ? 'bg-blue-600 text-white shadow-2xs'
+                                            ? 'bg-blue-600 text-white shadow-xs'
                                             : 'text-blue-700 hover:bg-blue-50'
                                         }`}
-                                        title="Надіслати SMS (відкриє SMS з готовим текстом)"
+                                        title="Надіслати SMS"
                                       >
-                                        <MessageSquare className="w-3 h-3" />
+                                        <MessageSquare className="w-3.5 h-3.5" />
                                         <span>SMS</span>
                                       </a>
 
-                                      {/* Call Button */}
+                                      {/* Call */}
                                       <a
                                         href={`tel:${alert.phone}`}
-                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors ${
+                                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-all ${
                                           alert.channel === 'call'
-                                            ? 'bg-amber-500 text-slate-950 shadow-2xs'
+                                            ? 'bg-amber-500 text-slate-950 shadow-xs'
                                             : 'text-slate-700 hover:bg-amber-50'
                                         }`}
                                         title="Зателефонувати клієнту"
                                       >
-                                        <Phone className="w-3 h-3" />
+                                        <Phone className="w-3.5 h-3.5" />
                                         <span>Дзвінок</span>
                                       </a>
 
@@ -7244,10 +7344,10 @@ export const AdminPanel: React.FC = () => {
                                       <button
                                         type="button"
                                         onClick={() => setSmsModalAlert({ alert, text: smsMessage })}
-                                        className="p-1 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
                                         title="Відправити через SMS-шлюз (TurboSMS/SMSClub)"
                                       >
-                                        <Send className="w-3 h-3" />
+                                        <Send className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
                                   );
@@ -7261,11 +7361,11 @@ export const AdminPanel: React.FC = () => {
                                       updateStockAlertStatus(alert.id, 'notified');
                                       showToast('Позначено як сповіщене', 'success');
                                     }}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-2xs transition-colors cursor-pointer shrink-0"
+                                    className="inline-flex items-center gap-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
                                     title="Позначити цей запит як сповіщений"
                                   >
                                     <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                    <span>Позначити</span>
+                                    <span>Сповіщено</span>
                                   </button>
                                 ) : (
                                   <button
@@ -7274,7 +7374,7 @@ export const AdminPanel: React.FC = () => {
                                       updateStockAlertStatus(alert.id, 'pending');
                                       showToast('Повернуто в очікування', 'info');
                                     }}
-                                    className="inline-flex items-center gap-1 px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-xs rounded-xl transition-colors cursor-pointer shrink-0"
+                                    className="inline-flex items-center gap-1 px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition-all cursor-pointer shrink-0"
                                     title="Повернути запит в статус очікування"
                                   >
                                     <span>↩ Очікує</span>
@@ -7283,8 +7383,8 @@ export const AdminPanel: React.FC = () => {
 
                                 {/* Delete Button */}
                                 {alertToDelete === alert.id ? (
-                                  <div className="flex items-center gap-1 bg-rose-50 px-1.5 py-1 rounded-xl border border-rose-200 animate-in fade-in shrink-0 shadow-2xs">
-                                    <span className="text-[10px] font-bold text-rose-700">Видалити?</span>
+                                  <div className="flex items-center gap-1 bg-rose-50 px-2 py-1.5 rounded-xl border border-rose-200 animate-in fade-in shrink-0 shadow-2xs">
+                                    <span className="text-[11px] font-bold text-rose-700">Видалити?</span>
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -7292,14 +7392,14 @@ export const AdminPanel: React.FC = () => {
                                         setSelectedStockAlertIds(prev => prev.filter(id => id !== alert.id));
                                         setAlertToDelete(null);
                                       }}
-                                      className="px-1.5 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold transition-colors cursor-pointer shadow-2xs"
+                                      className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-bold transition-colors cursor-pointer shadow-2xs"
                                     >
                                       Так
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => setAlertToDelete(null)}
-                                      className="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[10px] font-medium transition-colors cursor-pointer"
+                                      className="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[11px] font-medium transition-colors cursor-pointer"
                                     >
                                       Ні
                                     </button>
@@ -7308,10 +7408,10 @@ export const AdminPanel: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => setAlertToDelete(alert.id)}
-                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer shrink-0 border border-transparent hover:border-rose-200"
-                                    title="Видалити запит"
+                                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer shrink-0 border border-transparent hover:border-rose-200"
+                                    title="Видалити цей запит"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
                                 )}
                               </div>
@@ -7325,70 +7425,73 @@ export const AdminPanel: React.FC = () => {
               )}
             </div>
 
-            {/* SMS Preview / Send Modal */}
+            {/* SMS Gateway Modal */}
             {smsModalAlert && (
               <div 
-                className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in"
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in"
                 onClick={() => setSmsModalAlert(null)}
               >
                 <div 
-                  className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-150"
+                  className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 text-left"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-5 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-                        <MessageSquare className="w-5 h-5 text-white" />
+                  <div className="bg-gradient-to-r from-blue-900 via-slate-900 to-blue-950 text-white p-5 flex items-center justify-between border-b border-blue-800">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
+                        <MessageSquare className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm">SMS-сповіщення клієнта</h4>
-                        <p className="text-[11px] text-blue-100">Повідомлення про появу товару на складі</p>
+                        <h4 className="text-sm font-black text-white">Сповістити клієнта про наявність</h4>
+                        <p className="text-[11px] text-blue-200">
+                          {smsModalAlert.alert.productName}
+                        </p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSmsModalAlert(null)}
-                      className="p-1.5 rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer"
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                     >
                       <X className="w-5 h-5" />
                     </button>
                   </div>
 
-                  <div className="p-5 space-y-4 text-xs">
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                      <div className="flex items-center justify-between text-slate-500 text-[11px]">
-                        <span>Отримувач:</span>
-                        <span className="font-bold text-slate-800">{smsModalAlert.alert.name || 'Покупець'}</span>
+                  <div className="p-6 space-y-4">
+                    {/* Recipient Details Card */}
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Одержувач:</span>
+                        <span className="font-bold text-slate-900">{smsModalAlert.alert.name || 'Покупець'}</span>
                       </div>
-                      <div className="flex items-center justify-between text-slate-500 text-[11px]">
-                        <span>Телефон:</span>
-                        <span className="font-mono font-bold text-blue-700">{smsModalAlert.alert.phone}</span>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Телефон:</span>
+                        <span className="font-mono font-black text-blue-700">{smsModalAlert.alert.phone}</span>
                       </div>
-                      <div className="flex items-center justify-between text-slate-500 text-[11px]">
-                        <span>Товар:</span>
-                        <span className="font-semibold text-slate-800 truncate max-w-[260px]">{smsModalAlert.alert.productName}</span>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Товар:</span>
+                        <span className="font-bold text-slate-800 truncate max-w-[260px]">{smsModalAlert.alert.productName}</span>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">
+                      <label className="block text-xs font-bold text-slate-800 mb-1.5">
                         Текст повідомлення (можна редагувати):
                       </label>
                       <textarea
                         rows={4}
                         value={smsModalAlert.text}
                         onChange={(e) => setSmsModalAlert({ ...smsModalAlert, text: e.target.value })}
-                        className="w-full p-3 border border-slate-300 rounded-xl bg-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-xs"
+                        className="w-full p-3.5 border border-slate-300 rounded-2xl bg-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-medium transition-all"
                       />
-                      <div className="flex justify-between items-center text-[10px] text-slate-400 mt-1">
-                        <span>Символів: {smsModalAlert.text.length}</span>
-                        <span>Відправник: {settingsForm.smsSenderName || 'ISKRA'}</span>
+                      <div className="flex justify-between items-center text-[11px] text-slate-500 mt-1.5 font-medium">
+                        <span>Символів: <strong>{smsModalAlert.text.length}</strong> (~{Math.ceil(smsModalAlert.text.length / 70)} SMS)</span>
+                        <span>Відправник: <strong>{settingsForm.smsSenderName || 'ISKRA'}</strong></span>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="space-y-2 pt-1">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="space-y-3 pt-2">
+                      <div className="grid grid-cols-3 gap-2">
                         <a
                           href={generateSmsUrl(smsModalAlert.alert.phone, smsModalAlert.text)}
                           onClick={() => {
@@ -7396,7 +7499,7 @@ export const AdminPanel: React.FC = () => {
                             showToast('Відкрито додаток SMS. Клієнта позначено як сповіщеного!', 'success');
                             setSmsModalAlert(null);
                           }}
-                          className="py-2.5 px-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer text-center"
+                          className="py-2.5 px-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer text-center"
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
                           <span>В SMS</span>
@@ -7411,7 +7514,7 @@ export const AdminPanel: React.FC = () => {
                             showToast('Відкрито чат у Viber. Клієнта позначено як сповіщеного!', 'info');
                             setSmsModalAlert(null);
                           }}
-                          className="py-2.5 px-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer text-center"
+                          className="py-2.5 px-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer text-center"
                         >
                           <MessageCircle className="w-3.5 h-3.5" />
                           <span>У Viber</span>
@@ -7426,7 +7529,7 @@ export const AdminPanel: React.FC = () => {
                             showToast('Відкрито Telegram. Клієнта позначено як сповіщеного!', 'info');
                             setSmsModalAlert(null);
                           }}
-                          className="py-2.5 px-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer text-center"
+                          className="py-2.5 px-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer text-center"
                         >
                           <Send className="w-3.5 h-3.5" />
                           <span>У Telegram</span>
@@ -7440,7 +7543,7 @@ export const AdminPanel: React.FC = () => {
                             navigator.clipboard.writeText(smsModalAlert.text);
                             showToast('Текст SMS скопійовано в буфер обміну', 'info');
                           }}
-                          className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          className="flex-1 py-2.5 px-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                         >
                           <Copy className="w-3.5 h-3.5 text-slate-500" />
                           <span>Скопіювати текст</span>
@@ -7473,7 +7576,7 @@ export const AdminPanel: React.FC = () => {
                                 setIsSendingGatewaySms(false);
                               }
                             }}
-                            className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                            className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
                           >
                             <Send className="w-3.5 h-3.5" />
                             <span>{isSendingGatewaySms ? 'Відправка...' : `Через ${settingsForm.smsGateway.toUpperCase()}`}</span>
@@ -9125,544 +9228,1580 @@ export const AdminPanel: React.FC = () => {
             updateSiteSettings(settingsForm);
             showToast('Налаштування служб доставки успішно збережено!', 'success');
           }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 max-w-3xl"
+          className="space-y-6 max-w-5xl animate-in fade-in duration-150"
         >
-          <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Truck className="w-5 h-5 text-red-600" />
-                <span>Інтеграція служб доставки (Нова Пошта & Укрпошта)</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Керування автоматичним вибором міст, відділень та поштоматів для покупців
-              </p>
-            </div>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Автопідбір активний</span>
-            </span>
-          </div>
+          {/* Top Hero Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-red-950 p-6 sm:p-8 text-white shadow-xl border border-red-500/30">
+            <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -left-12 -top-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Nova Poshta Settings */}
-          <div className="p-4 rounded-xl border border-red-100 bg-red-50/30 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded bg-red-600 text-white font-black text-[10px] flex items-center justify-center">
-                  НП
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold uppercase tracking-wider">
+                  <Truck className="w-3.5 h-3.5 text-red-400" />
+                  <span>Логістичний центр · Доставка по всій Україні</span>
                 </div>
-                <h4 className="text-xs font-bold text-slate-900">Нова Пошта API</h4>
-              </div>
-              <a
-                href="https://my.novaposhta.ua/settings/index#api"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[11px] text-red-600 hover:text-red-700 font-bold flex items-center gap-1"
-              >
-                <span>Отримати ключ в кабінеті</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-
-            <p className="text-xs text-slate-600">
-              Вкажіть API ключ Нової Пошти, щоб у формі замовлення підвантажувався повний актуальний список відділень та поштоматів по всій Україні. Якщо ключ не вказано — працює надійний вбудований довідник міст.
-            </p>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                API Ключ Нової Пошти (32 символи)
-              </label>
-              <input
-                type="text"
-                placeholder="напр., a1b2c3d4e5f67890123456789abcdef0"
-                value={settingsForm.novaPoshtaApiKey || ''}
-                onChange={(e) => setSettingsForm({ ...settingsForm, novaPoshtaApiKey: e.target.value })}
-                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono text-xs bg-white outline-none focus:border-red-600"
-              />
-            </div>
-          </div>
-
-          {/* Ukrposhta Settings */}
-          <div className="p-5 rounded-2xl border border-amber-200 bg-amber-50/40 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-500 text-white font-black text-xs flex items-center justify-center shadow-xs">
-                  УП
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <span>Укрпошта (Експрес / Стандарт)</span>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      <span>База 28 000+ індексів активна</span>
-                    </span>
-                  </h4>
-                  <p className="text-[11px] text-slate-500">
-                    Автоматичний підбір відділень та індексів по всіх населених пунктах України
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-xs text-slate-700 bg-white/80 p-3 rounded-xl border border-amber-200/80 space-y-1.5">
-              <div className="font-bold text-slate-900">Підключені можливості для покупців:</div>
-              <ul className="list-disc list-inside space-y-1 text-slate-600 text-[11px]">
-                <li><b>Миттєвий автопідбір:</b> введення 5-значного індексу (напр. 22600) одразу заповнює населений пункт, район та відділення.</li>
-                <li><b>Пошук за назвою:</b> підтримка пошуку міст, смт і сіл (наприклад: Оратів, Вінниця, Київ, Чагів, Животівка).</li>
-                <li><b>Повний реєстр:</b> адреси та графіки роботи відділень поштового зв'язку.</li>
-              </ul>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Персональний eComm Bearer токен Укрпошти (необов'язково)
-              </label>
-              <input
-                type="text"
-                placeholder="Введіть eComm Bearer токен (з особистого кабінету ecom.ukrposhta.ua)"
-                value={settingsForm.ukrposhtaToken || ''}
-                onChange={(e) => setSettingsForm({ ...settingsForm, ukrposhtaToken: e.target.value })}
-                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono text-xs bg-white outline-none focus:border-amber-500 shadow-2xs"
-              />
-              <span className="text-[10px] text-slate-500 mt-1 block">
-                Якщо токен не введено, працює швидка локальна база всіх поштових індексів та відділень України без затримок.
-              </span>
-            </div>
-
-            {/* Interactive Live Test Tool */}
-            <div className="pt-3 border-t border-amber-200/70 space-y-2.5">
-              <label className="block text-[11px] font-bold text-amber-950">
-                Тестування пошуку відділення за індексом або назвою:
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Введіть 22600, Оратів, Вінниця, 01001..."
-                  value={upTestQuery}
-                  onChange={(e) => setUpTestQuery(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white outline-none font-medium"
-                />
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!upTestQuery.trim()) return;
-                    setIsTestingUp(true);
-                    try {
-                      const res = await searchUkrposhtaOffices(upTestQuery, settingsForm.ukrposhtaToken);
-                      setUpTestResults(res);
-                      showToast(`Знайдено ${res.length} відділень Укрпошти`, 'info');
-                    } catch (err) {
-                      console.warn(err);
-                    } finally {
-                      setIsTestingUp(false);
-                    }
-                  }}
-                  disabled={isTestingUp}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {isTestingUp ? 'Пошук...' : 'Перевірити'}
-                </button>
+                <h3 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
+                  Інтеграція служб доставки
+                </h3>
+                <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                  Повна автоматизація логістики інтернет-магазину <span className="font-bold text-amber-400">ISKRA</span>. Автоматичний підбір міст, відділень та поштоматів Нової Пошти, поштових індексів Укрпошти та самовивозу.
+                </p>
               </div>
 
-              {upTestResults.length > 0 && (
-                <div className="p-3 bg-white rounded-xl border border-amber-200 max-h-48 overflow-y-auto space-y-2">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Результати перевірки ({upTestResults.length}):
+              {/* Status KPI mini cards */}
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 shrink-0">
+                <div className="bg-slate-800/80 backdrop-blur-xs p-3 sm:p-3.5 rounded-2xl border border-slate-700/80 shadow-inner">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Нова Пошта</span>
                   </div>
-                  {upTestResults.slice(0, 5).map((it) => (
-                    <div key={it.postcode + it.address} className="p-2 rounded-lg bg-amber-50/60 border border-amber-100 text-xs flex items-start gap-2">
-                      <span className="px-2 py-0.5 rounded bg-amber-500 text-white font-mono font-bold text-[10px] shrink-0 mt-0.5">
-                        {it.postcode}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-bold text-slate-900">{it.city} <span className="text-slate-500 font-normal">({it.region})</span></div>
-                        <div className="text-[11px] text-slate-600">{it.name}: {it.address}</div>
-                        {it.workHours && <div className="text-[10px] text-slate-400">{it.workHours}</div>}
+                  <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                    <span>20 000+ точок</span>
+                  </div>
+                  <div className="text-[10px] text-emerald-400 font-medium mt-0.5">Відділення & Поштомати</div>
+                </div>
+
+                <div className="bg-slate-800/80 backdrop-blur-xs p-3 sm:p-3.5 rounded-2xl border border-slate-700/80 shadow-inner">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Укрпошта</span>
+                  </div>
+                  <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                    <span>28 000+ індексів</span>
+                  </div>
+                  <div className="text-[10px] text-emerald-400 font-medium mt-0.5">Експрес / Стандарт</div>
+                </div>
+
+                <div className="bg-slate-800/80 backdrop-blur-xs p-3 sm:p-3.5 rounded-2xl border border-slate-700/80 shadow-inner">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Самовивіз</span>
+                  </div>
+                  <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                    <span>Оратів</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">0 грн (Безкоштовно)</div>
+                </div>
+
+                <div className="bg-slate-800/80 backdrop-blur-xs p-3 sm:p-3.5 rounded-2xl border border-slate-700/80 shadow-inner">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-sky-400" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Безкоштовно від</span>
+                  </div>
+                  <div className="text-xs sm:text-sm font-bold text-amber-300 flex items-center gap-1.5">
+                    <span>{settingsForm.features?.freeShippingThreshold ?? 3000} грн</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">Поріг доставки</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MAIN DELIVERY PROVIDERS GRID */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 1. NOVA POSHTA CARD */}
+            <div className="bg-white rounded-3xl border border-red-200 shadow-md overflow-hidden flex flex-col justify-between">
+              <div>
+                {/* Provider Header */}
+                <div className="p-5 sm:p-6 bg-gradient-to-r from-red-600 to-red-700 text-white flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-white text-red-600 font-black text-sm flex items-center justify-center shadow-md">
+                      НП
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-lg font-black tracking-tight text-white">Нова Пошта</h4>
+                        <span className="px-2 py-0.5 rounded-md bg-white/20 text-white text-[10px] font-bold">API v2.0</span>
+                      </div>
+                      <p className="text-xs text-red-100 mt-0.5">Відділення, поштомати та кур'єрська доставка</p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-400/20 text-emerald-100 border border-emerald-300/30">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>Активно</span>
+                  </span>
+                </div>
+
+                {/* Body Content */}
+                <div className="p-5 sm:p-6 space-y-5">
+                  {/* Supported Methods */}
+                  <div>
+                    <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">
+                      Доступні формати доставки для покупця:
+                    </span>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="p-2.5 rounded-xl bg-red-50/60 border border-red-100 text-center">
+                        <Boxes className="w-4 h-4 text-red-600 mx-auto mb-1" />
+                        <span className="font-bold text-slate-800 block text-[11px]">Відділення</span>
+                        <span className="text-[10px] text-slate-500">до 30 кг / вантажні</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-red-50/60 border border-red-100 text-center">
+                        <Package className="w-4 h-4 text-red-600 mx-auto mb-1" />
+                        <span className="font-bold text-slate-800 block text-[11px]">Поштомати</span>
+                        <span className="text-[10px] text-slate-500">до 20 кг</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-red-50/60 border border-red-100 text-center">
+                        <Navigation className="w-4 h-4 text-red-600 mx-auto mb-1" />
+                        <span className="font-bold text-slate-800 block text-[11px]">Кур'єр</span>
+                        <span className="text-[10px] text-slate-500">до дверей</span>
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* API Key Configuration */}
+                  <div className="space-y-2 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Key className="w-3.5 h-3.5 text-red-600" />
+                        <span>API Ключ Нової Пошти (32 символи)</span>
+                      </label>
+                      <a
+                        href="https://my.novaposhta.ua/settings/index#api"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] text-red-600 hover:text-red-700 font-bold flex items-center gap-1 transition-colors"
+                      >
+                        <span>Кабінет my.novaposhta.ua</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+
+                    <div className="relative flex items-center">
+                      <input
+                        type={showNpApiKey ? 'text' : 'password'}
+                        placeholder="Введіть 32-значний ключ API Нової Пошти..."
+                        value={settingsForm.novaPoshtaApiKey || ''}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, novaPoshtaApiKey: e.target.value })}
+                        className="w-full pl-3.5 pr-20 py-2.5 bg-white border border-slate-300 rounded-xl font-mono text-xs text-slate-900 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20 transition-all shadow-inner"
+                      />
+                      <div className="absolute right-2 flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowNpApiKey(!showNpApiKey)}
+                          className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg transition-colors cursor-pointer"
+                          title={showNpApiKey ? 'Приховати ключ' : 'Показати ключ'}
+                        >
+                          {showNpApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                        {settingsForm.novaPoshtaApiKey && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(settingsForm.novaPoshtaApiKey || '');
+                              setCopyDeliveryFeedback('np_key');
+                              setTimeout(() => setCopyDeliveryFeedback(null), 2000);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                            title="Скопіювати ключ"
+                          >
+                            {copyDeliveryFeedback === 'np_key' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2 pt-1">
+                      <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        При наявності ключа список відділень та поштоматів синхронізується безпосередньо з серверами Нової Пошти в режимі реального часу. Якщо ключ не вказано — активується швидка локальна база популярних міст та відділень.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Interactive Live NP Tester */}
+                  <div className="pt-2 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <Search className="w-3.5 h-3.5 text-red-600" />
+                        <span>Тестування онлайн-пошуку міст та відділень НП:</span>
+                      </span>
+                      {selectedNpTestCity && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedNpTestCity(null);
+                            setNpWarehouseTestResults([]);
+                          }}
+                          className="text-[10px] text-red-600 hover:underline font-bold"
+                        >
+                          Очистити вибір
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Введіть назву міста (напр. Вінниця, Оратів, Київ, Львів)..."
+                        value={npCityTestQuery}
+                        onChange={(e) => setNpCityTestQuery(e.target.value)}
+                        className="flex-1 px-3.5 py-2 border border-slate-300 rounded-xl text-xs bg-white outline-none focus:border-red-600 font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!npCityTestQuery.trim()) return;
+                          setIsTestingNp(true);
+                          try {
+                            const cities = await searchNovaPoshtaCities(npCityTestQuery, settingsForm.novaPoshtaApiKey);
+                            setNpCityTestResults(cities);
+                            setSelectedNpTestCity(null);
+                            setNpWarehouseTestResults([]);
+                            showToast(`Знайдено ${cities.length} населених пунктів`, 'info');
+                          } catch (err) {
+                            console.warn(err);
+                          } finally {
+                            setIsTestingNp(false);
+                          }
+                        }}
+                        disabled={isTestingNp}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {isTestingNp ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                        <span>Пошук</span>
+                      </button>
+                    </div>
+
+                    {/* City Results */}
+                    {npCityTestResults.length > 0 && !selectedNpTestCity && (
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 max-h-48 overflow-y-auto space-y-1.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                          Оберіть місто для завантаження відділень ({npCityTestResults.length}):
+                        </div>
+                        {npCityTestResults.slice(0, 6).map((c) => (
+                          <div
+                            key={c.ref || c.name + c.area}
+                            onClick={async () => {
+                              setSelectedNpTestCity(c);
+                              setIsTestingNpWh(true);
+                              try {
+                                const whs = await getNovaPoshtaWarehouses(c.ref || c.name, 'all', settingsForm.novaPoshtaApiKey);
+                                setNpWarehouseTestResults(whs);
+                              } catch (err) {
+                                console.warn(err);
+                              } finally {
+                                setIsTestingNpWh(false);
+                              }
+                            }}
+                            className="p-2 rounded-xl bg-white hover:bg-red-50 hover:border-red-200 border border-slate-200 text-xs flex items-center justify-between cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                              <span className="font-bold text-slate-900">{c.name}</span>
+                              <span className="text-[11px] text-slate-500">({c.area || c.region || 'Україна'})</span>
+                            </div>
+                            <span className="text-[10px] text-red-600 font-bold">Відділення &rarr;</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Warehouse Results for Selected City */}
+                    {selectedNpTestCity && (
+                      <div className="p-3 bg-red-50/50 rounded-2xl border border-red-200 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-red-950 flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-red-600" />
+                            <span>{selectedNpTestCity.name} ({npWarehouseTestResults.length} відділень / поштоматів):</span>
+                          </span>
+                          {isTestingNpWh && <RefreshCw className="w-3.5 h-3.5 text-red-600 animate-spin" />}
+                        </div>
+                        <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1">
+                          {npWarehouseTestResults.slice(0, 5).map((wh) => (
+                            <div key={wh.ref || wh.number + wh.name} className="p-2 rounded-xl bg-white border border-red-100 text-xs">
+                              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                                <span className="px-1.5 py-0.2 rounded bg-red-100 text-red-700 text-[10px] font-mono font-bold">
+                                  №{wh.number}
+                                </span>
+                                <span className="truncate">{wh.name}</span>
+                              </div>
+                              <div className="text-[10px] text-slate-500 mt-0.5">
+                                {wh.type === 'postomat' ? '📦 Поштомат (до 20 кг)' : '🏢 Відділення (до 30 кг / вантажне)'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. UKRPOSHTA CARD */}
+            <div className="bg-white rounded-3xl border border-amber-200 shadow-md overflow-hidden flex flex-col justify-between">
+              <div>
+                {/* Provider Header */}
+                <div className="p-5 sm:p-6 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-slate-950 text-amber-400 font-black text-sm flex items-center justify-center shadow-md">
+                      УП
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-lg font-black tracking-tight text-slate-950">Укрпошта</h4>
+                        <span className="px-2 py-0.5 rounded-md bg-slate-950/20 text-slate-950 text-[10px] font-bold">Експрес & Стандарт</span>
+                      </div>
+                      <p className="text-xs text-amber-950/80 mt-0.5">Найбільша мережа відділень у кожному селі</p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-950/15 text-slate-950 border border-slate-950/20">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-slate-950" />
+                    <span>База 28 000+ індексів</span>
+                  </span>
+                </div>
+
+                {/* Body Content */}
+                <div className="p-5 sm:p-6 space-y-5">
+                  {/* Feature Highlights */}
+                  <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs space-y-2">
+                    <div className="font-bold text-amber-950 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Переваги підключеного модуля Укрпошти:</span>
+                    </div>
+                    <ul className="space-y-1 text-slate-700 text-[11px]">
+                      <li className="flex items-start gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span><b>Миттєвий автопідбір:</b> введення 5 цифр індексу (напр. 22600) одразу визначає населений пункт та відділення.</span>
+                      </li>
+                      <li className="flex items-start gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span><b>Пошук міст і сіл:</b> Оратів, Чагів, Животівка, Романівка, Вінниця, Київ тощо.</span>
+                      </li>
+                      <li className="flex items-start gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span><b>Економічна доставка:</b> доступні тарифи для габаритних та дрібних замовлень.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Ukrposhta Bearer Token */}
+                  <div className="space-y-2 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Key className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Персональний eComm Bearer токен (необов'язково)</span>
+                      </label>
+                      <a
+                        href="https://ecom.ukrposhta.ua/"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] text-amber-600 hover:text-amber-700 font-bold flex items-center gap-1 transition-colors"
+                      >
+                        <span>ecom.ukrposhta.ua</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+
+                    <div className="relative flex items-center">
+                      <input
+                        type={showUpToken ? 'text' : 'password'}
+                        placeholder="Введіть eComm Bearer токен з кабінету Укрпошти..."
+                        value={settingsForm.ukrposhtaToken || ''}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, ukrposhtaToken: e.target.value })}
+                        className="w-full pl-3.5 pr-20 py-2.5 bg-white border border-slate-300 rounded-xl font-mono text-xs text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-inner"
+                      />
+                      <div className="absolute right-2 flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowUpToken(!showUpToken)}
+                          className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg transition-colors cursor-pointer"
+                          title={showUpToken ? 'Приховати токен' : 'Показати токен'}
+                        >
+                          {showUpToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                        {settingsForm.ukrposhtaToken && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(settingsForm.ukrposhtaToken || '');
+                              setCopyDeliveryFeedback('up_token');
+                              setTimeout(() => setCopyDeliveryFeedback(null), 2000);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg transition-colors cursor-pointer"
+                            title="Скопіювати токен"
+                          >
+                            {copyDeliveryFeedback === 'up_token' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Якщо токен не введено, працює швидка вбудована база всіх поштових індексів та відділень України без затримок і збоїв зв'язку.
+                    </p>
+                  </div>
+
+                  {/* Interactive Live UP Tester */}
+                  <div className="pt-2 space-y-3">
+                    <span className="block text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <Search className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Тестування пошуку відділення за індексом або назвою:</span>
+                    </span>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Введіть індекс або назву (напр. 22600, Оратів, Вінниця, 01001)..."
+                        value={upTestQuery}
+                        onChange={(e) => setUpTestQuery(e.target.value)}
+                        className="flex-1 px-3.5 py-2 border border-slate-300 rounded-xl text-xs bg-white outline-none focus:border-amber-500 font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!upTestQuery.trim()) return;
+                          setIsTestingUp(true);
+                          try {
+                            const res = await searchUkrposhtaOffices(upTestQuery, settingsForm.ukrposhtaToken);
+                            setUpTestResults(res);
+                            showToast(`Знайдено ${res.length} відділень Укрпошти`, 'info');
+                          } catch (err) {
+                            console.warn(err);
+                          } finally {
+                            setIsTestingUp(false);
+                          }
+                        }}
+                        disabled={isTestingUp}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {isTestingUp ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                        <span>Перевірити</span>
+                      </button>
+                    </div>
+
+                    {upTestResults.length > 0 && (
+                      <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-200 max-h-48 overflow-y-auto space-y-2">
+                        <div className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">
+                          Результати пошуку ({upTestResults.length}):
+                        </div>
+                        {upTestResults.slice(0, 5).map((it) => (
+                          <div key={it.postcode + it.address} className="p-2.5 rounded-xl bg-white border border-amber-200/80 text-xs flex items-start gap-2.5 shadow-2xs">
+                            <span className="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-mono font-black text-xs shrink-0 mt-0.5 shadow-xs">
+                              {it.postcode}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-slate-900">{it.city} <span className="text-slate-500 font-normal">({it.region})</span></div>
+                              <div className="text-[11px] text-slate-600 mt-0.5">{it.name}: {it.address}</div>
+                              {it.workHours && <div className="text-[10px] text-slate-400 mt-0.5">Графік: {it.workHours}</div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. STORE PICK-UP & LOGISTICS RULES */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Self-Pickup Settings */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-md p-5 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center shadow-xs">
+                    <Store className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">Самовивіз з магазину (Iskra Shop)</h4>
+                    <p className="text-xs text-slate-500">Пункт видачі інтернет-замовлень</p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Безкоштовно (0 грн)
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-slate-900 block">Адреса точки видачі:</span>
+                      <span className="text-slate-600">с-ще. Оратів, вул. Котляревського, 2 (Вінницька обл.)</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 pt-1 border-t border-slate-200/60">
+                    <Clock className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-slate-900 block">Графік видачі замовлень:</span>
+                      <span className="text-slate-600">Пн-Пт: 08:00 - 17:00, Сб: 08:00 - 15:00, Нд: Вихідний</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-slate-500 leading-relaxed">
+                  Покупець може забрати товар одразу після оформлення або після телефонного підтвердження менеджером.
+                </div>
+              </div>
+            </div>
+
+            {/* Free Delivery Threshold & Tariff rules */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-md p-5 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shadow-xs">
+                    <Tag className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">Поріг безкоштовної доставки</h4>
+                    <p className="text-xs text-slate-500">Маркетинговий стимул збільшення середнього чека</p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                  Активно в кошику
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Мінімальна сума замовлення для безкоштовної доставки (грн):
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      value={settingsForm.features?.freeShippingThreshold ?? 3000}
+                      onChange={(e) => setSettingsForm({
+                        ...settingsForm,
+                        features: {
+                          ...settingsForm.features,
+                          freeShippingThreshold: Number(e.target.value) || 0
+                        }
+                      })}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                    />
+                    <span className="absolute right-4 text-xs font-bold text-slate-400">грн</span>
+                  </div>
+                </div>
+
+                {/* Quick preset buttons */}
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-500 block mb-1.5">Швидкий вибір суми:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {[1500, 2000, 3000, 4000, 5000].map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => setSettingsForm({
+                          ...settingsForm,
+                          features: {
+                            ...settingsForm.features,
+                            freeShippingThreshold: amount
+                          }
+                        })}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          (settingsForm.features?.freeShippingThreshold ?? 3000) === amount
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        {amount} грн
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    При замовленні від <b>{settingsForm.features?.freeShippingThreshold ?? 3000} грн</b> у кошику клієнта з'являється зелений бейдж <b>«Безкоштовна доставка»</b>.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. LIVE CHECKOUT DELIVERY SIMULATOR */}
+          <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-7 border border-slate-800 shadow-xl space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-slate-800 text-amber-400 border border-slate-700 flex items-center justify-center">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm sm:text-base font-black text-white">
+                    Попередній вигляд блоку доставки для покупця (Checkout Live Simulator)
+                  </h4>
+                  <p className="text-xs text-slate-400">Так виглядає крок вибору способу доставки у формі замовлення на сайті</p>
+                </div>
+              </div>
+
+              {/* Delivery type preview switcher */}
+              <div className="flex p-1 bg-slate-800 rounded-xl border border-slate-700 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setDeliveryActivePreviewTab('np')}
+                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    deliveryActivePreviewTab === 'np' ? 'bg-red-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Нова Пошта</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryActivePreviewTab('up')}
+                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    deliveryActivePreviewTab === 'up' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Укрпошта</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryActivePreviewTab('pickup')}
+                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    deliveryActivePreviewTab === 'pickup' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Самовивіз</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Simulated UI container */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+              {deliveryActivePreviewTab === 'np' && (
+                <div className="space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-red-400 flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5" />
+                      <span>Нова Пошта (доставка 1-2 дні)</span>
+                    </span>
+                    <span className="text-slate-400 text-[11px]">за тарифами перевізника (~80 грн)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">1. Населений пункт:</span>
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-red-500" />
+                        <span>смт. Оратів (Вінницька обл.)</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">2. Відділення або поштомат:</span>
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        <Boxes className="w-3.5 h-3.5 text-red-500" />
+                        <span>Відділення №1 (вул. Героїв Майдану, 72)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {deliveryActivePreviewTab === 'up' && (
+                <div className="space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-amber-400 flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5" />
+                      <span>Укрпошта Експрес / Стандарт (доставка 2-4 дні)</span>
+                    </span>
+                    <span className="text-slate-400 text-[11px]">від 45 грн</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">Поштовий індекс:</span>
+                      <span className="font-mono font-black text-amber-400 text-sm">22600</span>
+                      <span className="text-slate-300 ml-2 font-medium">с-ще. Оратів, Вінницька обл. (ВПЗ Оратів)</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
+                      Автопідбір 100%
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {deliveryActivePreviewTab === 'pickup' && (
+                <div className="space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                      <Store className="w-3.5 h-3.5" />
+                      <span>Самовивіз з точки продажу ISKRA</span>
+                    </span>
+                    <span className="text-emerald-400 font-bold text-xs">0 грн (Безкоштовно)</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1">
+                    <div className="text-slate-300 font-semibold">
+                      с-ще. Оратів, вул. Котляревського, 2 · Точка продажу інверторів, акумуляторів та сантехніки
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Готовність до видачі: 15-30 хвилин після підтвердження замовлення.
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Free Shipping Settings */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
-            <h4 className="text-xs font-bold text-slate-900">Поріг безкоштовної доставки</h4>
+          {/* Sticky Bottom Action Bar */}
+          <div className="sticky bottom-4 z-20 bg-slate-900/95 backdrop-blur-md text-white p-4 sm:p-5 rounded-2xl shadow-2xl border border-slate-700 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                  Сума замовлення для безкоштовної доставки (грн)
-                </label>
-                <input
-                  type="number"
-                  value={settingsForm.features?.freeShippingThreshold ?? 3000}
-                  onChange={(e) => setSettingsForm({
-                    ...settingsForm,
-                    features: {
-                      ...settingsForm.features,
-                      freeShippingThreshold: Number(e.target.value) || 0
-                    }
-                  })}
-                  className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs bg-white outline-none"
-                />
+              <div className="w-9 h-9 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400">
+                <Truck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">
+                  Служби доставки готові до роботи
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  Нова Пошта (API) · Укрпошта (Індекси) · Самовивіз (Оратів)
+                </div>
               </div>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm cursor-pointer"
-          >
-            Зберегти налаштування доставки
-          </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="submit"
+                className="px-6 py-2.5 bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-bold rounded-xl text-xs shadow-lg shadow-red-600/25 transition-all flex items-center gap-2 cursor-pointer active:scale-98"
+              >
+                <Check className="w-4 h-4" />
+                <span>Зберегти налаштування служб доставки</span>
+              </button>
+            </div>
+          </div>
         </form>
       )}
 
-      {/* TAB: ONLINE PAYMENTS (WayForPay, Monobank, LiqPay) */}
+      {/* TAB: ONLINE PAYMENTS (WayForPay, Monobank, LiqPay, Apple Pay & Google Pay) */}
       {activeTab === 'payments' && (
         <form
           onSubmit={(e) => {
             e.preventDefault();
             updateSiteSettings(settingsForm);
-            showToast('Налаштування онлайн-оплати успішно збережено!', 'success');
+            showToast('Налаштування онлайн-оплати та банківських реквізитів успішно збережено!', 'success');
           }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 max-w-3xl"
+          className="space-y-6 max-w-4xl"
         >
-          <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-emerald-600" />
-                <span>Онлайн-оплата карткою, Apple Pay та Google Pay</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Підключення прийому платежів через українські платіжні системи
-              </p>
+          {/* Top Hero Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 p-6 sm:p-8 text-white shadow-xl border border-emerald-500/30">
+            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-1/3 -mb-12 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2 max-w-xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 backdrop-blur-xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span>Онлайн-еквайринг 24/7</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-200 border border-white/15 backdrop-blur-xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>PCI DSS Level 1 • 3D-Secure 2.0</span>
+                  </span>
+                </div>
+
+                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+                  <div className="p-2 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-emerald-400 shadow-inner">
+                    <CreditCard className="w-6 h-6" />
+                  </div>
+                  <span>Онлайн-оплата: Apple Pay, Google Pay та картки</span>
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Миттєвий прийом платежів від клієнтів в 1 клік з карток будь-яких банків (Visa, Mastercard, Простір), через 
+                  <strong className="text-white font-bold"> Apple Pay</strong>, <strong className="text-white font-bold">Google Pay</strong> та додаток <strong className="text-white font-bold">monobank</strong> з автоматичною фіксацією статусу «Оплачено» в базі замовлень.
+                </p>
+              </div>
+
+              {/* Live Status Card */}
+              <div className="bg-slate-800/80 backdrop-blur-md p-4 rounded-2xl border border-white/15 shrink-0 min-w-[220px] shadow-lg">
+                <div className="text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1">
+                  Поточний активний шлюз:
+                </div>
+                <div className="text-base font-black text-emerald-400 flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" />
+                  {settingsForm.paymentGateway === 'monobank'
+                    ? 'Monobank (monoPay)'
+                    : settingsForm.paymentGateway === 'liqpay'
+                    ? 'LiqPay (ПриватБанк)'
+                    : 'WayForPay (Рекомендовано)'}
+                </div>
+                <div className="mt-2.5 pt-2.5 border-t border-slate-700/70 flex items-center justify-between text-[11px] text-slate-300">
+                  <span>Статус ключів:</span>
+                  {(settingsForm.paymentGateway === 'monobank' && settingsForm.monobankToken) ||
+                  (settingsForm.paymentGateway !== 'monobank' && settingsForm.paymentMerchantId && settingsForm.paymentSecretKey) ? (
+                    <span className="font-bold text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Активний
+                    </span>
+                  ) : (
+                    <span className="font-bold text-amber-400 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" /> Потрібні ключі
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Безпечні платежі</span>
-            </span>
+
+            {/* Quick Payment Logos Row */}
+            <div className="mt-6 pt-5 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-400">Підтримувані методи:</span>
+                <span className="px-2.5 py-1 bg-white/10 rounded-lg font-bold text-white border border-white/10 flex items-center gap-1.5">
+                  <span>Pay</span> Apple Pay
+                </span>
+                <span className="px-2.5 py-1 bg-white/10 rounded-lg font-bold text-white border border-white/10 flex items-center gap-1.5">
+                  <span className="text-blue-400 font-black">G</span>Pay Google Pay
+                </span>
+                <span className="px-2.5 py-1 bg-white/10 rounded-lg font-bold text-white border border-white/10">
+                  Visa & Mastercard
+                </span>
+                <span className="px-2.5 py-1 bg-white/10 rounded-lg font-bold text-white border border-white/10">
+                  monoPay / Приват24
+                </span>
+              </div>
+              <div className="text-[11px] text-emerald-300 font-mono flex items-center gap-1">
+                <Lock className="w-3 h-3" /> 256-bit SSL захист
+              </div>
+            </div>
           </div>
 
-          {/* Gateway Selector */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-800">
-              Оберіть платіжного провайдера:
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Step 1: Provider Selection */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-black text-xs flex items-center justify-center">1</span>
+                  <span>Оберіть платіжний сервіс (еквайринг)</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Усі платежі надходять безпосередньо на ваш розрахунковий рахунок ФОП або ТОВ
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* WayForPay Card */}
               <button
                 type="button"
                 onClick={() => setSettingsForm({ ...settingsForm, paymentGateway: 'wayforpay' })}
-                className={`p-3.5 rounded-xl border text-left transition-all ${
+                className={`relative p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                   settingsForm.paymentGateway === 'wayforpay'
-                    ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/20'
-                    : 'border-slate-200 hover:bg-slate-50'
+                    ? 'border-emerald-500 bg-gradient-to-b from-emerald-50/90 to-white ring-2 ring-emerald-500/30 shadow-md'
+                    : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/60 shadow-2xs'
                 }`}
               >
-                <div className="font-black text-xs text-slate-900 mb-0.5">WayForPay</div>
-                <div className="text-[10px] text-slate-500">Apple Pay, Google Pay, Visa/Mastercard</div>
+                {settingsForm.paymentGateway === 'wayforpay' && (
+                  <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white shadow-xs">
+                    АКТИВНИЙ
+                  </span>
+                )}
+                <div>
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white font-black flex items-center justify-center text-sm shadow-sm">
+                      W
+                    </div>
+                    <div>
+                      <div className="font-black text-sm text-slate-900 leading-tight">WayForPay</div>
+                      <div className="text-[10px] font-semibold text-emerald-700">Універсальний шлюз</div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                    Найпопулярніший платіжний агрегатор в Україні. Включає Apple Pay, Google Pay, Visa/Mastercard, розстрочку та інтеграцію з ПРРО.
+                  </p>
+
+                  <div className="space-y-1 text-[11px] text-slate-700 font-medium">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Apple Pay & Google Pay</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Картки будь-яких банків</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Миттєве зарахування на рахунок</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500">Комісія сервісу:</span>
+                  <span className="font-bold text-slate-900">від 2.0%</span>
+                </div>
               </button>
 
+              {/* Monobank Card */}
               <button
                 type="button"
                 onClick={() => setSettingsForm({ ...settingsForm, paymentGateway: 'monobank' })}
-                className={`p-3.5 rounded-xl border text-left transition-all ${
+                className={`relative p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                   settingsForm.paymentGateway === 'monobank'
-                    ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/20'
-                    : 'border-slate-200 hover:bg-slate-50'
+                    ? 'border-slate-900 bg-gradient-to-b from-slate-100 to-white ring-2 ring-slate-900/30 shadow-md'
+                    : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/60 shadow-2xs'
                 }`}
               >
-                <div className="font-black text-xs text-slate-900 mb-0.5">Monobank (monoPay)</div>
-                <div className="text-[10px] text-slate-500">Швидка оплата в 1 клік через застосунок mono</div>
+                {settingsForm.paymentGateway === 'monobank' && (
+                  <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-900 text-white shadow-xs">
+                    АКТИВНИЙ
+                  </span>
+                )}
+                <div>
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-slate-950 text-white font-black flex items-center justify-center text-sm shadow-sm">
+                      M
+                    </div>
+                    <div>
+                      <div className="font-black text-sm text-slate-900 leading-tight">Monobank (monoPay)</div>
+                      <div className="text-[10px] font-semibold text-slate-600">Інтернет-еквайринг</div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                    Швидка та зручна оплата через застосунок Monobank в 1 клік або за QR-кодом для десктопу. Мінімальна комісія.
+                  </p>
+
+                  <div className="space-y-1 text-[11px] text-slate-700 font-medium">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-slate-900 shrink-0" />
+                      <span>Оплата в 1 клік через mono-додаток</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-slate-900 shrink-0" />
+                      <span>Apple Pay & Google Pay</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-slate-900 shrink-0" />
+                      <span>QR-код на екрані для комп'ютера</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500">Комісія сервісу:</span>
+                  <span className="font-bold text-slate-900">від 1.3%</span>
+                </div>
               </button>
 
+              {/* LiqPay Card */}
               <button
                 type="button"
                 onClick={() => setSettingsForm({ ...settingsForm, paymentGateway: 'liqpay' })}
-                className={`p-3.5 rounded-xl border text-left transition-all ${
+                className={`relative p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                   settingsForm.paymentGateway === 'liqpay'
-                    ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/20'
-                    : 'border-slate-200 hover:bg-slate-50'
+                    ? 'border-emerald-600 bg-gradient-to-b from-emerald-50/70 to-white ring-2 ring-emerald-600/30 shadow-md'
+                    : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/60 shadow-2xs'
                 }`}
               >
-                <div className="font-black text-xs text-slate-900 mb-0.5">LiqPay (ПриватБанк)</div>
-                <div className="text-[10px] text-slate-500">Приват24, картки будь-яких банків</div>
+                {settingsForm.paymentGateway === 'liqpay' && (
+                  <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-700 text-white shadow-xs">
+                    АКТИВНИЙ
+                  </span>
+                )}
+                <div>
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white font-black flex items-center justify-center text-sm shadow-sm">
+                      L
+                    </div>
+                    <div>
+                      <div className="font-black text-sm text-slate-900 leading-tight">LiqPay (ПриватБанк)</div>
+                      <div className="text-[10px] font-semibold text-emerald-800">Еквайринг ПриватБанку</div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                    Платіжний сервіс від ПриватБанку. Повна інтеграція з Приват24, підтримка карток закордонних та українських банків.
+                  </p>
+
+                  <div className="space-y-1 text-[11px] text-slate-700 font-medium">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                      <span>Пряма оплата через Приват24</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                      <span>Apple Pay & Google Pay</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                      <span>Надійність державного банку</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500">Комісія сервісу:</span>
+                  <span className="font-bold text-slate-900">від 1.5%</span>
+                </div>
               </button>
             </div>
           </div>
 
-          {/* Gateway specific fields */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3 text-xs">
+          {/* Step 2: Merchant API Credentials */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-black text-xs flex items-center justify-center">2</span>
+                  <span>
+                    Налаштування ключів мерчанта: {settingsForm.paymentGateway === 'monobank' ? 'Monobank' : settingsForm.paymentGateway === 'liqpay' ? 'LiqPay' : 'WayForPay'}
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Введіть параметри підключення з особистого кабінету вашого платіжного шлюзу
+                </p>
+              </div>
+
+              {/* External link to cabinet */}
+              {settingsForm.paymentGateway === 'wayforpay' && (
+                <a
+                  href="https://wayforpay.com/uk/login"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all shrink-0"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Кабінет WayForPay</span>
+                </a>
+              )}
+              {settingsForm.paymentGateway === 'monobank' && (
+                <a
+                  href="https://web.monobank.ua/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300 transition-all shrink-0"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Кабінет Monobank Еквайринг</span>
+                </a>
+              )}
+              {settingsForm.paymentGateway === 'liqpay' && (
+                <a
+                  href="https://www.liqpay.ua/uk/adminbusiness"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all shrink-0"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Кабінет LiqPay</span>
+                </a>
+              )}
+            </div>
+
+            {/* WayForPay Fields */}
             {settingsForm.paymentGateway === 'wayforpay' && (
-              <>
-                <div className="font-bold text-slate-900">Налаштування мерчанта WayForPay:</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Merchant Account (ID магазину)
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                      <Key className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Merchant Account (ID магазину)</span>
+                      <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      placeholder="напр., test_merch_n1"
+                      placeholder="напр., test_merch_n1 або ваш_мерчант"
                       value={settingsForm.paymentMerchantId || ''}
                       onChange={(e) => setSettingsForm({ ...settingsForm, paymentMerchantId: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono"
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none font-mono text-xs transition-all"
                     />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Знаходиться у меню: WayForPay → Налаштування магазину → Реквізити
+                    </p>
                   </div>
+
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Merchant Secret Key (Секретний ключ)
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Merchant Secret Key (Секретний ключ)</span>
+                        <span className="text-red-500">*</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowPaymentSecret(!showPaymentSecret)}
+                        className="text-[11px] text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer font-normal"
+                      >
+                        {showPaymentSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        <span>{showPaymentSecret ? 'Приховати' : 'Показати'}</span>
+                      </button>
                     </label>
                     <input
-                      type="password"
-                      placeholder="Введіть секретний ключ"
+                      type={showPaymentSecret ? 'text' : 'password'}
+                      placeholder="Введіть секретний ключ мерчанта"
                       value={settingsForm.paymentSecretKey || ''}
                       onChange={(e) => setSettingsForm({ ...settingsForm, paymentSecretKey: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono"
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none font-mono text-xs transition-all"
                     />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Використовується для безпечного підпису запитів та генерації HMAC-MD5 підпису
+                    </p>
                   </div>
                 </div>
-              </>
+
+                {/* Helpful quick note */}
+                <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-900 flex items-start gap-2.5">
+                  <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">
+                    <strong>Тестовий режим WayForPay:</strong> Для тестування можна використовувати ID <code className="px-1.5 py-0.5 bg-white rounded font-mono font-bold text-emerald-700">test_merch_n1</code> та Secret Key <code className="px-1.5 py-0.5 bg-white rounded font-mono font-bold text-emerald-700">flk3409refn54t54t*fnusb</code>.
+                  </div>
+                </div>
+              </div>
             )}
 
+            {/* Monobank Fields */}
             {settingsForm.paymentGateway === 'monobank' && (
-              <>
-                <div className="font-bold text-slate-900">Налаштування еквайрингу Monobank:</div>
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Токен еквайрингу Monobank (X-Token)
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Key className="w-3.5 h-3.5 text-slate-900" />
+                      <span>Токен інтернет-еквайрингу Monobank (X-Token)</span>
+                      <span className="text-red-500">*</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPaymentSecret(!showPaymentSecret)}
+                      className="text-[11px] text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer font-normal"
+                    >
+                      {showPaymentSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      <span>{showPaymentSecret ? 'Приховати' : 'Показати'}</span>
+                    </button>
                   </label>
                   <input
-                    type="password"
-                    placeholder="Вставте токен з особистого кабінету monobank.ua/e-comm"
+                    type={showPaymentSecret ? 'text' : 'password'}
+                    placeholder="Вставте X-Token з кабінету monobank.ua/e-comm"
                     value={settingsForm.monobankToken || ''}
                     onChange={(e) => setSettingsForm({ ...settingsForm, monobankToken: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20 outline-none font-mono text-xs transition-all"
                   />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Створіть токен у розділі «Еквайринг» особистого кабінету monobank для юридичних осіб або ФОП
+                  </p>
                 </div>
-              </>
+
+                <div className="p-3.5 rounded-xl bg-slate-100 border border-slate-300 text-xs text-slate-800 flex items-start gap-2.5">
+                  <Smartphone className="w-4 h-4 text-slate-900 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">
+                    <strong>Особливість monoPay:</strong> Клієнти на смартфонах можуть оплатити замовлення в 1 клік відкриттям застосунку Monobank, а на комп'ютері — миттєвим скануванням QR-коду камерою телефона.
+                  </div>
+                </div>
+              </div>
             )}
 
+            {/* LiqPay Fields */}
             {settingsForm.paymentGateway === 'liqpay' && (
-              <>
-                <div className="font-bold text-slate-900">Налаштування LiqPay (ПриватБанк):</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Public Key (Публічний ключ)
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                      <Key className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Public Key (Публічний ключ LiqPay)</span>
+                      <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      placeholder="i00000000000"
+                      placeholder="напр., i00000000000"
                       value={settingsForm.paymentMerchantId || ''}
                       onChange={(e) => setSettingsForm({ ...settingsForm, paymentMerchantId: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono"
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 outline-none font-mono text-xs transition-all"
                     />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Отримується в кабінеті LiqPay → Налаштування → API
+                    </p>
                   </div>
+
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Private Key (Приватний ключ)
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Private Key (Приватний ключ)</span>
+                        <span className="text-red-500">*</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowPaymentSecret(!showPaymentSecret)}
+                        className="text-[11px] text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer font-normal"
+                      >
+                        {showPaymentSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        <span>{showPaymentSecret ? 'Приховати' : 'Показати'}</span>
+                      </button>
                     </label>
                     <input
-                      type="password"
-                      placeholder="Введіть приватний ключ"
+                      type={showPaymentSecret ? 'text' : 'password'}
+                      placeholder="Введіть приватний ключ LiqPay"
                       value={settingsForm.paymentSecretKey || ''}
                       onChange={(e) => setSettingsForm({ ...settingsForm, paymentSecretKey: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono"
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 outline-none font-mono text-xs transition-all"
                     />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Ніколи не передавайте приватний ключ третім особам
+                    </p>
                   </div>
                 </div>
-              </>
+              </div>
             )}
+          </div>
 
-            {/* IBAN Bank Requisites for Bank Invoices */}
-            <div className="pt-4 border-t border-slate-200/80 space-y-3">
-              <div className="font-bold text-slate-900 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-indigo-600" />
-                <span>Офіційні банківські реквізити для оплати за IBAN (Безготівковий розрахунок):</span>
-              </div>
-              <p className="text-xs text-slate-500">
-                Ці реквізити відображаються клієнтам у модальному вікні «Реквізити IBAN» при виборі безготівкової оплати.
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Номер рахунку IBAN (29 знаків)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="UA213052990000026007894561230"
-                    value={settingsForm.companyIban || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, companyIban: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono text-xs"
-                  />
+          {/* Step 3: Interactive Live Customer Checkout Preview Simulator */}
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-slate-700 p-6 text-white shadow-lg space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-700">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-400">
+                  <Smartphone className="w-5 h-5" />
                 </div>
-
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Одержувач (Назва ТОВ або ФОП)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="ТОВ «ІСКРА ЕЛЕКТРОТЕХНІКА» або ФОП ..."
-                    value={settingsForm.companyName || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, companyName: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Код ЄДРПОУ / ІПН (РНОКПП)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="43928174"
-                    value={settingsForm.companyEdrpou || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, companyEdrpou: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Банк одержувача та МФО
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="АТ КБ «ПриватБанк» (МФО 305299)"
-                    value={settingsForm.companyBank || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, companyBank: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
-                  />
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>Попередній вигляд вікна оплати для покупця</span>
+                    <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-bold rounded-full border border-emerald-500/30">
+                      Live Preview
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Ось як зручно виглядає форма онлайн-оплати для покупця під час оформлення замовлення
+                  </p>
                 </div>
               </div>
 
-              {/* FOP Seller Legal Requisites for "Про нас" page */}
-              <div className="pt-4 border-t border-slate-200 mt-4 space-y-3">
-                <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-red-600" />
-                  <span>Юридичні дані ФОП для сторінки «Про нас / Реквізити» та захисту споживачів:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentPreviewSimulated(true);
+                  showToast('Тестова симуляція: оплата карткою через ' + (settingsForm.paymentGateway || 'WayForPay') + ' пройшла успішно!', 'success');
+                  setTimeout(() => setPaymentPreviewSimulated(false), 4000);
+                }}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Симуляція успішної оплати</span>
+              </button>
+            </div>
+
+            {/* Mock Checkout Window */}
+            <div className="max-w-md mx-auto bg-slate-950 rounded-2xl p-5 border border-slate-700/80 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs font-bold text-white">Безпечна оплата замовлення</span>
                 </div>
+                <span className="text-xs font-mono font-bold text-emerald-400">1 450.00 грн</span>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      ФОП: ПІБ суб'єкта підприємницької діяльності
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="ФОП Тарасова Ірина Анатоліївна"
-                      value={settingsForm.fopName || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, fopName: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
-                    />
+              {/* Express Buttons: Apple Pay & Google Pay */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  className="w-full py-2.5 px-4 bg-black hover:bg-zinc-900 text-white font-bold rounded-xl border border-white/20 text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                >
+                  <span className="text-sm font-black">Pay</span>
+                  <span>Оплатити з Apple Pay</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-900 font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                >
+                  <span className="text-blue-600 font-black">G</span>
+                  <span>Google Pay</span>
+                </button>
+              </div>
+
+              <div className="relative flex py-1 items-center">
+                <div className="grow border-t border-slate-800" />
+                <span className="shrink mx-2 text-[10px] uppercase font-bold text-slate-500">або карткою будь-якого банку</span>
+                <div className="grow border-t border-slate-800" />
+              </div>
+
+              {/* Card Mock inputs */}
+              <div className="space-y-2.5">
+                <div>
+                  <div className="text-[10px] text-slate-400 mb-1 flex items-center justify-between">
+                    <span>Номер банківської картки</span>
+                    <span className="text-slate-500 font-mono">Visa / Mastercard / Простір</span>
                   </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      РНОКПП (ІПН платника)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="3298412839"
-                      value={settingsForm.fopRnokpp || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, fopRnokpp: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Місце державної реєстрації ФОП
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7"
-                      value={settingsForm.fopRegistrationAddress || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, fopRegistrationAddress: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Фактичне місце проживання / склад
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7"
-                      value={settingsForm.fopActualAddress || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, fopActualAddress: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Офіційний e-mail для звернень покупців
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="iskra.shop.ua@gmail.com"
-                      value={settingsForm.fopEmail || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, fopEmail: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Офіційний телефон ФОП
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="+38 (096) 647-36-67"
-                      value={settingsForm.fopPhone || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, fopPhone: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
-                    />
+                  <div className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-slate-200 flex items-center justify-between">
+                    <span>4149 •••• •••• 8821</span>
+                    <CreditCard className="w-4 h-4 text-emerald-400" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Інформація про оподаткування та включення податків у ціну
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={settingsForm.taxInfo || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, taxInfo: e.target.value })}
-                      placeholder="ФОП платник єдиного податку 2-ї групи (без сплати ПДВ). Усі ціни є кінцевими..."
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
-                    />
+                    <div className="text-[10px] text-slate-400 mb-1">Термін дії</div>
+                    <div className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-slate-200">
+                      12 / 28
+                    </div>
                   </div>
-
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Інформація про ліцензії та сертифікацію
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={settingsForm.licenseInfo || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, licenseInfo: e.target.value })}
-                      placeholder="Роздрібна торгівля не підлягає обов'язковому ліцензуванню згідно ст. 7 ЗУ..."
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-xs"
-                    />
+                    <div className="text-[10px] text-slate-400 mb-1">CVV / CVC</div>
+                    <div className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-slate-200">
+                      •••
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              <button
+                type="button"
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Оплатити 1 450.00 грн ({settingsForm.paymentGateway === 'monobank' ? 'monoPay' : settingsForm.paymentGateway === 'liqpay' ? 'LiqPay' : 'WayForPay'})</span>
+              </button>
+
+              {paymentPreviewSimulated && (
+                <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-center text-xs font-bold text-emerald-300 animate-fade-in flex items-center justify-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Транзакція підтверджена! Статус замовлення оновлено на «Оплачено».</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Step 4: Official IBAN Bank Requisites for Bank Invoices */}
+          <div className="bg-gradient-to-br from-indigo-50/70 via-white to-slate-50 rounded-2xl border border-indigo-200 shadow-sm p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-indigo-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span>Банківські реквізити IBAN (Безготівковий розрахунок)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Відображаються покупцям у рахунку-фактурі та в спливаючому вікні «Реквізити IBAN»
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-800 shrink-0">
+                Рахунок для юр. осіб та ФОП
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
+                  <span>Номер рахунку IBAN (29 знаків)</span>
+                  {settingsForm.companyIban && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(settingsForm.companyIban || '');
+                        setCopyPaymentFeedback('iban');
+                        setTimeout(() => setCopyPaymentFeedback(null), 2000);
+                      }}
+                      className="text-[10px] text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 cursor-pointer"
+                    >
+                      {copyPaymentFeedback === 'iban' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      <span>{copyPaymentFeedback === 'iban' ? 'Скопійовано' : 'Копіювати'}</span>
+                    </button>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  placeholder="UA213052990000026007894561230"
+                  value={settingsForm.companyIban || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, companyIban: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-xs transition-all font-bold text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Одержувач (Назва ФОП або ТОВ)
+                </label>
+                <input
+                  type="text"
+                  placeholder="ФОП Тарасова Ірина Анатоліївна або ТОВ «ІСКРА»"
+                  value={settingsForm.companyName || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, companyName: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none text-xs transition-all text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Код ЄДРПОУ / ІПН (РНОКПП)
+                </label>
+                <input
+                  type="text"
+                  placeholder="3298412839 або 43928174"
+                  value={settingsForm.companyEdrpou || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, companyEdrpou: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-xs transition-all text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Банк одержувача та МФО
+                </label>
+                <input
+                  type="text"
+                  placeholder="АТ КБ «ПриватБанк» (МФО 305299) або АТ «Універсал Банк»"
+                  value={settingsForm.companyBank || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, companyBank: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none text-xs transition-all text-slate-800"
+                />
+              </div>
+            </div>
+
+            {/* Formatted Invoice Preview Badge */}
+            <div className="p-3.5 rounded-xl bg-indigo-950 text-indigo-100 text-xs space-y-1 font-mono shadow-inner">
+              <div className="text-[10px] uppercase tracking-wider font-bold text-indigo-400 mb-1">
+                Зразок реквізитів у рахунку покупця:
+              </div>
+              <div><strong className="text-white">Одержувач:</strong> {settingsForm.companyName || 'ФОП Тарасова Ірина Анатоліївна'}</div>
+              <div><strong className="text-white">Рахунок IBAN:</strong> {settingsForm.companyIban || 'UA213052990000026007894561230'}</div>
+              <div><strong className="text-white">ЄДРПОУ/ІПН:</strong> {settingsForm.companyEdrpou || '3298412839'} • <strong className="text-white">Банк:</strong> {settingsForm.companyBank || 'АТ КБ «ПриватБанк»'}</div>
+              <div><strong className="text-white">Призначення:</strong> Оплата замовлення №__ за електрообладнання згідно з рахунком без ПДВ</div>
+            </div>
+          </div>
+
+          {/* Step 5: FOP Seller Legal Requisites */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-red-50 text-red-600 rounded-xl">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                    Юридичні дані ФОП для сторінки «Про нас / Реквізити»
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Офіційні дані суб'єкта підприємницької діяльності для захисту прав споживачів
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  ФОП: Повне ПІБ підприємця
+                </label>
+                <input
+                  type="text"
+                  placeholder="ФОП Тарасова Ірина Анатоліївна"
+                  value={settingsForm.fopName || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopName: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none text-xs transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  РНОКПП (ІПН платника податків)
+                </label>
+                <input
+                  type="text"
+                  placeholder="3298412839"
+                  value={settingsForm.fopRnokpp || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopRnokpp: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none font-mono text-xs transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Місце державної реєстрації ФОП
+                </label>
+                <input
+                  type="text"
+                  placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 7"
+                  value={settingsForm.fopRegistrationAddress || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopRegistrationAddress: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none text-xs transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Фактичне місце знаходження / Склад
+                </label>
+                <input
+                  type="text"
+                  placeholder="Україна, 22601, Вінницька обл., Вінницький р-н, с-ще. Оратів, вул. Котляревського, 2"
+                  value={settingsForm.fopActualAddress || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopActualAddress: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none text-xs transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Офіційний e-mail для звернень покупців
+                </label>
+                <input
+                  type="email"
+                  placeholder="iskra.shop.ua@gmail.com"
+                  value={settingsForm.fopEmail || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopEmail: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none text-xs transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Офіційний телефон ФОП
+                </label>
+                <input
+                  type="text"
+                  placeholder="+38 (096) 647-36-67"
+                  value={settingsForm.fopPhone || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, fopPhone: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none text-xs transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Інформація про оподаткування та ціноутворення
+                </label>
+                <textarea
+                  rows={2}
+                  value={settingsForm.taxInfo || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, taxInfo: e.target.value })}
+                  placeholder="ФОП платник єдиного податку 2-ї групи (без сплати ПДВ). Усі ціни є кінцевими..."
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none text-xs transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Інформація про ліцензії та сертифікацію
+                </label>
+                <textarea
+                  rows={2}
+                  value={settingsForm.licenseInfo || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, licenseInfo: e.target.value })}
+                  placeholder="Роздрібна торгівля електротоварами не підлягає обов'язковому ліцензуванню..."
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none text-xs transition-all"
+                />
               </div>
             </div>
           </div>
 
-          <button
-            type="submit"
-            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm cursor-pointer"
-          >
-            Зберегти налаштування оплати та реквізитів
-          </button>
+          {/* Save Action Bar */}
+          <div className="sticky bottom-4 z-20 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5 text-xs text-slate-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>
+                Активний провайдер: <strong className="text-slate-900 uppercase font-black">{settingsForm.paymentGateway || 'WayForPay'}</strong>
+              </span>
+            </div>
+
+            <button
+              type="submit"
+              className="px-8 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-black text-xs rounded-xl transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Зберегти налаштування онлайн-оплати та реквізитів</span>
+            </button>
+          </div>
         </form>
       )}
 
