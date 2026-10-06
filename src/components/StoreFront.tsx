@@ -78,6 +78,11 @@ export const StoreFront: React.FC = () => {
     setShowWishlistOnly,
     activeCategory, 
     setActiveCategory, 
+    selectedSubCategory,
+    setSelectedSubCategory,
+    selectedLeafTag,
+    setSelectedLeafTag,
+    selectCategoryLeaf,
     searchQuery,
     setSearchQuery,
     sortOption, 
@@ -96,8 +101,6 @@ export const StoreFront: React.FC = () => {
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
-  const [selectedLeafTag, setSelectedLeafTag] = useState<string | null>(null);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
 
@@ -150,8 +153,7 @@ export const StoreFront: React.FC = () => {
       if (selectedLeafTag) {
         const leaf = selectedLeafTag;
         list = list.filter((p) => 
-          matchCategoryOrLeaf(p.category, leaf) ||
-          (p.subCategory && matchCategoryOrLeaf(p.subCategory, leaf))
+          matchCategoryOrLeaf(p.category, leaf)
         );
       } else if (selectedSubCategory) {
         const sub = selectedSubCategory;

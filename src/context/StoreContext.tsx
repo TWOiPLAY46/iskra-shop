@@ -71,6 +71,11 @@ interface StoreContextType {
   headerDesign: HeaderDesign;
   activeCategory: string;
   setActiveCategory: (cat: string) => void;
+  selectedSubCategory: string | null;
+  setSelectedSubCategory: (sub: string | null) => void;
+  selectedLeafTag: string | null;
+  setSelectedLeafTag: (leaf: string | null) => void;
+  selectCategoryLeaf: (catName: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   sortOption: 'default' | 'price-asc' | 'price-desc' | 'name-asc';
@@ -711,6 +716,50 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const [activeCategory, setActiveCategory] = useState<string>('Усі');
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
+  const [selectedLeafTag, setSelectedLeafTag] = useState<string | null>(null);
+
+  const selectCategoryLeaf = (catName: string) => {
+    if (!catName || catName === 'Усі') {
+      setActiveCategory('Усі');
+      setSelectedSubCategory(null);
+      setSelectedLeafTag(null);
+      return;
+    }
+    if (categoriesTree[catName]) {
+      setActiveCategory(catName);
+      setSelectedSubCategory(null);
+      setSelectedLeafTag(null);
+      return;
+    }
+    for (const [mainCat, mainObj] of Object.entries(categoriesTree)) {
+      if (!mainObj) continue;
+      if (Array.isArray(mainObj._leaves) && mainObj._leaves.includes(catName)) {
+        setActiveCategory(mainCat);
+        setSelectedSubCategory(null);
+        setSelectedLeafTag(catName);
+        return;
+      }
+      for (const [subCat, leaves] of Object.entries(mainObj)) {
+        if (subCat === '_leaves') continue;
+        if (subCat === catName) {
+          setActiveCategory(mainCat);
+          setSelectedSubCategory(subCat);
+          setSelectedLeafTag(null);
+          return;
+        }
+        if (Array.isArray(leaves) && leaves.includes(catName)) {
+          setActiveCategory(mainCat);
+          setSelectedSubCategory(subCat);
+          setSelectedLeafTag(catName);
+          return;
+        }
+      }
+    }
+    setActiveCategory(catName);
+    setSelectedSubCategory(null);
+    setSelectedLeafTag(null);
+  };
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortOption, setSortOption] = useState<'default' | 'price-asc' | 'price-desc' | 'name-asc'>('default');
 
@@ -2775,6 +2824,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         headerDesign,
         activeCategory,
         setActiveCategory,
+        selectedSubCategory,
+        setSelectedSubCategory,
+        selectedLeafTag,
+        setSelectedLeafTag,
+        selectCategoryLeaf,
         searchQuery,
         setSearchQuery,
         sortOption,

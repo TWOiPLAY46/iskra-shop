@@ -22,6 +22,7 @@ export const CatalogMegaMenu: React.FC<CatalogMegaMenuProps> = ({ isOpen, onClos
     categoriesTree, 
     activeCategory, 
     setActiveCategory, 
+    selectCategoryLeaf,
     setActiveView,
     setSearchQuery
   } = useStore();
@@ -29,12 +30,12 @@ export const CatalogMegaMenu: React.FC<CatalogMegaMenuProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   const handleSelectCategory = (catName: string) => {
-    setActiveCategory(catName);
+    selectCategoryLeaf(catName);
     setSearchQuery('');
     setActiveView('store');
     onClose();
     setTimeout(() => {
-      const el = document.getElementById('subcategory-gallery-section') || document.getElementById('catalog-products-section');
+      const el = document.getElementById('catalog-products-section') || document.getElementById('subcategory-gallery-section');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -42,7 +43,7 @@ export const CatalogMegaMenu: React.FC<CatalogMegaMenuProps> = ({ isOpen, onClos
   };
 
   const handleShowAll = () => {
-    setActiveCategory('Усі');
+    selectCategoryLeaf('Усі');
     setSearchQuery('');
     setActiveView('store');
     onClose();
