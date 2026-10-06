@@ -2622,9 +2622,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Налаштування «Акції тижня» оновлено!', 'success');
   };
 
-  // Admin Auth via Firebase Authentication (signInWithEmailAndPassword) with safe fallback and brute-force protection
+  // Admin Auth strictly via Firebase Authentication (signInWithEmailAndPassword)
   const adminLogin = async (emailOrPass: string, pass?: string): Promise<{ success: boolean; error?: string }> => {
-    // If only one argument was provided, treat it as password with the default admin email
     const email = pass !== undefined ? emailOrPass : 'lenovoB777e@gmail.com';
     const password = pass !== undefined ? pass : emailOrPass;
 
@@ -2637,51 +2636,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     try {
-      // 2. Try Firebase Authentication first
+      // 2. Strict Firebase Authentication check
       const res = await loginAdminWithFirebaseAuth(firebaseConfig, email, password);
       if (res.success && res.user) {
         setIsAdminLoggedIn(true);
         setAdminUserEmail(res.user.email || email);
         recordSuccessfulLogin(res.user.email || email);
-        showToast('Успішний захищений вхід в панель керування!', 'success');
+        showToast('Успішний захищений вхід через Firebase Auth!', 'success');
         return { success: true };
       }
 
-      // 3. Fallback check: master password or configured password in Site Settings
-      const configuredPassword = siteSettings.adminPassword || 'iskra2025';
-      if (
-        password === configuredPassword || 
-        password === 'iskra2025' || 
-        password === 'admin' ||
-        password === 'admin123'
-      ) {
-        setIsAdminLoggedIn(true);
-        setAdminUserEmail(email);
-        recordSuccessfulLogin(email);
-        showToast('Успішний вхід в панель керування!', 'success');
-        return { success: true };
-      }
-
-      // 4. Record failed attempt for rate limiting
-      recordFailedLogin(email, res.error || 'Невірний пароль');
-      const errMsg = res.error || 'Невірний email або пароль адміністратора';
+      // 3. Record failed attempt for rate limiting
+      recordFailedLogin(email, res.error || 'Невірний email або пароль');
+      const errMsg = res.error || 'Невірний email або пароль адміністратора в Firebase Auth';
       showToast(errMsg, 'error');
       return { success: false, error: errMsg };
     } catch (err: any) {
-      const configuredPassword = siteSettings.adminPassword || 'iskra2025';
-      if (
-        password === configuredPassword || 
-        password === 'iskra2025' || 
-        password === 'admin'
-      ) {
-        setIsAdminLoggedIn(true);
-        setAdminUserEmail(email);
-        recordSuccessfulLogin(email);
-        showToast('Успішний вхід в панель керування!', 'success');
-        return { success: true };
-      }
       recordFailedLogin(email, err.message || 'Помилка авторизації');
-      const errMsg = err.message || 'Помилка зв\'язку з сервером авторизації';
+      const errMsg = err.message || 'Помилка зв\'язку з сервером Firebase Authentication';
       showToast(errMsg, 'error');
       return { success: false, error: errMsg };
     }

@@ -728,7 +728,7 @@ export const initialSiteSettings: SiteSettings = {
   city: "с-ще. Оратів",
   address: "вул. Котляревського, 2",
   workHours: "Пн-Пт: 08:00 - 17:00, Сб: 08:00 - 15:00, Нд: Вихідний",
-  adminPassword: "admin",
+  adminPassword: "ISKRA_Secure_2025!",
   novaPoshtaApiKey: "",
   ukrposhtaToken: "",
   paymentGateway: "wayforpay",
