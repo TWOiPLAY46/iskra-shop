@@ -16,6 +16,14 @@ export interface CategoryClassification {
 export function classifyProduct(name: string, sku: string = ''): CategoryClassification {
   const text = `${name} ${sku}`.toLowerCase().trim();
 
+  if (text.includes('lebron') || text.includes('філамент') || text.includes('filament') || text.includes('філаментна')) {
+    return {
+      mainCategory: 'Електротовари',
+      subCategory: 'Освітлення',
+      category: 'Лампи LED'
+    };
+  }
+
   // 1. LIGHTING / СВІТЛОТЕХНІКА (LED, світильники, лампи, панелі, прожектори)
   if (
     text.includes('світил') || text.includes('светил') ||
@@ -35,7 +43,7 @@ export function classifyProduct(name: string, sku: string = ''): CategoryClassif
     text.includes('ламп') || text.includes('лампа') || text.includes('лампочк') ||
     text.includes('цокол') || text.includes('e27') || text.includes('e14') ||
     text.includes('gu10') || text.includes('gu5.3') || text.includes('g4') ||
-    text.includes('g9') || text.includes('t8')
+    text.includes('g9') || text.includes('t8') || text.includes('філамент') || text.includes('filament')
   ) {
     return {
       mainCategory: 'Електротовари',
@@ -68,29 +76,29 @@ export function classifyProduct(name: string, sku: string = ''): CategoryClassif
     };
   }
 
-  // General LED / Lighting catch-all
-  if (text.includes('led') || text.includes('світлодіод') || text.includes('освітлен') || text.includes('etron') || text.includes('norte') || text.includes('violux')) {
+  // General LED / Lighting catch-all defaults to Лампи LED unless fixture keywords are present
+  if (text.includes('led') || text.includes('світлодіод') || text.includes('etron') || text.includes('norte') || text.includes('lebron')) {
     return {
       mainCategory: 'Електротовари',
       subCategory: 'Освітлення',
-      category: 'Світильники'
+      category: 'Лампи LED'
     };
   }
 
   // 2. CABLE & WIRING / КАБЕЛЬНА ПРОДУКЦІЯ
-  if (text.includes('ввг') || text.includes('аввг') || text.includes('силови') || (text.includes('кабел') && !text.includes('кабель-канал'))) {
-    return {
-      mainCategory: 'Електротовари',
-      subCategory: 'Кабельна продукція',
-      category: 'Кабель силовий ВВГ'
-    };
-  }
-
   if (text.includes('пвс') || text.includes('шввп') || text.includes('провід') || text.includes('провод')) {
     return {
       mainCategory: 'Електротовари',
       subCategory: 'Кабельна продукція',
       category: 'Провід ПВС ШВВП'
+    };
+  }
+
+  if (text.includes('ввг') || text.includes('аввг') || text.includes('силови') || (text.includes('кабел') && !text.includes('кабель-канал'))) {
+    return {
+      mainCategory: 'Електротовари',
+      subCategory: 'Кабельна продукція',
+      category: 'Кабель силовий ВВГ'
     };
   }
 
@@ -225,7 +233,15 @@ export function classifyProduct(name: string, sku: string = ''): CategoryClassif
     };
   }
 
-  if (text.includes('душ') || text.includes('лійк') || text.includes('лейк') || text.includes('гарнітур душов')) {
+  if (text.includes('лійк') || text.includes('лейк')) {
+    return {
+      mainCategory: 'Сантехніка та опалення',
+      subCategory: 'Змішувачі та комплектуючі',
+      category: 'Лійки'
+    };
+  }
+
+  if (text.includes('душ') || text.includes('гарнітур душов') || text.includes('душов') || text.includes('панель душов')) {
     return {
       mainCategory: 'Сантехніка та опалення',
       subCategory: 'Змішувачі та комплектуючі',
@@ -262,6 +278,14 @@ export function classifyProduct(name: string, sku: string = ''): CategoryClassif
       mainCategory: 'Сантехніка та опалення',
       subCategory: 'Радіатори та опалення',
       category: 'Котел'
+    };
+  }
+
+  if (text.includes('конвектор')) {
+    return {
+      mainCategory: 'Сантехніка та опалення',
+      subCategory: 'Радіатори та опалення',
+      category: 'Конвектори'
     };
   }
 

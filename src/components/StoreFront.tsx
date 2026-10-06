@@ -41,7 +41,7 @@ const matchCategoryOrLeaf = (text: string, filter: string): boolean => {
   if (!text || !filter) return false;
   const t = text.toLowerCase();
   const f = filter.toLowerCase();
-  if (t.includes(f) || f.includes(t)) return true;
+  if (t === f) return true;
 
   const synonyms: Record<string, string[]> = {
     'кабель та провід': ['кабельна продукція', 'кабель', 'провід', 'ввг', 'пвс', 'кабель силовий ввг', 'провід пвс шввп'],
@@ -57,10 +57,16 @@ const matchCategoryOrLeaf = (text: string, filter: string): boolean => {
     }
   }
 
-  const filterWords = f.split(/\s+/).map(w => w.replace(/[іїаяоеьы]+$/g, '')).filter(w => w.length >= 2);
-  const textWords = t.split(/\s+/).map(w => w.replace(/[іїаяоеьы]+$/g, ''));
+  // Prevent false positive substring matches like "провідний" matching "провід"
+  if (f.includes('провід') && t.includes('провідний') && !t.includes(' провід ') && !t.startsWith('провід ') && !t.endsWith(' провід')) {
+    return false;
+  }
+
+  const cleanWords = (str: string) => str.toLowerCase().replace(/[^\wа-яієїґ\s]/g, '').split(/\s+/).filter(w => w.length >= 2);
+  const filterWords = cleanWords(f);
+  const textWords = cleanWords(t);
   if (filterWords.length === 0) return false;
-  return filterWords.every(fw => textWords.some(tw => tw.includes(fw) || fw.includes(tw)));
+  return filterWords.every(fw => textWords.some(tw => tw === fw || (tw.startsWith(fw) && !tw.includes('ний'))));
 };
 
 export const StoreFront: React.FC = () => {
