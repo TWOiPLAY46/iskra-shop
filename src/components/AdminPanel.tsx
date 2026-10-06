@@ -957,6 +957,11 @@ export const AdminPanel: React.FC = () => {
     discount: number;
     city?: string;
     notes?: string;
+    email?: string;
+    defaultCity?: string;
+    defaultWarehouse?: string;
+    messenger?: string;
+    avatarUrl?: string;
     isNew?: boolean;
   }>({
     phone: '',
@@ -965,6 +970,11 @@ export const AdminPanel: React.FC = () => {
     discount: 3,
     city: '',
     notes: '',
+    email: '',
+    defaultCity: '',
+    defaultWarehouse: '',
+    messenger: '',
+    avatarUrl: '',
     isNew: false
   });
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
@@ -6712,7 +6722,12 @@ export const AdminPanel: React.FC = () => {
                                   balance: 0,
                                   discount: 0,
                                   city: o.city,
-                                  notes: ''
+                                  notes: '',
+                                  email: '',
+                                  defaultCity: '',
+                                  defaultWarehouse: '',
+                                  messenger: '',
+                                  avatarUrl: ''
                                 };
                                 setClientForm({
                                   phone: o.phone,
@@ -6722,6 +6737,11 @@ export const AdminPanel: React.FC = () => {
                                   discount: existing.discount || 0,
                                   city: existing.city || o.city || '',
                                   notes: existing.notes || '',
+                                  email: existing.email || '',
+                                  defaultCity: existing.defaultCity || '',
+                                  defaultWarehouse: existing.defaultWarehouse || '',
+                                  messenger: existing.messenger || '',
+                                  avatarUrl: existing.avatarUrl || '',
                                   isNew: !safeClients[o.phone]
                                 });
                                 setClientModalOpen(true);
@@ -7898,7 +7918,12 @@ export const AdminPanel: React.FC = () => {
                         balance: Number(clientForm.balance) || 0,
                         discount: Number(clientForm.discount) || 0,
                         city: clientForm.city?.trim() || '',
-                        notes: clientForm.notes?.trim() || ''
+                        notes: clientForm.notes?.trim() || '',
+                        email: clientForm.email?.trim() || '',
+                        defaultCity: clientForm.defaultCity?.trim() || '',
+                        defaultWarehouse: clientForm.defaultWarehouse?.trim() || '',
+                        messenger: clientForm.messenger?.trim() || '',
+                        avatarUrl: clientForm.avatarUrl?.trim() || ''
                       });
                       setClientModalOpen(false);
                     }}
@@ -7962,6 +7987,60 @@ export const AdminPanel: React.FC = () => {
                           value={clientForm.discount}
                           onChange={(e) => setClientForm({ ...clientForm, discount: parseInt(e.target.value) || 0 })}
                           className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-mono font-black text-amber-700 bg-amber-50/50 focus:bg-white transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5">
+                          Електронна пошта (Email)
+                        </label>
+                        <input
+                          type="email"
+                          placeholder="client@gmail.com"
+                          value={clientForm.email || ''}
+                          onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs bg-slate-50 focus:bg-white transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5">
+                          Telegram / Viber нік
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="@username"
+                          value={clientForm.messenger || ''}
+                          onChange={(e) => setClientForm({ ...clientForm, messenger: e.target.value })}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-mono bg-slate-50 focus:bg-white transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5">
+                          Улюблене місто (НП)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="напр. Вінниця"
+                          value={clientForm.defaultCity || ''}
+                          onChange={(e) => setClientForm({ ...clientForm, defaultCity: e.target.value })}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs bg-slate-50 focus:bg-white transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5">
+                          Відділення НП
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="напр. Відділення №1"
+                          value={clientForm.defaultWarehouse || ''}
+                          onChange={(e) => setClientForm({ ...clientForm, defaultWarehouse: e.target.value })}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs bg-slate-50 focus:bg-white transition-all"
                         />
                       </div>
                     </div>

@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // 1. Catalog / Products: Public read, admin-only write
+    match /catalog/{doc=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 2. Orders: Public create (checkout), admin-only read/update/delete
+    match /orders/{doc=**} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // 3. Clients & Loyalty: Admin-only
+    match /clients/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // 4. Settings & Design: Public read, admin-only write
+    match /settings/{doc=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 5. Admins: Admin-only
+    match /admins/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // 6. Reviews: Public read & create, admin-only modify/delete
+    match /reviews/{doc=**} {
+      allow read, create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // 7. Stock Alerts: Public create, admin-only manage
+    match /stockAlerts/{doc=**} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

@@ -43,13 +43,15 @@ import {
   KeyRound,
   Gift,
   ShoppingBag,
-  PhoneCall
+  PhoneCall,
+  Upload
 } from 'lucide-react';
 import { Order, OrderStatus } from '../types/store';
 import { LiveTrackingWidget } from './LiveTrackingWidget';
 import { formatUnit, normalizeStorageUnit } from '../utils/unitFormatter';
 import { OnlinePaymentModal } from './OnlinePaymentModal';
 import { sendFirebasePhoneVerification } from '../services/firebaseService';
+import { optimizeImageFile } from '../utils/imageUpload';
 
 const ORDER_STEPS = [
   { status: 'Створено' as OrderStatus, label: 'Оформлено', desc: 'Замовлення в системі', icon: FileText },
@@ -102,11 +104,38 @@ export const AccountView: React.FC = () => {
   const [profileName, setProfileName] = useState('');
   const [profileCity, setProfileCity] = useState('');
   const [profileNotes, setProfileNotes] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
+  const [profileNewPassword, setProfileNewPassword] = useState('');
+  const [showProfilePassword, setShowProfilePassword] = useState(false);
+  const [profileAvatar, setProfileAvatar] = useState('');
+  const [profileMessenger, setProfileMessenger] = useState('');
+  const [profileDefaultCity, setProfileDefaultCity] = useState('');
+  const [profileDefaultWarehouse, setProfileDefaultWarehouse] = useState('');
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const optimized = await optimizeImageFile(file, 300, 300, 0.85);
+      setProfileAvatar(optimized.dataUrl);
+      showToast('Аватарку успішно завантажено з ПК!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Помилка завантаження фото', 'error');
+    }
+  };
 
   const handleOpenEditProfile = () => {
     setProfileName(currentClient?.name || '');
     setProfileCity(currentClient?.city || '');
     setProfileNotes(currentClient?.notes || '');
+    setProfileEmail(currentClient?.email || '');
+    setProfilePhone(currentClient?.phone || currentClientPhone || '');
+    setProfileNewPassword('');
+    setProfileAvatar(currentClient?.avatarUrl || '');
+    setProfileMessenger(currentClient?.messenger || '');
+    setProfileDefaultCity(currentClient?.defaultCity || '');
+    setProfileDefaultWarehouse(currentClient?.defaultWarehouse || '');
     setIsEditProfileOpen(true);
   };
 
@@ -114,16 +143,26 @@ export const AccountView: React.FC = () => {
     e.preventDefault();
     if (!currentClientPhone) return;
     const cleanPhone = currentClientPhone.trim();
-    saveClient(cleanPhone, {
+    const updatedData: any = {
       ...currentClient,
       name: profileName.trim() || 'Покупець',
       city: profileCity.trim(),
       notes: profileNotes.trim(),
+      email: profileEmail.trim(),
+      phone: profilePhone.trim() || currentClientPhone,
+      avatarUrl: profileAvatar.trim(),
+      messenger: profileMessenger.trim(),
+      defaultCity: profileDefaultCity.trim(),
+      defaultWarehouse: profileDefaultWarehouse.trim(),
       balance: currentClient?.balance || 0,
       discount: currentClient?.discount || 0
-    });
+    };
+    if (profileNewPassword.trim().length >= 4) {
+      updatedData.password = profileNewPassword.trim();
+    }
+    saveClient(cleanPhone, updatedData);
     setIsEditProfileOpen(false);
-    showToast('Профіль успішно оновлено та збережено в базі даних!', 'success');
+    showToast('Профіль успішно оновлено!', 'success');
   };
 
   // Online Payment, IBAN, and Cancel Confirmation Modals
@@ -897,6 +936,14 @@ export const AccountView: React.FC = () => {
                   >
                     <ShoppingBag className="w-4 h-4 text-slate-950" />
                     <span>До каталогу товарів</span>
+                  </button>
+
+                  <button
+                    onClick={handleOpenEditProfile}
+                    className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 backdrop-blur-md transition-all shadow-sm inline-flex items-center gap-2 active:scale-95 cursor-pointer"
+                  >
+                    <Edit3 className="w-4 h-4 text-amber-400" />
+                    <span>Редагувати профіль</span>
                   </button>
 
                   <a
@@ -2176,35 +2223,49 @@ export const AccountView: React.FC = () => {
 
         {/* 9. Edit Profile Modal */}
         {isEditProfileOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                    <Edit3 className="w-4 h-4" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 max-h-[90vh] overflow-y-auto">
+              
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/25">
+                    <User className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">
+                    <h3 className="text-lg font-black font-display text-slate-900 tracking-tight">
                       Редагування профілю
                     </h3>
                     <p className="text-xs text-slate-500 font-mono">
-                      +{currentClientPhone}
+                      {currentClientPhone ? `+${currentClientPhone}` : 'Особистий кабінет'}
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsEditProfileOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
+              {/* Avatar Preview */}
+              {profileAvatar && (
+                <div className="flex items-center gap-3.5 p-3.5 bg-gradient-to-r from-orange-50/80 to-amber-50/80 border border-orange-200/80 rounded-2xl shadow-2xs">
+                  <img src={getSafeImageUrl(profileAvatar)} alt="Avatar" className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm" />
+                  <div className="text-xs">
+                    <div className="font-bold text-slate-950">Поточна аватарка встановлена</div>
+                    <div className="text-[11px] text-slate-500 truncate max-w-[280px] font-mono">{profileAvatar}</div>
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    Прізвище та ім'я (ПІБ) *
+                  <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-orange-600" />
+                    <span>Прізвище та ім'я (ПІБ) *</span>
                   </label>
                   <input
                     type="text"
@@ -2212,21 +2273,138 @@ export const AccountView: React.FC = () => {
                     value={profileName}
                     onChange={(e) => setProfileName(e.target.value)}
                     placeholder="Олександр Петренко"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-sm"
+                    className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-sm bg-slate-50/50 transition-all font-medium text-slate-900"
                   />
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-orange-600" />
+                      <span>Номер телефону</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={profilePhone}
+                      onChange={(e) => setProfilePhone(e.target.value)}
+                      placeholder="+380 (67) 000-00-00"
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Електронна пошта (Email)</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={profileEmail}
+                      onChange={(e) => setProfileEmail(e.target.value)}
+                      placeholder="vash@gmail.com"
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    Місто / Населений пункт для доставки
+                  <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Новий пароль (залишіть порожнім, якщо не змінюєте)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showProfilePassword ? 'text' : 'password'}
+                      value={profileNewPassword}
+                      onChange={(e) => setProfileNewPassword(e.target.value)}
+                      placeholder="Мін. 4 символи для входу"
+                      className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowProfilePassword(!showProfilePassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer"
+                    >
+                      {showProfilePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Місто / Населений пункт для доставки</span>
                   </label>
                   <input
                     type="text"
                     value={profileCity}
                     onChange={(e) => setProfileCity(e.target.value)}
                     placeholder="с-ще. Оратів, Вінницька обл."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-sm"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Улюблене місто (НП)
+                    </label>
+                    <input
+                      type="text"
+                      value={profileDefaultCity}
+                      onChange={(e) => setProfileDefaultCity(e.target.value)}
+                      placeholder="напр. Вінниця"
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Відділення НП
+                    </label>
+                    <input
+                      type="text"
+                      value={profileDefaultWarehouse}
+                      onChange={(e) => setProfileDefaultWarehouse(e.target.value)}
+                      placeholder="напр. Відділення №1"
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Telegram / Viber нік
+                    </label>
+                    <input
+                      type="text"
+                      value={profileMessenger}
+                      onChange={(e) => setProfileMessenger(e.target.value)}
+                      placeholder="@username"
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>Аватарка (URL або з ПК)</span>
+                      <label className="text-[10px] text-orange-600 hover:underline cursor-pointer font-extrabold flex items-center gap-1 bg-orange-100/80 px-2 py-0.5 rounded-lg">
+                        <Upload className="w-3 h-3" />
+                        <span>З ПК</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                    </label>
+                    <input
+                      type="text"
+                      value={profileAvatar}
+                      onChange={(e) => setProfileAvatar(e.target.value)}
+                      placeholder="https:// або файл"
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -2238,23 +2416,24 @@ export const AccountView: React.FC = () => {
                     value={profileNotes}
                     onChange={(e) => setProfileNotes(e.target.value)}
                     placeholder="Відділення №1, доставка до дверей, тощо..."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-xs"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsEditProfileOpen(false)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors cursor-pointer"
+                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-colors cursor-pointer text-xs"
                   >
                     Скасувати
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl shadow-xs transition-all cursor-pointer"
+                    className="px-6 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-2xl shadow-md shadow-orange-500/25 transition-all cursor-pointer text-xs flex items-center gap-2"
                   >
-                    Зберегти зміни в БД
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>Зберегти зміни</span>
                   </button>
                 </div>
               </form>

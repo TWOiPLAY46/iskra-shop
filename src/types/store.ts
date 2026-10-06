@@ -65,6 +65,13 @@ export interface ClientData {
   discount: number;
   city?: string;
   notes?: string;
+  email?: string;
+  phone?: string;
+  password?: string;
+  defaultCity?: string;
+  defaultWarehouse?: string;
+  messenger?: string;
+  avatarUrl?: string;
 }
 
 export interface WeeklyDealConfig {
