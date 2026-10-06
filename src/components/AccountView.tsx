@@ -1997,7 +1997,7 @@ export const AccountView: React.FC = () => {
                       setIsForgotPasswordOpen(false);
                       return;
                     }
-                    if (inputOtp.trim() === otpCode || inputOtp.trim() === '1234') {
+                    if (inputOtp.trim() === otpCode) {
                       setOtpStep('success');
                       setOtpAttempts(0);
                       showToast('Код підтверджено! Введіть новий пароль.', 'success');
@@ -2022,15 +2022,15 @@ export const AccountView: React.FC = () => {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setInputOtp('1234')}
-                        className="text-[10px] font-bold text-amber-800 bg-amber-200/70 hover:bg-amber-200 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-                        title="Вставити тестовий код підтвердження"
+                        onClick={() => setInputOtp(otpCode)}
+                        className="text-[10px] font-bold text-amber-800 bg-amber-200/70 hover:bg-amber-200 px-2 py-0.5 rounded-md transition-colors cursor-pointer font-mono"
+                        title="Вставити одноразовий код підтвердження"
                       >
-                        Тест: 1234
+                        Код: {otpCode}
                       </button>
                     </div>
                     <p className="text-[11px] text-amber-800 leading-relaxed">
-                      Перевірте вхідні повідомлення на телефоні <b>{resetPhoneInput}</b> та введіть 4-значний код (або скористайтесь швидким тестовим кодом <b>1234</b>).
+                      Перевірте вхідні повідомлення на телефоні <b>{resetPhoneInput}</b> та введіть унікальний 4-значний код авторизації <b>{otpCode}</b>.
                     </p>
                   </div>
 
