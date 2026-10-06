@@ -90,6 +90,7 @@ export const AccountView: React.FC = () => {
 
   // Password Recovery / OTP SMS states
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [resetMethod, setResetMethod] = useState<'phone' | 'email'>('phone');
   const [resetPhoneInput, setResetPhoneInput] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [inputOtp, setInputOtp] = useState('');
@@ -191,6 +192,19 @@ export const AccountView: React.FC = () => {
     const newFormatted = formatUkrainianPhone(code + subscriberPart);
     setInputPhone(newFormatted);
     if (phoneError) setPhoneError(null);
+  };
+
+  const handleSetResetOperatorCode = (code: string) => {
+    const digits = extractLocalPhoneDigits(resetPhoneInput);
+    const subscriberPart = digits.length > 2 ? digits.slice(2) : '';
+    const newFormatted = formatUkrainianPhone(code + subscriberPart);
+    setResetPhoneInput(newFormatted);
+  };
+
+  const handleResetPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    const formatted = resetMethod === 'phone' ? formatUkrainianPhone(raw) : raw;
+    setResetPhoneInput(formatted);
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -636,7 +650,8 @@ export const AccountView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            setResetPhoneInput(inputPhone || '');
+                            setResetMethod(authMethod);
+                            setResetPhoneInput(authMethod === 'phone' ? inputPhone || '' : inputEmail || '');
                             setOtpStep('request');
                             setOtpCode('');
                             setInputOtp('');
@@ -1956,32 +1971,56 @@ export const AccountView: React.FC = () => {
                 >
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Номер телефону або Email адреса
+                      {resetMethod === 'phone' ? 'Номер телефону акаунту *' : 'Email адреса акаунту *'}
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                        <Phone className="w-4 h-4 text-orange-500" />
+                        {resetMethod === 'phone' ? (
+                          <Phone className="w-4 h-4 text-orange-500" />
+                        ) : (
+                          <Mail className="w-4 h-4 text-sky-500" />
+                        )}
                       </div>
                       <input
-                        type="text"
+                        type={resetMethod === 'phone' ? 'tel' : 'email'}
                         required
-                        placeholder="+380 (67) 000-00-00 або email@gmail.com"
+                        placeholder={resetMethod === 'phone' ? '+380 (67) 000-00-00' : 'vash.email@gmail.com'}
                         value={resetPhoneInput}
-                        onChange={(e) => setResetPhoneInput(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 rounded-2xl border border-slate-300 text-sm text-slate-900 bg-slate-50/50 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all font-mono"
+                        onChange={handleResetPhoneChange}
+                        className={`w-full pl-10 pr-4 py-3 rounded-2xl border border-slate-300 text-sm text-slate-900 bg-slate-50/50 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all ${resetMethod === 'phone' ? 'font-mono' : ''}`}
                       />
                     </div>
                   </div>
 
+                  {/* Operator quick code selector for recovery phone */}
+                  {resetMethod === 'phone' && (
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[11px] text-slate-500">
+                      <span className="font-medium text-slate-400">Код:</span>
+                      {UKRAINIAN_OPERATOR_CODES.slice(0, 6).map((op) => (
+                        <button
+                          key={op.code}
+                          type="button"
+                          onClick={() => handleSetResetOperatorCode(op.code)}
+                          className="px-2 py-0.5 bg-slate-100 hover:bg-orange-100 hover:text-orange-700 rounded-lg text-slate-700 font-mono font-semibold transition-colors border border-slate-200/70 text-[10px] cursor-pointer"
+                          title={`${op.name} (${op.code})`}
+                        >
+                          {op.code} ({op.name})
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    На вказаний номер телефону буде надіслано 4-значний код авторизації для швидкого скидання пароля.
+                    {resetMethod === 'phone'
+                      ? 'Введіть номер телефону, на який зареєстровано акаунт, щоб отримати одноразовий код підтвердження.'
+                      : 'Задля безпеки, кошти, бонуси та налаштування акаунту захищені відновленням виключно через вашу особисту Email адресу.'}
                   </p>
 
                   <button
                     type="submit"
                     className="w-full py-3.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm rounded-2xl shadow-lg shadow-orange-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>Отримати SMS-код</span>
+                    <span>{resetMethod === 'phone' ? 'Отримати код на телефон' : 'Отримати код на Email'}</span>
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </form>
@@ -2018,7 +2057,7 @@ export const AccountView: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div className="font-bold flex items-center gap-1.5">
                         <Sparkles className="w-4 h-4 text-amber-600" />
-                        <span>SMS-повідомлення надіслано</span>
+                        <span>Код підтвердження згенеровано</span>
                       </div>
                       <button
                         type="button"
@@ -2030,13 +2069,15 @@ export const AccountView: React.FC = () => {
                       </button>
                     </div>
                     <p className="text-[11px] text-amber-800 leading-relaxed">
-                      Перевірте вхідні повідомлення на телефоні <b>{resetPhoneInput}</b> та введіть унікальний 4-значний код авторизації <b>{otpCode}</b>.
+                      {resetMethod === 'phone'
+                        ? <>Введіть 4-значний код для номера <b>{resetPhoneInput}</b>.</>
+                        : <>Введіть 4-значний код для пошти <b>{resetPhoneInput}</b>.</>}
                     </p>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-                      <span>Введіть 4-значний SMS-код *</span>
+                      <span>{resetMethod === 'phone' ? 'Введіть 4-значний SMS-код *' : 'Введіть 4-значний код з пошти *'}</span>
                       <span className="text-[11px] font-semibold text-slate-500">Спроб: {3 - otpAttempts}/3</span>
                     </label>
                     <input
@@ -2050,13 +2091,7 @@ export const AccountView: React.FC = () => {
                     />
                   </div>
 
-                  {/* Security Notice */}
-                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-start gap-2.5 text-[11px] text-slate-600">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>
-                      <b>Захист акаунту:</b> SMS-код відправляється виключно на реальну SIM-картку власника номера. Без цього коду змінити пароль неможливо.
-                    </span>
-                  </div>
+                  {/* Security Notice removed as requested */}
 
                   <div className="flex items-center gap-2">
                     <button
