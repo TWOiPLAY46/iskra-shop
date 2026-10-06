@@ -1200,7 +1200,10 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
                   ? `bg-gradient-to-b from-[#0e1628]/95 via-[#0b101f] to-[#070b14] border-white/10 ${headerTheme.cardHoverBorder} text-white shadow-xl hover:shadow-[0_12px_30px_rgba(234,88,12,0.15)] hover:-translate-y-1.5`
                   : `bg-white border-slate-200/90 ${headerTheme.cardHoverBorder} text-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1.5`
               }`}
-              onClick={() => onSelectSubCategory(treeKey)}
+              onClick={() => {
+                const { items } = getSubcategoryItems(card);
+                onSelectSubCategory(treeKey, items[0] || null);
+              }}
             >
               {/* Top Laser Accent Line */}
               <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${headerTheme.topGradient} ${isSelected ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'} transition-opacity duration-300 pointer-events-none z-20`} />
@@ -1344,7 +1347,8 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onSelectSubCategory(treeKey);
+                    const { items } = getSubcategoryItems(card);
+                    onSelectSubCategory(treeKey, items[0] || null);
                   }}
                   className={`w-full mt-3 py-2.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] ${
                     isSelected 

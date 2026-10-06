@@ -542,7 +542,7 @@ export const initialProducts: Product[] = [
     name: "Стабілізатор напруги релейний Luxeon WDS-5000VA",
     category: "Електротовари / Стабілізатори напруги",
     mainCategory: "Електротовари",
-    subCategory: "Модульне обладнання",
+    subCategory: "Стабілізатори напруги",
     brand: "Luxeon",
     badge: "Хіт продажу",
     sku: "LUXEON-WDS5000",

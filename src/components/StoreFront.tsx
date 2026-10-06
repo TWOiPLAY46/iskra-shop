@@ -151,7 +151,7 @@ export const StoreFront: React.FC = () => {
         const leaf = selectedLeafTag;
         list = list.filter((p) => 
           matchCategoryOrLeaf(p.category, leaf) ||
-          matchCategoryOrLeaf(p.name, leaf)
+          (p.subCategory && matchCategoryOrLeaf(p.subCategory, leaf))
         );
       } else if (selectedSubCategory) {
         const sub = selectedSubCategory;
