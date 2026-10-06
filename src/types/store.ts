@@ -111,7 +111,6 @@ export interface SiteSettings {
   city: string;
   address: string;
   workHours: string;
-  adminPassword?: string;
   novaPoshtaApiKey?: string;
   ukrposhtaToken?: string;
   // Online Payment Gateways (WayForPay, Monobank, LiqPay)

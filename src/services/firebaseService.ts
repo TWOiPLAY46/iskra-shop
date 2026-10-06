@@ -574,16 +574,6 @@ export async function pushStoreToFirebase(config: FirebaseConnectionConfig, stor
       if (storeData.siteSettings) {
         try {
           await setDoc(doc(firestore, 'settings', 'site'), storeData.siteSettings, { merge: true });
-          if (storeData.siteSettings.adminPassword) {
-            await setDoc(doc(firestore, 'settings', 'admin'), {
-              password: storeData.siteSettings.adminPassword,
-              updatedAt: new Date().toISOString()
-            }, { merge: true });
-            await setDoc(doc(firestore, 'admins', 'admin'), {
-              password: storeData.siteSettings.adminPassword,
-              updatedAt: new Date().toISOString()
-            }, { merge: true });
-          }
         } catch {
           // Ignore
         }

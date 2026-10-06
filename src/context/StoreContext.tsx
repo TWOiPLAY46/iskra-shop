@@ -783,8 +783,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
           
           // Normalize and load categories tree
-          const mergedCategories = normalizeCategoriesTree(cloudData.categoriesTree);
-          setCategoriesTree(mergedCategories);
+          if (cloudData.categoriesTree && typeof cloudData.categoriesTree === 'object') {
+            const mergedCategories = normalizeCategoriesTree(cloudData.categoriesTree);
+            setCategoriesTree(mergedCategories);
+            localStorage.setItem('iskra_categories_tree_react', JSON.stringify(mergedCategories));
+          }
           
           const rawCloudOrders = cloudData.ordersList || cloudData.orders;
           const cloudOrders = Array.isArray(rawCloudOrders) 
@@ -804,11 +807,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               }
             }
             setClients(clean);
+            localStorage.setItem('iskra_clients_react', JSON.stringify(clean));
           }
-          if (cloudData.reviews && Array.isArray(cloudData.reviews)) setReviews(cloudData.reviews as ProductReview[]);
-          if (cloudData.siteSettings) setSiteSettings((prev) => ({ ...prev, ...cloudData.siteSettings }));
-          if (cloudData.headerDesign) setHeaderDesign((prev) => cleanHeaderDesign({ ...prev, ...cloudData.headerDesign }));
-          if (cloudData.weeklyDeal) setWeeklyDeal((prev) => ({ ...prev, ...cloudData.weeklyDeal }));
+          if (cloudData.reviews && Array.isArray(cloudData.reviews)) {
+            setReviews(cloudData.reviews as ProductReview[]);
+            localStorage.setItem('iskra_reviews_react', JSON.stringify(cloudData.reviews));
+          }
+          if (cloudData.siteSettings) {
+            setSiteSettings((prev) => {
+              const next = { ...prev, ...cloudData.siteSettings };
+              localStorage.setItem('iskra_settings_react', JSON.stringify(next));
+              return next;
+            });
+          }
+          if (cloudData.headerDesign) {
+            setHeaderDesign((prev) => {
+              const cleaned = cleanHeaderDesign({ ...prev, ...cloudData.headerDesign });
+              localStorage.setItem('iskra_header_design_react', JSON.stringify(cleaned));
+              return cleaned;
+            });
+          }
+          if (cloudData.weeklyDeal) {
+            setWeeklyDeal((prev) => {
+              const next = { ...prev, ...cloudData.weeklyDeal };
+              localStorage.setItem('iskra_weekly_deal_react', JSON.stringify(next));
+              return next;
+            });
+          }
 
           // Bind and sync stock alerts from database
           const rawCloudAlerts = cloudData.stockAlerts;
@@ -880,7 +905,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setProducts(cleanLive);
           localStorage.setItem('iskra_products_react_v4', JSON.stringify(cleanLive));
         }
-        if (data.categoriesTree && typeof data.categoriesTree === 'object') setCategoriesTree(normalizeCategoriesTree(data.categoriesTree));
+        if (data.categoriesTree && typeof data.categoriesTree === 'object') {
+          const mergedCategories = normalizeCategoriesTree(data.categoriesTree);
+          setCategoriesTree(mergedCategories);
+          localStorage.setItem('iskra_categories_tree_react', JSON.stringify(mergedCategories));
+        }
         
         const rawLiveOrders = data.ordersList || data.orders;
         const liveOrders = Array.isArray(rawLiveOrders) 
@@ -900,14 +929,36 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
           }
           setClients(clean);
+          localStorage.setItem('iskra_clients_react', JSON.stringify(clean));
         }
         const liveReviews = Array.isArray(data.reviews) 
           ? data.reviews 
           : (data.reviews && typeof data.reviews === 'object' ? Object.values(data.reviews) : null);
-        if (liveReviews && liveReviews.length > 0) setReviews(liveReviews as ProductReview[]);
-        if (data.siteSettings) setSiteSettings((prev) => ({ ...prev, ...data.siteSettings }));
-        if (data.headerDesign) setHeaderDesign((prev) => cleanHeaderDesign({ ...prev, ...data.headerDesign }));
-        if (data.weeklyDeal) setWeeklyDeal((prev) => ({ ...prev, ...data.weeklyDeal }));
+        if (liveReviews && liveReviews.length > 0) {
+          setReviews(liveReviews as ProductReview[]);
+          localStorage.setItem('iskra_reviews_react', JSON.stringify(liveReviews));
+        }
+        if (data.siteSettings) {
+          setSiteSettings((prev) => {
+            const next = { ...prev, ...data.siteSettings };
+            localStorage.setItem('iskra_settings_react', JSON.stringify(next));
+            return next;
+          });
+        }
+        if (data.headerDesign) {
+          setHeaderDesign((prev) => {
+            const cleaned = cleanHeaderDesign({ ...prev, ...data.headerDesign });
+            localStorage.setItem('iskra_header_design_react', JSON.stringify(cleaned));
+            return cleaned;
+          });
+        }
+        if (data.weeklyDeal) {
+          setWeeklyDeal((prev) => {
+            const next = { ...prev, ...data.weeklyDeal };
+            localStorage.setItem('iskra_weekly_deal_react', JSON.stringify(next));
+            return next;
+          });
+        }
 
         // Real-time stock alerts update from cloud
         const rawLiveAlerts = data.stockAlerts;
@@ -2579,9 +2630,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setSiteSettings(settings);
     localStorage.setItem('iskra_settings_react', JSON.stringify(settings));
     showToast('Контактні дані та параметри збережено', 'success');
-    if (settings.adminPassword) {
-      saveAdminPasswordToFirestore(firebaseConfig, settings.adminPassword).catch(() => {});
-    }
     if (firebaseConfig.enabled) {
       pushStoreToFirebase(firebaseConfig, { siteSettings: settings, lastSyncTimestamp: Date.now() });
     }

@@ -4728,60 +4728,12 @@ export const AdminPanel: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-500">
-              Встановіть новий майстер-пароль для входу в панель керування. Він зберігається в захищеному сховищі бази даних Firebase Firestore.
+              Доступ до адмін-панелі надійно захищено через <strong className="text-slate-700">Firebase Authentication</strong>. Всі облікові записи адміністраторів та їх паролі керуються виключно у консолі Firebase (розділ Authentication &rarr; Users).
             </p>
 
-            <div className="flex flex-wrap items-center gap-2 max-w-md pt-1">
-              <div className="relative flex-1 min-w-[220px]">
-                <input
-                  type={showNewPassword ? 'text' : 'password'}
-                  placeholder="Введіть новий пароль адміністратора"
-                  value={newPasswordInput}
-                  onChange={(e) => setNewPasswordInput(e.target.value)}
-                  className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 font-mono shadow-2xs"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                  tabIndex={-1}
-                >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <button
-                type="button"
-                disabled={isSavingPassword || !newPasswordInput}
-                onClick={async () => {
-                  if (newPasswordInput.length < 4) {
-                    showToast('Пароль має містити щонайменше 4 символи', 'error');
-                    return;
-                  }
-                  setIsSavingPassword(true);
-                  try {
-                    await saveAdminPasswordToFirestore(firebaseConfig, newPasswordInput);
-                    updateSiteSettings({
-                      ...siteSettings,
-                      adminPassword: newPasswordInput
-                    });
-                    setNewPasswordInput('');
-                    showToast('Пароль успішно оновлено в базі даних Firebase Firestore!', 'success');
-                  } catch {
-                    showToast('Помилка оновлення пароля в базі даних', 'error');
-                  } finally {
-                    setIsSavingPassword(false);
-                  }
-                }}
-                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs active:scale-[0.98]"
-              >
-                {isSavingPassword ? (
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <CloudUpload className="w-3.5 h-3.5" />
-                )}
-                <span>Оновити в базі</span>
-              </button>
+            <div className="p-3 bg-white border border-slate-200 rounded-xl max-w-md text-xs text-slate-600 space-y-1">
+              <div className="font-semibold text-slate-900">🛡️ Суворий захист активний:</div>
+              <div>Жодних уразливих паролів у базі даних немає. Увійти в адмін-панель можуть лише авторизовані користувачі, створені у вашій Firebase Console.</div>
             </div>
           </div>
 
