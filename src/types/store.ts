@@ -102,6 +102,8 @@ export interface SiteFeatures {
   minOrderSum: number;
   freeShippingThreshold: number;
   weeklyDealEnabled?: boolean;
+  topFlagshipEnabled?: boolean;
+  quickCategoriesEnabled?: boolean;
   lowStockThreshold?: number;
   lowStockTelegramNotify?: boolean;
   showLowStockBadgeToBuyers?: boolean;
@@ -142,6 +144,12 @@ export interface SiteSettings {
   taxInfo?: string;
   aboutTitle?: string;
   aboutStory?: string;
+  // Flagship Spotlight in Banner Settings
+  topFlagshipTitle?: string;
+  topFlagshipProductIds?: string[];
+  topFlagshipInterval?: number;
+  topFlagshipAutoplay?: boolean;
+  topFlagshipBadgeText?: string;
   // Returns & Exchange Settings
   returnsDays?: number;
   returnsWhoPaysGood?: string;
@@ -243,6 +251,22 @@ export interface HeaderDesign {
   footerDesc?: string;
   footerTrust1?: string;
   footerTrust2?: string;
+  // Hero Quick Direction Navigation Hub (Сантехніка, Електрика, Інструмент, Господарчі)
+  heroQuickNavEnabled?: boolean;
+  // Hero 4 Live Store Metrics Pills
+  heroStatsEnabled?: boolean;
+  heroStat1Label?: string;
+  heroStat1Value?: string;
+  heroStat1Sub?: string;
+  heroStat2Label?: string;
+  heroStat2Value?: string;
+  heroStat2Sub?: string;
+  heroStat3Label?: string;
+  heroStat3Value?: string;
+  heroStat3Sub?: string;
+  heroStat4Label?: string;
+  heroStat4Value?: string;
+  heroStat4Sub?: string;
 }
 
 export interface FirebaseConnectionConfig {

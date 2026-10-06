@@ -354,7 +354,8 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
   onSelectSubCategory,
   onSelectBrand
 }) => {
-  const { categoriesTree, products } = useStore();
+  const { categoriesTree, products, siteTheme } = useStore();
+  const isPremium = siteTheme === 'premium';
   const [activeTabByCard, setActiveTabByCard] = useState<Record<string, 'categories' | 'collections'>>({});
 
   const cardsMeta = CATEGORY_DIRECTORY_DATA[mainCategory] || [];
@@ -1038,38 +1039,129 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
     }
   };
 
+  const getCategoryHeaderTheme = (cat: string) => {
+    const lower = (cat || '').toLowerCase();
+    if (lower.includes('інструмент')) {
+      return {
+        accent: 'emerald',
+        border: isPremium ? 'border-emerald-500/50 ring-1 ring-emerald-500/30' : 'border-2 border-emerald-500/80 ring-4 ring-emerald-500/10 shadow-lg shadow-emerald-500/5',
+        bg: isPremium ? 'bg-[#0a1614] border-emerald-500/40 text-white' : 'bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/30 text-slate-900',
+        topGradient: 'from-emerald-600 via-teal-500 to-emerald-400',
+        badge: isPremium ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-100/90 text-emerald-900 border-emerald-300/80',
+        icon: <Wrench className="w-5 h-5 text-white" />,
+        iconBg: 'bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-500',
+        activeText: 'text-emerald-700',
+        cardActiveBorder: isPremium ? 'border-2 border-emerald-400 ring-2 ring-emerald-400/30 shadow-2xl bg-[#0a1614]' : 'border-2 border-emerald-500 ring-2 ring-emerald-500/30 shadow-xl bg-emerald-50/30',
+        cardHoverBorder: isPremium ? 'hover:border-emerald-400/70 hover:shadow-emerald-500/15' : 'hover:border-emerald-400/80 hover:shadow-emerald-500/10',
+        tabActiveText: isPremium ? 'text-emerald-400 border-b-2 border-emerald-400 font-black' : 'text-emerald-600 border-b-2 border-emerald-600 font-black',
+        btnActive: 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white font-black shadow-md shadow-emerald-500/30',
+        btnHover: isPremium ? 'hover:bg-gradient-to-r hover:from-emerald-500 hover:to-teal-500 hover:text-slate-950 hover:shadow-emerald-500/25' : 'hover:bg-gradient-to-r hover:from-emerald-600 hover:to-teal-600 hover:text-white hover:shadow-emerald-500/25',
+      };
+    }
+    if (lower.includes('електр')) {
+      return {
+        accent: 'amber',
+        border: isPremium ? 'border-amber-500/50 ring-1 ring-amber-500/30' : 'border-2 border-amber-500/80 ring-4 ring-amber-500/10 shadow-lg shadow-amber-500/5',
+        bg: isPremium ? 'bg-[#181206] border-amber-500/40 text-white' : 'bg-gradient-to-br from-amber-50/70 via-white to-orange-50/30 text-slate-900',
+        topGradient: 'from-amber-500 via-orange-500 to-yellow-500',
+        badge: isPremium ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-amber-100/90 text-amber-950 border-amber-300/80',
+        icon: <Zap className="w-5 h-5 text-white" />,
+        iconBg: 'bg-gradient-to-tr from-amber-500 via-orange-500 to-yellow-500',
+        activeText: 'text-amber-700',
+        cardActiveBorder: isPremium ? 'border-2 border-amber-400 ring-2 ring-amber-400/30 shadow-2xl bg-[#181206]' : 'border-2 border-amber-500 ring-2 ring-amber-500/30 shadow-xl bg-amber-50/30',
+        cardHoverBorder: isPremium ? 'hover:border-amber-400/70 hover:shadow-amber-500/15' : 'hover:border-amber-400/80 hover:shadow-amber-500/10',
+        tabActiveText: isPremium ? 'text-amber-400 border-b-2 border-amber-400 font-black' : 'text-amber-600 border-b-2 border-amber-600 font-black',
+        btnActive: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-slate-950 font-black shadow-md shadow-amber-500/30',
+        btnHover: isPremium ? 'hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-500 hover:text-slate-950 hover:shadow-amber-500/25' : 'hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-500 hover:text-white hover:shadow-amber-500/25',
+      };
+    }
+    if (lower.includes('господар')) {
+      return {
+        accent: 'indigo',
+        border: isPremium ? 'border-indigo-500/50 ring-1 ring-indigo-500/30' : 'border-2 border-indigo-500/80 ring-4 ring-indigo-500/10 shadow-lg shadow-indigo-500/5',
+        bg: isPremium ? 'bg-[#110d1f] border-indigo-500/40 text-white' : 'bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/30 text-slate-900',
+        topGradient: 'from-indigo-600 via-violet-500 to-purple-500',
+        badge: isPremium ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-indigo-100/90 text-indigo-950 border-indigo-300/80',
+        icon: <Home className="w-5 h-5 text-white" />,
+        iconBg: 'bg-gradient-to-tr from-indigo-600 via-violet-500 to-purple-500',
+        activeText: 'text-indigo-700',
+        cardActiveBorder: isPremium ? 'border-2 border-indigo-400 ring-2 ring-indigo-400/30 shadow-2xl bg-[#110d1f]' : 'border-2 border-indigo-500 ring-2 ring-indigo-500/30 shadow-xl bg-indigo-50/30',
+        cardHoverBorder: isPremium ? 'hover:border-indigo-400/70 hover:shadow-indigo-500/15' : 'hover:border-indigo-400/80 hover:shadow-indigo-500/10',
+        tabActiveText: isPremium ? 'text-indigo-400 border-b-2 border-indigo-400 font-black' : 'text-indigo-600 border-b-2 border-indigo-600 font-black',
+        btnActive: 'bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 text-white font-black shadow-md shadow-indigo-500/30',
+        btnHover: isPremium ? 'hover:bg-gradient-to-r hover:from-indigo-500 hover:to-violet-500 hover:text-slate-950 hover:shadow-indigo-500/25' : 'hover:bg-gradient-to-r hover:from-indigo-600 hover:to-violet-600 hover:text-white hover:shadow-indigo-500/25',
+      };
+    }
+    // Default (Сантехніка та опалення)
+    return {
+      accent: 'blue',
+      border: isPremium ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-2 border-sky-500/80 ring-4 ring-sky-500/10 shadow-lg shadow-sky-500/5',
+      bg: isPremium ? 'bg-[#091122] border-blue-500/40 text-white' : 'bg-gradient-to-br from-blue-50/70 via-white to-sky-50/30 text-slate-900',
+      topGradient: 'from-blue-600 via-sky-500 to-cyan-500',
+      badge: isPremium ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : 'bg-blue-100/90 text-blue-950 border-blue-300/80',
+      icon: <Droplets className="w-5 h-5 text-white" />,
+      iconBg: 'bg-gradient-to-tr from-blue-600 via-sky-500 to-cyan-500',
+      activeText: 'text-sky-700',
+      cardActiveBorder: isPremium ? 'border-2 border-sky-400 ring-2 ring-sky-400/30 shadow-2xl bg-[#091122]' : 'border-2 border-sky-500 ring-2 ring-sky-500/30 shadow-xl bg-sky-50/30',
+      cardHoverBorder: isPremium ? 'hover:border-sky-400/70 hover:shadow-sky-500/15' : 'hover:border-sky-400/80 hover:shadow-sky-500/10',
+      tabActiveText: isPremium ? 'text-sky-400 border-b-2 border-sky-400 font-black' : 'text-sky-600 border-b-2 border-sky-600 font-black',
+      btnActive: 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-600 text-white font-black shadow-md shadow-sky-500/30',
+      btnHover: isPremium ? 'hover:bg-gradient-to-r hover:from-sky-500 hover:to-blue-500 hover:text-slate-950 hover:shadow-sky-500/25' : 'hover:bg-gradient-to-r hover:from-sky-600 hover:to-blue-600 hover:text-white hover:shadow-sky-500/25',
+    };
+  };
+
+  const headerTheme = getCategoryHeaderTheme(mainCategory);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       
       {/* Category Header & Filter Indicator */}
-      <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className={`relative rounded-3xl p-5 sm:p-7 border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all overflow-hidden ${
+        headerTheme.bg
+      } ${
+        headerTheme.border
+      }`}>
+        {/* Top Accent Gradient Bar matching Category color */}
+        <div className={`absolute top-0 left-6 right-6 h-1 rounded-b-full bg-gradient-to-r ${headerTheme.topGradient} transition-all`} />
+
         <div>
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1.5 flex-wrap">
+          <div className="flex items-center gap-2 text-xs font-semibold mb-2.5 flex-wrap">
             <button 
               type="button"
               onClick={() => onSelectSubCategory(null)}
-              className="hover:text-red-600 transition-colors cursor-pointer"
+              className="text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
             >
               Каталог
             </button>
             <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-slate-900 font-bold">{mainCategory}</span>
+            <span className={`font-black ${headerTheme.activeText}`}>{mainCategory}</span>
             {selectedSubCategory && (
               <>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-red-600 font-bold">{selectedSubCategory}</span>
+                <span className={`font-black ${headerTheme.activeText}`}>{selectedSubCategory}</span>
               </>
             )}
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-950 tracking-tight flex items-center gap-3">
-            <span>{mainCategory}</span>
-            <span className="text-xs font-bold font-mono px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full">
-              {cardsMeta.length} підкатегорій
-            </span>
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className={`w-11 h-11 rounded-2xl ${headerTheme.iconBg} flex items-center justify-center shadow-md shadow-black/10 shrink-0`}>
+              {headerTheme.icon}
+            </div>
+
+            <h2 className={`text-2xl sm:text-3xl font-black font-display tracking-tight flex items-center gap-3 ${
+              isPremium ? 'text-white' : 'text-slate-950'
+            }`}>
+              <span>{mainCategory}</span>
+              <span className={`text-xs font-bold font-mono px-3 py-1 rounded-full border shadow-2xs ${headerTheme.badge}`}>
+                {cardsMeta.length} підкатегорій
+              </span>
+            </h2>
+          </div>
+
+          <p className={`text-xs sm:text-sm mt-2 max-w-2xl ${
+            isPremium ? 'text-slate-300' : 'text-slate-600'
+          }`}>
             Оберіть підкатегорію або конкретного виробника для перегляду асортименту на складі
           </p>
         </div>
@@ -1080,7 +1172,9 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
             <button
               type="button"
               onClick={() => onSelectSubCategory(null)}
-              className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+              className={`px-4 py-2 border rounded-xl text-xs font-black transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
+                headerTheme.badge
+              }`}
             >
               <span>Показати всі підкатегорії</span>
             </button>
@@ -1088,7 +1182,7 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
         </div>
       </div>
 
-      {/* Grid of Subcategory Cards matching 2nd & 3rd photo style */}
+      {/* Grid of Subcategory Cards with Premium styling & Laser accents */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {cardsMeta.map((card) => {
           const { treeKey, items } = getSubcategoryItems(card);
@@ -1099,22 +1193,33 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
           return (
             <div
               key={card.title}
-              className={`bg-white rounded-3xl border transition-all duration-200 overflow-hidden flex flex-col justify-between group shadow-xs hover:shadow-lg ${
+              className={`relative rounded-3xl border transition-all duration-300 overflow-hidden flex flex-col justify-between group cursor-pointer ${
                 isSelected 
-                  ? 'border-red-600 ring-2 ring-red-600/20 shadow-md' 
-                  : 'border-slate-200 hover:border-slate-400'
+                  ? headerTheme.cardActiveBorder
+                  : isPremium
+                  ? `bg-gradient-to-b from-[#0e1628]/95 via-[#0b101f] to-[#070b14] border-white/10 ${headerTheme.cardHoverBorder} text-white shadow-xl hover:shadow-[0_12px_30px_rgba(234,88,12,0.15)] hover:-translate-y-1.5`
+                  : `bg-white border-slate-200/90 ${headerTheme.cardHoverBorder} text-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1.5`
               }`}
+              onClick={() => onSelectSubCategory(treeKey)}
             >
+              {/* Top Laser Accent Line */}
+              <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${headerTheme.topGradient} ${isSelected ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'} transition-opacity duration-300 pointer-events-none z-20`} />
+
               {/* Card Header with Tabs (Категорії | Підбірки) */}
-              <div className="px-4 pt-3.5 pb-2 border-b border-slate-100 flex items-center justify-between">
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className={`px-4 pt-3.5 pb-2 border-b flex items-center justify-between relative z-10 ${
+                  isPremium ? 'border-slate-800' : 'border-slate-100'
+                }`}
+              >
                 <div className="flex items-center gap-4 text-xs font-bold">
                   <button
                     type="button"
                     onClick={() => setActiveTabByCard(prev => ({ ...prev, [card.title]: 'categories' }))}
                     className={`pb-1 transition-colors relative cursor-pointer ${
                       currentTab === 'categories' 
-                        ? 'text-sky-600 border-b-2 border-sky-600 font-black' 
-                        : 'text-slate-500 hover:text-slate-800'
+                        ? headerTheme.tabActiveText
+                        : isPremium ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
                     Категорії
@@ -1124,8 +1229,8 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
                     onClick={() => setActiveTabByCard(prev => ({ ...prev, [card.title]: 'collections' }))}
                     className={`pb-1 transition-colors relative cursor-pointer ${
                       currentTab === 'collections' 
-                        ? 'text-sky-600 border-b-2 border-sky-600 font-black' 
-                        : 'text-slate-400 hover:text-slate-700'
+                        ? headerTheme.tabActiveText
+                        : isPremium ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-700'
                     }`}
                   >
                     Підбірки
@@ -1133,7 +1238,11 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
                 </div>
 
                 {card.badge && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100">
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-2xs ${
+                    isPremium 
+                      ? 'bg-red-500/20 text-red-300 border-red-500/30' 
+                      : 'bg-red-50 text-red-600 border-red-200/80'
+                  }`}>
                     {card.badge}
                   </span>
                 )}
@@ -1141,28 +1250,34 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
 
               {/* Visual Collage Area */}
               <div 
-                onClick={() => onSelectSubCategory(treeKey)}
-                className="p-4 cursor-pointer"
+                className="p-4 cursor-pointer transition-transform duration-300 group-hover:scale-[1.01]"
                 title={`Переглянути ${card.title}`}
               >
                 {renderVisualCollage(card.imageType)}
               </div>
 
               {/* Card Title and Content (Subcategories or Brands based on active tab) */}
-              <div className="px-5 pb-5 pt-1 space-y-3 flex-1 flex flex-col justify-between">
+              <div className="px-5 pb-5 pt-1 space-y-3 flex-1 flex flex-col justify-between relative z-10">
                 <div>
-                  <button
-                    type="button"
-                    onClick={() => onSelectSubCategory(treeKey)}
-                    className="text-left font-black text-slate-900 hover:text-red-600 text-base leading-snug group-hover:text-red-600 transition-colors flex items-center justify-between w-full cursor-pointer"
+                  <div
+                    className={`text-left font-black text-base leading-snug transition-colors flex items-center justify-between w-full ${
+                      isPremium 
+                        ? 'text-white group-hover:text-amber-400' 
+                        : 'text-slate-900 group-hover:text-red-600'
+                    }`}
                   >
                     <span>{card.title}</span>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:text-red-600 transition-all shrink-0" />
-                  </button>
+                    <ChevronRight className={`w-4 h-4 group-hover:translate-x-1 transition-all shrink-0 ${
+                      isPremium ? 'text-slate-400 group-hover:text-amber-400' : 'text-slate-400 group-hover:text-red-600'
+                    }`} />
+                  </div>
 
                   {/* Tab 1: Категорії (List of Child Subcategory Links) */}
                   {currentTab === 'categories' && (
-                    <div className="mt-3 space-y-1.5 animate-in fade-in duration-150">
+                    <div 
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-3 space-y-1 animate-in fade-in duration-150"
+                    >
                       {items.slice(0, 6).map((subItem) => (
                         <button
                           key={subItem}
@@ -1171,23 +1286,31 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
                             e.stopPropagation();
                             onSelectSubCategory(treeKey, subItem);
                           }}
-                          className="text-left block text-xs text-slate-600 hover:text-red-600 hover:underline transition-colors w-full truncate py-0.5 cursor-pointer"
+                          className={`text-left flex items-center gap-1.5 text-xs transition-all w-full truncate py-1 px-1.5 rounded-lg cursor-pointer ${
+                            isPremium 
+                              ? 'text-slate-300 hover:text-amber-300 hover:bg-white/5 hover:translate-x-0.5' 
+                              : 'text-slate-600 hover:text-red-600 hover:bg-slate-50 hover:translate-x-0.5'
+                          }`}
                           title={`Фільтрувати: ${subItem}`}
                         >
-                          {subItem}
+                          <span className={`w-1 h-1 rounded-full shrink-0 ${isPremium ? 'bg-amber-400/60' : 'bg-red-400/60'}`} />
+                          <span className="truncate">{subItem}</span>
                         </button>
                       ))}
                     </div>
                   )}
 
-                  {/* Tab 2: Підбірки (Виробник / Бренд) matching 3rd photo IMG_1206 */}
+                  {/* Tab 2: Підбірки (Виробник / Бренд) */}
                   {currentTab === 'collections' && (
-                    <div className="mt-3 space-y-2 animate-in fade-in duration-150">
+                    <div 
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-3 space-y-2 animate-in fade-in duration-150"
+                    >
                       <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                         <Building2 className="w-3.5 h-3.5 text-slate-400" />
                         <span>Виробник:</span>
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-1">
                         {brands.map((brandName) => (
                           <button
                             key={brandName}
@@ -1200,10 +1323,15 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
                                 onSelectSubCategory(treeKey);
                               }
                             }}
-                            className="text-left block text-xs font-semibold text-slate-700 hover:text-red-600 hover:underline transition-colors w-full truncate py-0.5 cursor-pointer"
+                            className={`text-left flex items-center gap-1.5 text-xs font-semibold transition-all w-full truncate py-1 px-1.5 rounded-lg cursor-pointer ${
+                              isPremium 
+                                ? 'text-slate-300 hover:text-amber-300 hover:bg-white/5 hover:translate-x-0.5' 
+                                : 'text-slate-700 hover:text-red-600 hover:bg-slate-50 hover:translate-x-0.5'
+                            }`}
                             title={`Показати товари бренду ${brandName}`}
                           >
-                            {brandName}
+                            <span className={`w-1 h-1 rounded-full shrink-0 ${isPremium ? 'bg-amber-400/60' : 'bg-red-400/60'}`} />
+                            <span className="truncate">{brandName}</span>
                           </button>
                         ))}
                       </div>
@@ -1214,15 +1342,20 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
                 {/* Bottom Trigger Button */}
                 <button
                   type="button"
-                  onClick={() => onSelectSubCategory(treeKey)}
-                  className={`w-full mt-3 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectSubCategory(treeKey);
+                  }}
+                  className={`w-full mt-3 py-2.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] ${
                     isSelected 
-                      ? 'bg-red-600 text-white shadow-xs' 
-                      : 'bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-700'
+                      ? headerTheme.btnActive 
+                      : isPremium
+                      ? `bg-slate-800/90 text-slate-200 ${headerTheme.btnHover}`
+                      : `bg-slate-100 text-slate-800 ${headerTheme.btnHover}`
                   }`}
                 >
                   <span>{isSelected ? '✓ Обрано (Показати товари)' : 'Переглянути всі товари'}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
 

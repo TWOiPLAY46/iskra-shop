@@ -77,6 +77,9 @@ interface StoreContextType {
   setSortOption: (sort: 'default' | 'price-asc' | 'price-desc' | 'name-asc') => void;
   activeView: 'store' | 'account' | 'admin' | 'about' | 'returns';
   setActiveView: (view: 'store' | 'account' | 'admin' | 'about' | 'returns') => void;
+  siteTheme: 'premium' | 'standard';
+  setSiteTheme: (theme: 'premium' | 'standard') => void;
+  toggleSiteTheme: () => void;
   
   // Modals & Panels
   isCartDrawerOpen: boolean;
@@ -265,24 +268,36 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (parsed && Array.isArray(parsed) && parsed.length > 0) {
       return parsed
         .filter(p => p && p.id && !deletedSet.has(p.id))
-        .map((p, idx) => ({
-          ...p,
-          id: p.id && String(p.id).trim() !== '' ? String(p.id).trim() : `prod-auto-${idx}`,
-          image: p.image !== undefined && p.image !== null ? p.image : '',
-          stock: p.stock !== undefined && p.stock !== null ? p.stock : 0,
-          unit: normalizeStorageUnit(p.unit)
-        }));
+        .map((p, idx) => {
+          const classified = classifyProduct(p.name, p.sku);
+          return {
+            ...p,
+            id: p.id && String(p.id).trim() !== '' ? String(p.id).trim() : `prod-auto-${idx}`,
+            mainCategory: classified.mainCategory,
+            subCategory: classified.subCategory,
+            category: classified.category,
+            image: p.image !== undefined && p.image !== null ? p.image : '',
+            stock: p.stock !== undefined && p.stock !== null ? p.stock : 0,
+            unit: normalizeStorageUnit(p.unit)
+          };
+        });
     }
 
     return initialProducts
       .filter(p => !deletedSet.has(p.id))
-      .map((p, idx) => ({
-        ...p,
-        id: p.id && String(p.id).trim() !== '' ? String(p.id).trim() : `prod-auto-${idx}`,
-        image: p.image !== undefined && p.image !== null ? p.image : '',
-        stock: p.stock !== undefined && p.stock !== null ? p.stock : 15,
-        unit: normalizeStorageUnit(p.unit)
-      }));
+      .map((p, idx) => {
+        const classified = classifyProduct(p.name, p.sku);
+        return {
+          ...p,
+          id: p.id && String(p.id).trim() !== '' ? String(p.id).trim() : `prod-auto-${idx}`,
+          mainCategory: classified.mainCategory,
+          subCategory: classified.subCategory,
+          category: classified.category,
+          image: p.image !== undefined && p.image !== null ? p.image : '',
+          stock: p.stock !== undefined && p.stock !== null ? p.stock : 15,
+          unit: normalizeStorageUnit(p.unit)
+        };
+      });
   });
 
   // Sync to localStorage with v4 key
@@ -629,7 +644,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return verified.email || sessionStorage.getItem('adminUserEmail') || null;
   });
 
-  // Navigation & session lifecycle:
+  // Site Theme Mode (Always Standard)
+  const [siteTheme, setSiteTheme] = useState<'premium' | 'standard'>('standard');
+
+  const handleSetSiteTheme = (theme: 'premium' | 'standard') => {
+    setSiteTheme(theme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('iskra_site_theme', theme);
+    }
+  };
+
+  const toggleSiteTheme = () => {
+    handleSetSiteTheme('standard');
+  };
   // When the user closes the site completely and enters anew, always load the main home page ('store').
   const [activeView, setActiveView] = useState<'store' | 'account' | 'admin' | 'about' | 'returns'>(() => {
     if (typeof window !== 'undefined') {
@@ -2754,6 +2781,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setSortOption,
         activeView,
         setActiveView,
+        siteTheme,
+        setSiteTheme: handleSetSiteTheme,
+        toggleSiteTheme,
         isCartDrawerOpen,
         setIsCartDrawerOpen,
         isCheckoutModalOpen,

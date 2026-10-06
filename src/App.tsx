@@ -19,14 +19,14 @@ const AppContent: React.FC = () => {
   const { activeView } = useStore();
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 w-full overflow-x-clip relative">
+    <div className="min-h-screen flex flex-col w-full overflow-x-clip relative bg-slate-50 text-slate-800">
       <Toast />
 
-      {/* Primary Header without search or catalog mega-menu */}
+      {/* Primary Header */}
       <Header />
 
       {/* Main Viewport Router */}
-      <div className="flex-1">
+      <div className="flex-1 relative z-10">
         {activeView === 'store' && <StoreFront />}
         {activeView === 'account' && <AccountView />}
         {activeView === 'admin' && <AdminPanel />}

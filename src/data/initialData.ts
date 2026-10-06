@@ -4,7 +4,8 @@ import { ASSET_IMAGES } from '../utils/assetImages';
 export const initialCategoriesTree: CategoryTree = {
   "Сантехніка та опалення": {
     "_leaves": ["Фільтри для води"],
-    "Радіатори та опалення": ["Радіатори", "Бойлер", "Котел", "Конвектори", "Термоголовки"],
+    "Радіатори та опалення": ["Радіатори", "Котел", "Конвектори", "Термоголовки"],
+    "Бойлери та водонагрівачі": ["Бойлер"],
     "Змішувачі та комплектуючі": ["Змішувач", "Душові системи", "Аксесуари", "Лійки", "Шланги"],
     "Труби та фітинги": ["Труби", "Поліпропілен", "Фітинги", "Каналізація", "Муфти", "Крани кульові"],
     "Санфаянс": ["Унітази", "Умивальники", "Інсталяції", "Бідет"],
@@ -305,9 +306,9 @@ export const initialProducts: Product[] = [
   {
     id: "prod-blr-80",
     name: "Бойлер електричний 80 л",
-    category: "Сантехніка / Опалення",
+    category: "Сантехніка / Бойлер",
     mainCategory: "Сантехніка та опалення",
-    subCategory: "Радіатори та опалення",
+    subCategory: "Бойлери та водонагрівачі",
     badge: "Новинка",
     sku: "BLR-80",
     stock: 8,
@@ -395,9 +396,9 @@ export const initialProducts: Product[] = [
   {
     id: "prod-wago-221",
     name: "Клемник WAGO 3-провідний (5 шт)",
-    category: "Електротовари / Монтаж",
+    category: "Електротовари / Клемники WAGO",
     mainCategory: "Електротовари",
-    subCategory: "Модульне обладнання",
+    subCategory: "Силові роз'єми та вилки",
     brand: "WAGO",
     badge: "",
     sku: "WAGO-221",
@@ -415,7 +416,7 @@ export const initialProducts: Product[] = [
   {
     id: "prod-valtec-valve-12",
     name: "Кран кульовий 1/2\" ВР-ВР метелик Valtec Base",
-    category: "Сантехніка / Фітинги",
+    category: "Сантехніка / Крани кульові",
     mainCategory: "Сантехніка та опалення",
     subCategory: "Труби та фітинги",
     brand: "Valtec",
@@ -790,6 +791,11 @@ export const initialSiteSettings: SiteSettings = {
   callbackTelegramNotify: true,
   callbackAutoSmsEnabled: false,
   callbackSmsTemplate: "⚡ Магазин ISKRA\nДякуємо за запит на консультацію! Наш фахівець зв'яжеться з вами протягом 2-3 хвилин.",
+  topFlagshipTitle: "ТОП ФЛАГМАН КАТАЛОГУ",
+  topFlagshipInterval: 4,
+  topFlagshipAutoplay: true,
+  topFlagshipProductIds: [],
+  topFlagshipBadgeText: "",
   features: {
     ordersEnabled: true,
     loyaltyEnabled: true,
@@ -803,6 +809,9 @@ export const initialSiteSettings: SiteSettings = {
     cashbackPercent: 2,
     showExactStock: true,
     floatingCallBtn: true,
+    weeklyDealEnabled: true,
+    topFlagshipEnabled: true,
+    quickCategoriesEnabled: true,
     minOrderSum: 50,
     freeShippingThreshold: 3000,
     lowStockThreshold: 3,
@@ -825,7 +834,21 @@ export const initialHeaderDesign: HeaderDesign = {
   heroCity: "с-ще. Оратів, Вінницька обл.",
   footerDesc: "Спеціалізований інтернет-магазин та точка продажу інверторів, акумуляторів, сонячного, електромонтажного та сантехнічного обладнання.",
   footerTrust1: "Доставка Новою Поштою по всій Україні",
-  footerTrust2: "Офіційна заводська гарантія (12–60 міс.)"
+  footerTrust2: "Офіційна заводська гарантія (12–60 міс.)",
+  heroQuickNavEnabled: true,
+  heroStatsEnabled: true,
+  heroStat1Label: "Каталог",
+  heroStat1Value: "5,000+",
+  heroStat1Sub: "позицій на складі",
+  heroStat2Label: "Відправка",
+  heroStat2Value: "24/7",
+  heroStat2Sub: "день у день",
+  heroStat3Label: "Оцінка",
+  heroStat3Value: "4.9 / 5",
+  heroStat3Sub: "довіра майстрів",
+  heroStat4Label: "Гарантія",
+  heroStat4Value: "100%",
+  heroStat4Sub: "офіційна"
 };
 
 export const initialWeeklyDeal: WeeklyDealConfig = {

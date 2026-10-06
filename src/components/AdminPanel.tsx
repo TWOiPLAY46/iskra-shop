@@ -78,6 +78,9 @@ import {
   Calendar,
   TrendingDown,
   Layers,
+  Droplets,
+  Wrench,
+  Home,
   Award,
   Download,
   FolderTree,
@@ -93,7 +96,9 @@ import {
   Store,
   Navigation,
   Globe,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { 
   generateSmsUrl, 
@@ -707,11 +712,11 @@ export const AdminPanel: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'products' | 'weekly_deal' | 'categories' | 'orders' | 'reviews' | 'clients' | 'stock_alerts' | 'analytics' | 'features' | 'database' | 'delivery' | 'payments' | 'design' | 'about_settings' | 'returns_settings' | 'settings'
+    'products' | 'weekly_deal' | 'flagship' | 'categories' | 'orders' | 'reviews' | 'clients' | 'stock_alerts' | 'analytics' | 'features' | 'database' | 'delivery' | 'payments' | 'design' | 'about_settings' | 'returns_settings' | 'settings'
   >(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('iskra_admin_tab');
-      const validTabs = ['products', 'weekly_deal', 'categories', 'orders', 'reviews', 'clients', 'stock_alerts', 'analytics', 'features', 'database', 'delivery', 'payments', 'design', 'about_settings', 'returns_settings', 'settings'];
+      const validTabs = ['products', 'weekly_deal', 'flagship', 'categories', 'orders', 'reviews', 'clients', 'stock_alerts', 'analytics', 'features', 'database', 'delivery', 'payments', 'design', 'about_settings', 'returns_settings', 'settings'];
       if (saved && validTabs.includes(saved)) {
         return saved as any;
       }
@@ -740,6 +745,9 @@ export const AdminPanel: React.FC = () => {
 
   // Search & Filter states
   const [productSearch, setProductSearch] = useState('');
+  const [flagshipProductSearch, setFlagshipProductSearch] = useState('');
+  const [flagshipCategoryFilter, setFlagshipCategoryFilter] = useState('all');
+  const [previewFlagshipIndex, setPreviewFlagshipIndex] = useState(0);
   const [productFilterStock, setProductFilterStock] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(3);
   const [isProcurementModalOpen, setIsProcurementModalOpen] = useState(false);
@@ -3915,7 +3923,7 @@ export const AdminPanel: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
                 <span>🚀 Ключові модулі вітрини та конверсії</span>
-                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">6 модулів</span>
+                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">9 модулів</span>
               </h4>
             </div>
 
@@ -4145,6 +4153,1270 @@ export const AdminPanel: React.FC = () => {
                       }`}
                     />
                   </button>
+                </div>
+              </div>
+
+              {/* 7. ТОП ФЛАГМАН КАТАЛОГУ (Віджет у банері) */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <b className="text-xs sm:text-sm font-bold text-slate-900">ТОП ФЛАГМАН КАТАЛОГУ (Шапка сайту)</b>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          (siteSettings.features?.topFlagshipEnabled ?? true) ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          {(siteSettings.features?.topFlagshipEnabled ?? true) ? 'Вітрина активна' : 'Приховано'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Показує інтерактивний блок флагманських товарів з автоперемиканням, фотографією, ціною та швидкою покупкою у головному банері сайту.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => updateSiteFeatures({ topFlagshipEnabled: !(siteSettings.features?.topFlagshipEnabled ?? true) })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                      (siteSettings.features?.topFlagshipEnabled ?? true) ? 'bg-amber-500' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (siteSettings.features?.topFlagshipEnabled ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* 8. Блок показників та метрик довіри (Каталог, Відправка, Оцінка, Гарантія) */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 shadow-2xs">
+                      <BarChart3 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <b className="text-xs sm:text-sm font-bold text-slate-900">Метрики довіри магазину (Hero)</b>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          (designForm.heroStatsEnabled ?? true) ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          {(designForm.heroStatsEnabled ?? true) ? 'Метрики активні' : 'Приховано'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        4 фірмові плашки показників під головним банером: Каталог (5,000+), Відправка (24/7), Оцінка (4.9 / 5), Гарантія (100%).
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !(designForm.heroStatsEnabled ?? true);
+                      const updated = { ...designForm, heroStatsEnabled: next };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                      showToast(next ? 'Блок метрик увімкнено!' : 'Блок метрик приховано!', 'info');
+                    }}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                      (designForm.heroStatsEnabled ?? true) ? 'bg-blue-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (designForm.heroStatsEnabled ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* 9. Швидкий перехід за напрямками каталогу (Шапка / Hero) */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 shadow-2xs border border-amber-200">
+                      <Sparkles className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <b className="text-xs sm:text-sm font-bold text-slate-900">Швидкий перехід за напрямками</b>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          (designForm.heroQuickNavEnabled ?? true) ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          {(designForm.heroQuickNavEnabled ?? true) ? 'Кнопки активні' : 'Приховано'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Інтерактивні плашки категорій (Сантехніка, Електрика, Інструмент, Господарчі) для миттєвого переходу у Hero-банері.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !(designForm.heroQuickNavEnabled ?? true);
+                      const updated = { ...designForm, heroQuickNavEnabled: next };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                      showToast(next ? 'Швидкий перехід за напрямками увімкнено!' : 'Швидкий перехід приховано!', 'info');
+                    }}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:outline-none focus:ring-0 ${
+                      (designForm.heroQuickNavEnabled ?? true) ? 'bg-amber-500' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (designForm.heroQuickNavEnabled ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Повне налаштування промо-модуля «ТОП ФЛАГМАН КАТАЛОГУ» */}
+          <div className="p-5 sm:p-7 bg-gradient-to-br from-amber-50/90 via-white to-orange-50/60 border border-amber-300/80 rounded-3xl shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-amber-200/80">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0 font-black">
+                  <Sparkles className="w-5 h-5 text-slate-950" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider text-amber-950">
+                      Налаштування та редагування «ТОП ФЛАГМАН КАТАЛОГУ»
+                    </h4>
+                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                      (siteSettings.features?.topFlagshipEnabled ?? true) ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                    }`}>
+                      {(siteSettings.features?.topFlagshipEnabled ?? true) ? '● Трансляція активна' : '○ Модуль вимкнено'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    Керуйте заголовком, авторотацією слайдів, вибирайте конкретні товари або автоматичний підбір та переглядайте результат у Live Preview
+                  </p>
+                </div>
+              </div>
+
+              {/* Master toggle inside this section */}
+              <div className="flex items-center gap-2.5 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !(siteSettings.features?.topFlagshipEnabled ?? true);
+                    updateSiteFeatures({ topFlagshipEnabled: next });
+                    showToast(next ? 'Вітрину флагмана увімкнено!' : 'Вітрину флагмана приховано!', 'info');
+                  }}
+                  className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-2 cursor-pointer transition-all shadow-xs ${
+                    (siteSettings.features?.topFlagshipEnabled ?? true)
+                      ? 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+                      : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{(siteSettings.features?.topFlagshipEnabled ?? true) ? 'Увімкнено' : 'Вимкнено'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Grid: Settings inputs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+              {/* 1. Flagship Title */}
+              <div className="space-y-2 p-4 bg-white rounded-2xl border border-amber-200/70 shadow-2xs">
+                <label className="font-bold text-slate-800 flex items-center justify-between">
+                  <span>Заголовок віджета у шапці:</span>
+                  <span className="text-[10px] text-slate-400">Відображається вгорі картки</span>
+                </label>
+                <input
+                  type="text"
+                  value={siteSettings.topFlagshipTitle ?? 'ТОП ФЛАГМАН КАТАЛОГУ'}
+                  onChange={(e) => updateSiteSettings({ ...siteSettings, topFlagshipTitle: e.target.value })}
+                  placeholder="ТОП ФЛАГМАН КАТАЛОГУ"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all outline-none"
+                />
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {['ТОП ФЛАГМАН КАТАЛОГУ', 'ФЛАГМАН ТИЖНЯ', 'ГАРАНТІЯ ЯКОСТІ', 'ВИБІР ЕКСПЕРТІВ', 'ХІТИ СЕЗОНУ'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => updateSiteSettings({ ...siteSettings, topFlagshipTitle: preset })}
+                      className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-amber-100 hover:text-amber-900 text-[10px] font-bold text-slate-600 transition-colors cursor-pointer"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Custom Badge */}
+              <div className="space-y-2 p-4 bg-white rounded-2xl border border-amber-200/70 shadow-2xs">
+                <label className="font-bold text-slate-800 flex items-center justify-between">
+                  <span>Текст мітки-бейджа (опціонально):</span>
+                  <span className="text-[10px] text-slate-400">Залиште пустим для авто-бейджа</span>
+                </label>
+                <input
+                  type="text"
+                  value={siteSettings.topFlagshipBadgeText ?? ''}
+                  onChange={(e) => updateSiteSettings({ ...siteSettings, topFlagshipBadgeText: e.target.value })}
+                  placeholder="За замовчуванням (з картки товару)"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all outline-none"
+                />
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {['', 'ФЛАГМАН', 'ХІТ', 'ТОП', 'АКЦІЯ', 'НОВИНКА'].map((b) => (
+                    <button
+                      key={b || 'empty'}
+                      type="button"
+                      onClick={() => updateSiteSettings({ ...siteSettings, topFlagshipBadgeText: b })}
+                      className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-amber-100 hover:text-amber-900 text-[10px] font-bold text-slate-600 transition-colors cursor-pointer"
+                    >
+                      {b || 'Очистити'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Speed selector */}
+              <div className="space-y-2 p-4 bg-white rounded-2xl border border-amber-200/70 shadow-2xs">
+                <label className="font-bold text-slate-800 flex items-center justify-between">
+                  <span>Інтервал автоперемикання слайдів:</span>
+                  <span className="text-xs font-black text-amber-700 font-mono">
+                    {siteSettings.topFlagshipInterval || 4} сек.
+                  </span>
+                </label>
+                <div className="flex items-center gap-1.5">
+                  {[2, 3, 4, 5, 6, 8].map((sec) => (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => updateSiteSettings({ ...siteSettings, topFlagshipInterval: sec })}
+                      className={`flex-1 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        (siteSettings.topFlagshipInterval || 4) === sec
+                          ? 'bg-amber-500 text-slate-950 shadow-xs ring-2 ring-amber-500/30'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {sec}с
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. Autoplay toggle */}
+              <div className="space-y-2 p-4 bg-white rounded-2xl border border-amber-200/70 shadow-2xs flex flex-col justify-between">
+                <label className="font-bold text-slate-800">
+                  Автоматичне перемикання товарів:
+                </label>
+                <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                  <span className="text-xs text-slate-600 font-medium">
+                    {(siteSettings.topFlagshipAutoplay ?? true) ? 'Слайдер гортається автоматично' : 'Статично (перемикання вручну)'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => updateSiteSettings({ ...siteSettings, topFlagshipAutoplay: !(siteSettings.topFlagshipAutoplay ?? true) })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+                      (siteSettings.topFlagshipAutoplay ?? true) ? 'bg-amber-500' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (siteSettings.topFlagshipAutoplay ?? true) ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Sub-block: Product Selection (Auto / Manual) */}
+            <div className="p-5 bg-white border border-amber-200/80 rounded-2xl shadow-2xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                    Вибір товарів для демонстрації у флагмані
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Автоматичний підбір або точний список обраних позицій
+                  </p>
+                </div>
+
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateSiteSettings({ ...siteSettings, topFlagshipProductIds: undefined });
+                      showToast('Встановлено автоматичний підбір флагманських товарів', 'info');
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      !siteSettings.topFlagshipProductIds || siteSettings.topFlagshipProductIds.length === 0
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    ⚡️ Авто-підбір (Топ 6)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const initial = siteSettings.topFlagshipProductIds && siteSettings.topFlagshipProductIds.length > 0
+                        ? siteSettings.topFlagshipProductIds
+                        : products.filter(p => p.image && p.stock > 0).slice(0, 4).map(p => p.id);
+                      updateSiteSettings({ ...siteSettings, topFlagshipProductIds: initial });
+                      showToast('Увімкнено ручний вибір товарів для флагмана', 'info');
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      siteSettings.topFlagshipProductIds && siteSettings.topFlagshipProductIds.length > 0
+                        ? 'bg-amber-500 text-slate-950 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    🎯 Ручний вибір
+                  </button>
+                </div>
+              </div>
+
+              {/* Manual Selection Content */}
+              {siteSettings.topFlagshipProductIds && siteSettings.topFlagshipProductIds.length > 0 ? (
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-xs font-bold text-slate-700 mb-2 flex items-center justify-between">
+                      <span>Обрані позиції флагмана ({siteSettings.topFlagshipProductIds.length}):</span>
+                      <span className="text-[10px] text-slate-400">Натискайте кнопки переміщення або хрестик для видалення</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                      {siteSettings.topFlagshipProductIds.map((id, index) => {
+                        const prod = products.find(p => p.id === id);
+                        if (!prod) return null;
+                        return (
+                          <div
+                            key={id}
+                            className="flex items-center justify-between p-2.5 rounded-2xl bg-amber-50/60 border border-amber-200/90 shadow-2xs group"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black flex items-center justify-center shrink-0">
+                                {index + 1}
+                              </span>
+                              <div className="w-10 h-10 rounded-xl bg-white border border-amber-200 p-0.5 shrink-0 flex items-center justify-center overflow-hidden">
+                                {prod.image ? (
+                                  <img src={getSafeImageUrl(prod.image)} alt={prod.name} className="w-full h-full object-contain" />
+                                ) : (
+                                  <Package className="w-4 h-4 text-slate-400" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-slate-900 truncate">{prod.name}</div>
+                                <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5">
+                                  <span>{prod.sku}</span>
+                                  <span>·</span>
+                                  <span className="text-amber-700 font-bold">{prod.price} грн</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newIds = siteSettings.topFlagshipProductIds ? siteSettings.topFlagshipProductIds.filter(x => x !== id) : [];
+                                  updateSiteSettings({ ...siteSettings, topFlagshipProductIds: newIds });
+                                }}
+                                className="p-1 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                                title="Видалити з флагмана"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                              {index > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!siteSettings.topFlagshipProductIds) return;
+                                    const arr = [...siteSettings.topFlagshipProductIds];
+                                    const temp = arr[index - 1];
+                                    arr[index - 1] = arr[index];
+                                    arr[index] = temp;
+                                    updateSiteSettings({ ...siteSettings, topFlagshipProductIds: arr });
+                                  }}
+                                  className="p-0.5 rounded hover:bg-slate-200 text-slate-500 cursor-pointer"
+                                  title="Перемістити вліво/вгору"
+                                >
+                                  <ChevronLeft className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Add Product Search */}
+                  <div className="p-3.5 bg-amber-50/50 border border-amber-200/80 rounded-2xl space-y-2.5">
+                    <div className="text-xs font-bold text-amber-950 flex items-center justify-between">
+                      <span>+ Додати товар у вітрину флагмана:</span>
+                      <span className="text-[10px] text-amber-800 font-medium">Пошук за назвою або артикулом</span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={flagshipProductSearch}
+                          onChange={(e) => setFlagshipProductSearch(e.target.value)}
+                          placeholder="Пошук товару за назвою або артикулом..."
+                          className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:border-amber-500 outline-none"
+                        />
+                      </div>
+
+                      <select
+                        value={flagshipCategoryFilter}
+                        onChange={(e) => setFlagshipCategoryFilter(e.target.value)}
+                        className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                      >
+                        <option value="all">Усі категорії</option>
+                        {Array.from(new Set(products.map(p => p.category || p.mainCategory).filter(Boolean))).map((c) => (
+                          <option key={String(c)} value={String(c)}>{String(c)}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                      {products
+                        .filter(p => {
+                          const matchesSearch = !flagshipProductSearch || 
+                            p.name.toLowerCase().includes(flagshipProductSearch.toLowerCase()) || 
+                            p.sku.toLowerCase().includes(flagshipProductSearch.toLowerCase());
+                          const matchesCat = flagshipCategoryFilter === 'all' || p.category === flagshipCategoryFilter || p.mainCategory === flagshipCategoryFilter;
+                          const notSelected = !siteSettings.topFlagshipProductIds?.includes(p.id);
+                          return matchesSearch && matchesCat && notSelected;
+                        })
+                        .slice(0, 6)
+                        .map((p) => (
+                          <div
+                            key={p.id}
+                            className="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200/80 hover:border-amber-400 transition-all text-xs"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 p-0.5 shrink-0 flex items-center justify-center overflow-hidden">
+                                {p.image ? (
+                                  <img src={getSafeImageUrl(p.image)} alt={p.name} className="w-full h-full object-contain" />
+                                ) : (
+                                  <Package className="w-4 h-4 text-slate-400" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-bold text-slate-900 truncate">{p.name}</div>
+                                <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
+                                  <span>{p.sku}</span>
+                                  <span>·</span>
+                                  <span className="text-emerald-600 font-bold">{p.stock} шт</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="font-black text-amber-700 font-mono">{p.price} грн</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const cur = siteSettings.topFlagshipProductIds || [];
+                                  updateSiteSettings({ ...siteSettings, topFlagshipProductIds: [...cur, p.id] });
+                                  showToast(`Товар «${p.name}» додано у флагман!`, 'success');
+                                }}
+                                className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                              >
+                                <Plus className="w-3 h-3" />
+                                <span>Додати</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3.5 bg-amber-50/60 border border-amber-200/80 rounded-2xl flex items-center gap-3 text-xs text-amber-950">
+                  <Sparkles className="w-5 h-5 text-amber-600 shrink-0" />
+                  <div>
+                    <div className="font-bold">Увімкнено автоматичний підбір товарів</div>
+                    <p className="text-amber-800 mt-0.5 text-[11px]">
+                      Система самостійно транслює топ-позиції з високим залишком та наявністю фотографій. Щоб обрати конкретні позиції, перемкніть на <b>«Ручний вибір»</b>.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sub-block: Live Interactive Preview */}
+            <div className="p-4 sm:p-5 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl text-white space-y-3">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-amber-400" />
+                  <h4 className="text-xs font-bold text-white">Передперегляд віджета (Storefront Live Preview):</h4>
+                </div>
+                <span className="text-[10px] font-mono text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+                  Live Banner
+                </span>
+              </div>
+
+              {(() => {
+                const previewItems = (siteSettings.topFlagshipProductIds && siteSettings.topFlagshipProductIds.length > 0)
+                  ? siteSettings.topFlagshipProductIds.map(id => products.find(p => p.id === id)).filter((p): p is typeof products[0] => Boolean(p && p.stock > 0))
+                  : products.filter(p => p.image && p.image.trim() !== '' && p.stock > 0).slice(0, 6);
+
+                const activePreviewProd = previewItems[previewFlagshipIndex % (previewItems.length || 1)] || products[0];
+
+                if (!activePreviewProd) {
+                  return <div className="text-center py-4 text-slate-400 text-xs">Немає товарів для показу</div>;
+                }
+
+                return (
+                  <div className="max-w-md mx-auto bg-gradient-to-b from-slate-900/90 via-[#0c1222] to-slate-950/95 border border-white/10 rounded-2xl p-4 shadow-xl relative overflow-hidden">
+                    <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-800/80">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1 rounded-lg bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                          <Sparkles className="w-3 h-3" />
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 font-mono">
+                          {siteSettings.topFlagshipTitle || 'ТОП ФЛАГМАН КАТАЛОГУ'}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-mono">
+                          ({(previewFlagshipIndex % (previewItems.length || 1)) + 1}/{previewItems.length || 1})
+                        </span>
+                      </div>
+
+                      {previewItems.length > 1 && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewFlagshipIndex(prev => (prev - 1 + previewItems.length) % previewItems.length)}
+                            className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                          >
+                            <ChevronLeft className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewFlagshipIndex(prev => (prev + 1) % previewItems.length)}
+                            className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                          >
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-3 items-center">
+                      <div className="relative w-24 h-24 rounded-xl bg-white shadow-xl p-1.5 flex items-center justify-center shrink-0 border border-white/20">
+                        <img
+                          src={getSafeImageUrl(activePreviewProd.image)}
+                          alt={activePreviewProd.name}
+                          className="w-full h-full object-contain object-center"
+                        />
+                        {(siteSettings.topFlagshipBadgeText || activePreviewProd.badge) && (
+                          <span className="absolute top-1 left-1 text-[7px] font-black uppercase px-1.5 py-0.5 rounded-md bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 text-white shadow-md">
+                            {siteSettings.topFlagshipBadgeText || activePreviewProd.badge}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1 text-[9px] text-slate-400 mb-0.5">
+                          <span className="font-mono">{activePreviewProd.sku}</span>
+                          <span>·</span>
+                          <span className="text-amber-300 font-bold">{getProductBrand(activePreviewProd)}</span>
+                        </div>
+
+                        <h4 className="text-xs font-bold text-white line-clamp-2 leading-snug mb-1">
+                          {activePreviewProd.name}
+                        </h4>
+
+                        <div className="flex items-baseline gap-1 mb-1.5">
+                          <span className="text-sm font-black font-display text-white tabular-nums">
+                            {activePreviewProd.price}
+                          </span>
+                          <span className="text-[10px] font-bold text-red-400">грн</span>
+                          <span className="text-[9px] text-emerald-400 ml-auto flex items-center gap-1 font-semibold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            В наявності ({activePreviewProd.stock})
+                          </span>
+                        </div>
+
+                        <div className="py-1 px-2 rounded-lg text-[9px] font-black bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 text-white flex items-center justify-center gap-1 shadow-xs">
+                          <ShoppingBag className="w-3 h-3" />
+                          <span>Купити</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Section: Блок показників та метрик довіри (Каталог, Відправка, Оцінка, Гарантія) */}
+          <div className="p-5 sm:p-7 bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/50 border border-blue-200/90 rounded-3xl shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-blue-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0 font-black">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider text-blue-950">
+                      Блок показників та метрик довіри (Каталог, Відправка, Оцінка, Гарантія)
+                    </h4>
+                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                      (designForm.heroStatsEnabled ?? true) ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                    }`}>
+                      {(designForm.heroStatsEnabled ?? true) ? '● Метрики активні' : '○ Модуль вимкнено'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    4 фірмові плашки метрик під головним банером першого екрана магазину. Редагуйте підписи, значення та переглядайте результат у Live Preview.
+                  </p>
+                </div>
+              </div>
+
+              {/* Master toggle button */}
+              <div className="flex items-center gap-2.5 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !(designForm.heroStatsEnabled ?? true);
+                    const updated = { ...designForm, heroStatsEnabled: next };
+                    setDesignForm(updated);
+                    updateHeaderDesign(updated);
+                    showToast(next ? 'Блок метрик увімкнено!' : 'Блок метрик приховано!', 'info');
+                  }}
+                  className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-2 cursor-pointer transition-all shadow-xs ${
+                    (designForm.heroStatsEnabled ?? true)
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                  }`}
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>{(designForm.heroStatsEnabled ?? true) ? 'Увімкнено' : 'Вимкнено'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Presets Bar */}
+            <div className="p-3.5 bg-white/80 rounded-2xl border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Швидкі готові шаблони метрик:</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = {
+                      ...designForm,
+                      heroStatsEnabled: true,
+                      heroStat1Label: 'Каталог',
+                      heroStat1Value: '5,000+',
+                      heroStat1Sub: 'позицій на складі',
+                      heroStat2Label: 'Відправка',
+                      heroStat2Value: '24/7',
+                      heroStat2Sub: 'день у день',
+                      heroStat3Label: 'Оцінка',
+                      heroStat3Value: '4.9 / 5',
+                      heroStat3Sub: 'довіра майстрів',
+                      heroStat4Label: 'Гарантія',
+                      heroStat4Value: '100%',
+                      heroStat4Sub: 'офіційна'
+                    };
+                    setDesignForm(updated);
+                    updateHeaderDesign(updated);
+                    showToast('Застосовано шаблон: Стандарт ISKRA', 'info');
+                  }}
+                  className="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 text-[11px] font-bold rounded-lg border border-slate-200 transition-all cursor-pointer shadow-2xs"
+                >
+                  ⚡ Стандарт ISKRA
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = {
+                      ...designForm,
+                      heroStatsEnabled: true,
+                      heroStat1Label: 'Асортимент',
+                      heroStat1Value: '10,000+',
+                      heroStat1Sub: 'товарів в наявності',
+                      heroStat2Label: 'Доставка',
+                      heroStat2Value: '1-2 дні',
+                      heroStat2Sub: 'швидка Нова Пошта',
+                      heroStat3Label: 'Рейтинг',
+                      heroStat3Value: '5.0 ⭐',
+                      heroStat3Sub: 'відмінні відгуки',
+                      heroStat4Label: 'Гарантія',
+                      heroStat4Value: '24 міс.',
+                      heroStat4Sub: 'заводська якість'
+                    };
+                    setDesignForm(updated);
+                    updateHeaderDesign(updated);
+                    showToast('Застосовано шаблон: Експрес Сервіс', 'info');
+                  }}
+                  className="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 text-[11px] font-bold rounded-lg border border-slate-200 transition-all cursor-pointer shadow-2xs"
+                >
+                  🚀 Експрес Сервіс
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = {
+                      ...designForm,
+                      heroStatsEnabled: true,
+                      heroStat1Label: 'Склад',
+                      heroStat1Value: '20,000+',
+                      heroStat1Sub: 'артикулів на базі',
+                      heroStat2Label: 'Графік',
+                      heroStat2Value: 'Пн-Нд',
+                      heroStat2Sub: 'без вихідних',
+                      heroStat3Label: 'Клієнти',
+                      heroStat3Value: '99%',
+                      heroStat3Sub: 'задоволених покупців',
+                      heroStat4Label: 'Якість',
+                      heroStat4Value: '100%',
+                      heroStat4Sub: 'оригінальний товар'
+                    };
+                    setDesignForm(updated);
+                    updateHeaderDesign(updated);
+                    showToast('Застосовано шаблон: Оптовий Склад', 'info');
+                  }}
+                  className="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-700 text-[11px] font-bold rounded-lg border border-slate-200 transition-all cursor-pointer shadow-2xs"
+                >
+                  🏢 Оптовий Склад
+                </button>
+              </div>
+            </div>
+
+            {/* 4 Editable Metric Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+              {/* Metric 1: Catalog */}
+              <div className="p-4 rounded-2xl bg-white border border-blue-100 space-y-3 shadow-2xs">
+                <div className="flex items-center gap-2 pb-2 border-b border-blue-100 font-bold text-blue-900">
+                  <div className="p-1 bg-blue-500 text-white rounded-md">
+                    <Package className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Метрика 1: Каталог</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Верхній заголовок
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat1Label || ''}
+                    placeholder="Каталог"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat1Label: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold text-slate-900 shadow-2xs outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Значення / Показник
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat1Value || ''}
+                    placeholder="5,000+"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat1Value: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-mono font-black text-slate-900 shadow-2xs outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Підпис / Пояснення
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat1Sub || ''}
+                    placeholder="позицій на складі"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat1Sub: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 shadow-2xs outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+              </div>
+
+              {/* Metric 2: Dispatch */}
+              <div className="p-4 rounded-2xl bg-white border border-amber-100 space-y-3 shadow-2xs">
+                <div className="flex items-center gap-2 pb-2 border-b border-amber-100 font-bold text-amber-900">
+                  <div className="p-1 bg-amber-500 text-white rounded-md">
+                    <Clock className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Метрика 2: Відправка</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Верхній заголовок
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat2Label || ''}
+                    placeholder="Відправка"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat2Label: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold text-slate-900 shadow-2xs outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Значення / Показник
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat2Value || ''}
+                    placeholder="24/7"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat2Value: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-mono font-black text-slate-900 shadow-2xs outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Підпис / Пояснення
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat2Sub || ''}
+                    placeholder="день у день"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat2Sub: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 shadow-2xs outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                </div>
+              </div>
+
+              {/* Metric 3: Rating */}
+              <div className="p-4 rounded-2xl bg-white border border-yellow-100 space-y-3 shadow-2xs">
+                <div className="flex items-center gap-2 pb-2 border-b border-yellow-100 font-bold text-yellow-900">
+                  <div className="p-1 bg-yellow-500 text-white rounded-md">
+                    <Star className="w-3.5 h-3.5 fill-current" />
+                  </div>
+                  <span>Метрика 3: Оцінка</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Верхній заголовок
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat3Label || ''}
+                    placeholder="Оцінка"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat3Label: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold text-slate-900 shadow-2xs outline-none focus:bg-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Значення / Показник
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat3Value || ''}
+                    placeholder="4.9 / 5"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat3Value: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-mono font-black text-slate-900 shadow-2xs outline-none focus:bg-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Підпис / Пояснення
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat3Sub || ''}
+                    placeholder="довіра майстрів"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat3Sub: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 shadow-2xs outline-none focus:bg-white focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20"
+                  />
+                </div>
+              </div>
+
+              {/* Metric 4: Guarantee */}
+              <div className="p-4 rounded-2xl bg-white border border-emerald-100 space-y-3 shadow-2xs">
+                <div className="flex items-center gap-2 pb-2 border-b border-emerald-100 font-bold text-emerald-900">
+                  <div className="p-1 bg-emerald-500 text-white rounded-md">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Метрика 4: Гарантія</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Верхній заголовок
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat4Label || ''}
+                    placeholder="Гарантія"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat4Label: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold text-slate-900 shadow-2xs outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Значення / Показник
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat4Value || ''}
+                    placeholder="100%"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat4Value: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-mono font-black text-slate-900 shadow-2xs outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Підпис / Пояснення
+                  </label>
+                  <input
+                    type="text"
+                    value={designForm.heroStat4Sub || ''}
+                    placeholder="офіційна"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...designForm, heroStat4Sub: val };
+                      setDesignForm(updated);
+                      updateHeaderDesign(updated);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 shadow-2xs outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Live Preview Box */}
+            <div className="pt-2">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center justify-between">
+                <span>Попередній вигляд блоку метрик на живому банері сайту:</span>
+                <span className="text-blue-600 font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                  ● Рендер Hero-блоку вітрини
+                </span>
+              </div>
+
+              <div className="p-5 sm:p-7 bg-slate-950 text-white rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden space-y-3">
+                <div className="absolute top-0 right-1/4 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 left-10 w-48 h-48 bg-purple-600/10 rounded-full blur-2xl pointer-events-none" />
+
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between pb-3 text-xs text-slate-400 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Нижня частина Hero-банера сайту:</span>
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Стан: {(designForm.heroStatsEnabled ?? true) ? 'Увімкнено' : 'Вимкнено'}
+                    </span>
+                  </div>
+
+                  {!(designForm.heroStatsEnabled ?? true) ? (
+                    <div className="py-8 text-center bg-slate-900/60 rounded-2xl border border-dashed border-slate-800 text-slate-400 text-xs font-semibold">
+                      ⚠️ Блок метрик зараз вимкнено — він не буде відображатися на головному банері магазину.
+                    </div>
+                  ) : (
+                    <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-5 shadow-xl grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                      {/* Metric 1 */}
+                      <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 hover:border-blue-500/50 transition-all shadow-inner">
+                        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 mb-1">
+                          <Package className="w-3.5 h-3.5 text-blue-400" />
+                          <span className="font-medium">{designForm.heroStat1Label || 'Каталог'}</span>
+                        </div>
+                        <div className="text-lg sm:text-xl font-black text-white font-mono tracking-tight">
+                          {designForm.heroStat1Value || '5,000+'}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                          {designForm.heroStat1Sub || 'позицій на складі'}
+                        </div>
+                      </div>
+
+                      {/* Metric 2 */}
+                      <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 hover:border-amber-500/50 transition-all shadow-inner">
+                        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 mb-1">
+                          <Clock className="w-3.5 h-3.5 text-amber-400" />
+                          <span className="font-medium">{designForm.heroStat2Label || 'Відправка'}</span>
+                        </div>
+                        <div className="text-lg sm:text-xl font-black text-white font-mono tracking-tight">
+                          {designForm.heroStat2Value || '24/7'}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                          {designForm.heroStat2Sub || 'день у день'}
+                        </div>
+                      </div>
+
+                      {/* Metric 3 */}
+                      <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 hover:border-yellow-500/50 transition-all shadow-inner">
+                        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 mb-1">
+                          <Star className="w-3.5 h-3.5 text-yellow-400 fill-current" />
+                          <span className="font-medium">{designForm.heroStat3Label || 'Оцінка'}</span>
+                        </div>
+                        <div className="text-lg sm:text-xl font-black text-white font-mono tracking-tight">
+                          {designForm.heroStat3Value || '4.9 / 5'}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                          {designForm.heroStat3Sub || 'довіра майстрів'}
+                        </div>
+                      </div>
+
+                      {/* Metric 4 */}
+                      <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 hover:border-emerald-500/50 transition-all shadow-inner">
+                        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 mb-1">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="font-medium">{designForm.heroStat4Label || 'Гарантія'}</span>
+                        </div>
+                        <div className="text-lg sm:text-xl font-black text-white font-mono tracking-tight">
+                          {designForm.heroStat4Value || '100%'}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                          {designForm.heroStat4Sub || 'офіційна'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Швидкий перехід за напрямками (Hero-кнопки категорій) */}
+          <div className="p-5 sm:p-7 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/50 border border-amber-200/90 rounded-3xl shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-amber-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0 font-black">
+                  <Sparkles className="w-5 h-5 text-slate-950" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider text-amber-950">
+                      Швидкий перехід за напрямками (Hero-кнопки)
+                    </h4>
+                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                      (designForm.heroQuickNavEnabled ?? true) ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                    }`}>
+                      {(designForm.heroQuickNavEnabled ?? true) ? '● Кнопки активні' : '○ Модуль вимкнено'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Інтерактивні кнопки швидкого переходу до головних розділів каталогу (Сантехніка, Електрика, Інструмент, Господарчі) у шапці Hero.
+                  </p>
+                </div>
+              </div>
+
+              {/* Master toggle button */}
+              <div className="flex items-center gap-2.5 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !(designForm.heroQuickNavEnabled ?? true);
+                    const updated = { ...designForm, heroQuickNavEnabled: next };
+                    setDesignForm(updated);
+                    updateHeaderDesign(updated);
+                    showToast(next ? 'Швидкий перехід за напрямками увімкнено!' : 'Швидкий перехід за напрямками приховано!', 'info');
+                  }}
+                  className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-2 cursor-pointer transition-all shadow-xs ${
+                    (designForm.heroQuickNavEnabled ?? true)
+                      ? 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+                      : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{(designForm.heroQuickNavEnabled ?? true) ? 'Увімкнено' : 'Вимкнено'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 4 Directions Overview */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              <div className="p-3.5 rounded-2xl bg-white border border-amber-100 shadow-2xs flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center shrink-0">
+                  <Droplets className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-bold text-slate-900">Сантехніка</div>
+                  <div className="text-[10px] text-slate-500">Опалення, крани, труби</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white border border-amber-100 shadow-2xs flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-bold text-slate-900">Електрика</div>
+                  <div className="text-[10px] text-slate-500">Освітлення, автомати, кабелі</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white border border-amber-100 shadow-2xs flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                  <Wrench className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-bold text-slate-900">Інструмент</div>
+                  <div className="text-[10px] text-slate-500">Електроінструмент, кейси</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white border border-amber-100 shadow-2xs flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+                  <Home className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-bold text-slate-900">Господарчі товари</div>
+                  <div className="text-[10px] text-slate-500">Кріплення, захист, сад</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Preview Container */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-600 px-1">
+                <span className="flex items-center gap-1.5">
+                  <Eye className="w-4 h-4 text-amber-500" />
+                  <span>Попередній вигляд на першому екрані (Hero-банер)</span>
+                </span>
+                <span className="text-amber-600 font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  ● Рендер Hero-блоку вітрини
+                </span>
+              </div>
+
+              <div className="p-5 sm:p-7 bg-slate-950 text-white rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden space-y-3">
+                <div className="absolute top-0 left-1/4 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between pb-3 text-xs text-slate-400 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Швидкий перехід за каталогом ISKRA:</span>
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Стан: {(designForm.heroQuickNavEnabled ?? true) ? 'Увімкнено' : 'Вимкнено'}
+                    </span>
+                  </div>
+
+                  {!(designForm.heroQuickNavEnabled ?? true) ? (
+                    <div className="py-8 text-center bg-slate-900/60 rounded-2xl border border-dashed border-slate-800 text-slate-400 text-xs font-semibold">
+                      ⚠️ Блок швидкого переходу за напрямками вимкнено — кнопки приховані в головному банері сайту.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-200">
+                        <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0">
+                          <Droplets className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold truncate">Сантехніка</div>
+                          <div className="text-[9px] text-cyan-400/80 font-mono">Опалення</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-200">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+                          <Zap className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold truncate">Електрика</div>
+                          <div className="text-[9px] text-amber-400/80 font-mono">Освітлення</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-200">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+                          <Wrench className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold truncate">Інструмент</div>
+                          <div className="text-[9px] text-emerald-400/80 font-mono">Обладнання</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-200">
+                        <div className="w-8 h-8 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-400 flex items-center justify-center shrink-0">
+                          <Home className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold truncate">Господарчі</div>
+                          <div className="text-[9px] text-violet-400/80 font-mono">Кріплення</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -9821,7 +11093,21 @@ export const AdminPanel: React.FC = () => {
                       heroTitle: 'Надійна Сантехніка та Електротовари',
                       heroDesc: 'Найбільший асортимент товарів для ремонту, монтажу та будівництва у вас вдома.',
                       heroAddress: 'Вінницька обл., с-ще. Оратів',
-                      heroCity: 'с-ще. Оратів, Вінницька обл.'
+                      heroCity: 'с-ще. Оратів, Вінницька обл.',
+                      heroQuickNavEnabled: true,
+                      heroStatsEnabled: true,
+                      heroStat1Label: 'Каталог',
+                      heroStat1Value: '5,000+',
+                      heroStat1Sub: 'позицій на складі',
+                      heroStat2Label: 'Відправка',
+                      heroStat2Value: '24/7',
+                      heroStat2Sub: 'день у день',
+                      heroStat3Label: 'Оцінка',
+                      heroStat3Value: '4.9 / 5',
+                      heroStat3Sub: 'довіра майстрів',
+                      heroStat4Label: 'Гарантія',
+                      heroStat4Value: '100%',
+                      heroStat4Sub: 'офіційна'
                     });
                     showToast('Застосовано фірмовий стиль ISKRA!', 'info');
                   }}
@@ -10375,7 +11661,21 @@ export const AdminPanel: React.FC = () => {
                   heroTitle: 'Надійна Сантехніка та Електротовари',
                   heroDesc: 'Найбільший асортимент товарів для ремонту, монтажу та будівництва у вас вдома.',
                   heroAddress: 'Вінницька обл., с-ще. Оратів',
-                  heroCity: 'с-ще. Оратів, Вінницька обл.'
+                  heroCity: 'с-ще. Оратів, Вінницька обл.',
+                  heroQuickNavEnabled: true,
+                  heroStatsEnabled: true,
+                  heroStat1Label: 'Каталог',
+                  heroStat1Value: '5,000+',
+                  heroStat1Sub: 'позицій на складі',
+                  heroStat2Label: 'Відправка',
+                  heroStat2Value: '24/7',
+                  heroStat2Sub: 'день у день',
+                  heroStat3Label: 'Оцінка',
+                  heroStat3Value: '4.9 / 5',
+                  heroStat3Sub: 'довіра майстрів',
+                  heroStat4Label: 'Гарантія',
+                  heroStat4Value: '100%',
+                  heroStat4Sub: 'офіційна'
                 });
                 showToast('Значення дизайну скинуто до початкових', 'info');
               }}

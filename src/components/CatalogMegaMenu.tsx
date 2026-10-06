@@ -125,7 +125,7 @@ export const CatalogMegaMenu: React.FC<CatalogMegaMenuProps> = ({ isOpen, onClos
                       <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
                         <button
                           onClick={() => handleSelectCategory(mainCatName)}
-                          className="flex items-center gap-2 text-base font-black text-slate-900 hover:text-red-600 transition-colors group text-left"
+                          className="flex items-center gap-2 text-base font-black text-slate-900 hover:text-red-600 transition-colors group text-left w-full cursor-pointer"
                         >
                           <div className="p-1.5 rounded-xl bg-white shadow-2xs group-hover:scale-105 transition-all">
                             {getIcon(mainCatName)}

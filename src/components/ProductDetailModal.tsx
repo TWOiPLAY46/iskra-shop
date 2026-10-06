@@ -138,9 +138,9 @@ export const ProductDetailModal: React.FC = () => {
                     setIsZoomed(true);
                   }
                 }}
-                className={`aspect-[4/3] rounded-2xl bg-slate-50 border border-slate-200 p-4 flex items-center justify-center relative overflow-hidden group select-none transition-all ${
+                className={`aspect-[4/3] rounded-2xl bg-slate-50 border border-slate-200/80 p-4 flex items-center justify-center relative overflow-hidden group select-none transition-all ${
                   !imgError && quickViewProduct.image && quickViewProduct.image.trim() !== ''
-                    ? 'cursor-zoom-in hover:border-orange-400 hover:shadow-md'
+                    ? 'cursor-zoom-in hover:border-slate-300'
                     : ''
                 }`}
                 title={!imgError && quickViewProduct.image ? 'Натисніть для збільшення фото' : undefined}
@@ -152,10 +152,11 @@ export const ProductDetailModal: React.FC = () => {
                       alt={quickViewProduct.name}
                       onError={() => setImgError(true)}
                       referrerPolicy="no-referrer"
-                      className="max-h-full max-w-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
+                      className="max-h-full max-w-full object-contain object-center transition-transform duration-300 ease-out group-hover:scale-[1.015]"
                     />
-                    <div className="absolute bottom-2.5 right-2.5 bg-slate-900/75 hover:bg-slate-900 text-white px-2.5 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1.5 text-xs font-semibold backdrop-blur-xs shadow-md">
-                      <ZoomIn className="w-3.5 h-3.5" />
+
+                    <div className="absolute bottom-3 right-3 bg-slate-900/80 text-white px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1.5 text-xs font-semibold backdrop-blur-md shadow-md border border-white/10 z-20">
+                      <ZoomIn className="w-3.5 h-3.5 text-red-400" />
                       <span>Збільшити фото</span>
                     </div>
                   </>

@@ -1,27 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
-import { CatalogMegaMenu } from './CatalogMegaMenu';
 import { 
-  ShoppingBag, 
+  Search, 
+  ShoppingCart, 
+  ShoppingBag,
   Heart, 
   Menu, 
   X, 
-  Sparkles,
-  Flame,
-  Search,
-  LayoutGrid,
+  LayoutGrid, 
+  Sparkles, 
+  Flame, 
   Building2,
   RotateCcw
 } from 'lucide-react';
+import { CatalogMegaMenu } from './CatalogMegaMenu';
+import { Product } from '../types/store';
 
 export const Header: React.FC = () => {
   const { 
-    discountedCartSum, 
-    setIsCartDrawerOpen, 
+    cart, 
     wishlist, 
-    showWishlistOnly,
-    setShowWishlistOnly,
-    currentClient, 
+    setIsCartDrawerOpen, 
     activeView, 
     setActiveView, 
     headerDesign,
@@ -30,7 +29,11 @@ export const Header: React.FC = () => {
     searchQuery,
     setSearchQuery,
     products,
-    setQuickViewProduct
+    setQuickViewProduct,
+    discountedCartSum,
+    currentClient,
+    showWishlistOnly,
+    setShowWishlistOnly
   } = useStore();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -40,30 +43,30 @@ export const Header: React.FC = () => {
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // Close search dropdown on outside click
+  // Close search dropdown on click outside
   useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setIsSearchFocused(false);
       }
     };
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Quick live search matching items
-  const quickSearchResults = React.useMemo(() => {
-    if (!searchQuery || searchQuery.trim().length < 2) return [];
-    const q = searchQuery.toLowerCase().trim();
-    return products
-      .filter((p) => 
-        p.name.toLowerCase().includes(q) || 
-        p.sku.toLowerCase().includes(q) || 
-        p.category.toLowerCase().includes(q) ||
-        (p.mainCategory && p.mainCategory.toLowerCase().includes(q))
-      )
-      .slice(0, 5);
-  }, [searchQuery, products]);
+  // Instant quick search results
+  const quickSearchResults = searchQuery.trim()
+    ? products.filter(p => 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.sku.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 5)
+    : [];
+
+  const handleSelectSearchResult = (prod: Product) => {
+    setQuickViewProduct(prod);
+    setIsSearchFocused(false);
+  };
 
   const scrollToHits = () => {
     setActiveView('store');
@@ -72,28 +75,23 @@ export const Header: React.FC = () => {
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }, 100);
-  };
-
-  const handleSelectSearchResult = (prod: any) => {
-    setIsSearchFocused(false);
-    setQuickViewProduct(prod);
+    }, 50);
   };
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs transition-all w-full">
+      <header className="sticky top-0 z-40 backdrop-blur-2xl transition-all w-full relative bg-white/95 border-b border-slate-200/80 shadow-xs text-slate-800">
         {/* Dynamic Slim Promo Banner */}
         {headerDesign.promoActive && headerDesign.promoText && !promoDismissed && (
-          <div className="bg-gradient-to-r from-red-600 via-orange-600 to-red-700 text-white text-xs font-medium py-1.5 px-4">
+          <div className="text-xs font-medium py-1.5 px-4 bg-gradient-to-r from-red-600 via-orange-600 to-red-700 text-white">
             <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
               <div className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">
-                <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-200" />
+                <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-300" />
                 <span>{headerDesign.promoText}</span>
               </div>
               <button 
                 onClick={() => setPromoDismissed(true)} 
-                className="text-white/80 hover:text-white shrink-0 p-0.5"
+                className="text-white/80 hover:text-white shrink-0 p-0.5 cursor-pointer"
                 aria-label="Закрити банер"
               >
                 <X className="w-3.5 h-3.5" />
@@ -102,13 +100,15 @@ export const Header: React.FC = () => {
           </div>
         )}
 
-        {/* Main Header Bar */}
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16 gap-1.5 sm:gap-4">
+        {/* Main Header Container */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* Top Row: Brand, Search Bar, and Actions */}
+          <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4 md:gap-6">
             
-            {/* Logo: Red ISKRA Badge + МАГАЗИН / Магазин надійних рішень */}
-            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
-              <button
+            {/* Logo Area (ISKRA Brand Identity) */}
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+              <button 
                 onClick={() => {
                   setActiveView('store');
                   setActiveCategory('Усі');
@@ -120,19 +120,19 @@ export const Header: React.FC = () => {
               >
                 {/* Red rectangular ISKRA badge */}
                 <div className="relative shrink-0">
-                  <div className="flex items-center justify-center bg-[#e5001e] hover:bg-[#d4001a] text-white px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-[6px] shadow-xs transition-transform duration-150 group-hover:scale-[1.02] active:scale-95">
+                  <div className="flex items-center justify-center text-white px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-[6px] transition-transform duration-150 group-hover:scale-[1.02] active:scale-95 bg-[#e5001e] hover:bg-[#d4001a] shadow-xs">
                     <span className="font-black text-white text-[15.5px] sm:text-[18px] tracking-[0.05em] font-display leading-none transform scale-y-110 scale-x-105 inline-block uppercase select-none">
                       {headerDesign.logoBadge || 'ISKRA'}
                     </span>
                   </div>
                 </div>
 
-                {/* Right Wordmark: Hidden on mobile (< sm), shown on tablet and desktop */}
+                {/* Right Wordmark */}
                 <div className="hidden sm:flex flex-col justify-center text-left">
-                  <span className="font-bold text-xs sm:text-base text-black tracking-tight font-display leading-tight uppercase">
+                  <span className="font-bold text-xs sm:text-base tracking-tight font-display leading-tight uppercase text-black">
                     {headerDesign.logoText || 'МАГАЗИН'}
                   </span>
-                  <span className="text-[8.5px] sm:text-[11px] font-semibold text-black tracking-tight leading-tight">
+                  <span className="text-[8.5px] sm:text-[11px] font-semibold tracking-tight leading-tight text-black">
                     {headerDesign.logoSubtitle || 'Магазин надійних рішень'}
                   </span>
                 </div>
@@ -142,16 +142,16 @@ export const Header: React.FC = () => {
             {/* Catalog Button (Desktop only) */}
             <button
               onClick={() => setIsCatalogOpen(true)}
-              className="hidden md:inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
+              className="hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer active:scale-95 bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
             >
-              <LayoutGrid className="w-4 h-4 text-red-500" />
+              <LayoutGrid className="w-4 h-4 text-white" />
               <span>Каталог</span>
             </button>
 
-            {/* Desktop Search Bar (Hidden on mobile < md, replaced by full-width Row 2 below) */}
+            {/* Desktop Search Bar */}
             <div ref={searchContainerRef} className="hidden md:block flex-1 max-w-md relative">
               <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -161,7 +161,7 @@ export const Header: React.FC = () => {
                   }}
                   onFocus={() => setIsSearchFocused(true)}
                   placeholder="Пошук серед товарів..."
-                  className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/10 transition-all"
+                  className="w-full pl-9 pr-8 py-2 rounded-xl text-xs outline-none transition-all border border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/10"
                 />
                 {searchQuery && (
                   <button
@@ -176,8 +176,8 @@ export const Header: React.FC = () => {
 
               {/* Instant Search Results Dropdown */}
               {isSearchFocused && quickSearchResults.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50 divide-y divide-slate-100">
-                  <div className="p-2 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
+                <div className="absolute left-0 right-0 top-full mt-1.5 rounded-2xl shadow-2xl border overflow-hidden z-50 divide-y bg-white border-slate-200 divide-slate-100 text-slate-900">
+                  <div className="p-2 text-[10px] font-bold uppercase tracking-wider flex justify-between bg-slate-50 text-slate-400">
                     <span>Знайдено в каталозі ({quickSearchResults.length})</span>
                     <span>Натисніть для перегляду</span>
                   </div>
@@ -185,17 +185,17 @@ export const Header: React.FC = () => {
                     <button
                       key={prod.id}
                       onClick={() => handleSelectSearchResult(prod)}
-                      className="w-full p-2.5 hover:bg-slate-50 flex items-center justify-between text-left transition-colors cursor-pointer"
+                      className="w-full p-2.5 flex items-center justify-between text-left transition-colors cursor-pointer hover:bg-slate-50"
                     >
                       <div className="min-w-0 pr-2">
-                        <div className="text-xs font-bold text-slate-900 truncate">
+                        <div className="text-xs font-bold truncate text-slate-900">
                           {prod.name}
                         </div>
                         <div className="text-[10px] text-slate-400 font-mono">
                           {prod.sku} · {prod.category}
                         </div>
                       </div>
-                      <div className="text-xs font-black text-red-600 shrink-0 tabular-nums">
+                      <div className="text-xs font-black text-red-500 shrink-0 tabular-nums">
                         {prod.price} грн
                       </div>
                     </button>
@@ -215,16 +215,16 @@ export const Header: React.FC = () => {
                 }}
                 className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                   activeView === 'about'
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                    ? 'bg-red-600 text-white border-red-500 shadow-xs'
                     : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800'
                 }`}
                 title="Інформація про продавця та реквізити"
               >
-                <Building2 className={`w-3.5 h-3.5 ${activeView === 'about' ? 'text-red-400' : 'text-red-600'}`} />
+                <Building2 className={`w-3.5 h-3.5 ${activeView === 'about' ? 'text-white' : 'text-red-500'}`} />
                 <span className="font-medium text-[10px] sm:text-xs">Про нас</span>
               </button>
 
-              {/* Returns & Exchange Button (Повернення та обмін) - visible on tablet/desktop */}
+              {/* Returns & Exchange Button (Повернення та обмін) */}
               <button
                 onClick={() => {
                   setActiveView(activeView === 'returns' ? 'store' : 'returns');
@@ -232,12 +232,12 @@ export const Header: React.FC = () => {
                 }}
                 className={`hidden lg:inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                   activeView === 'returns'
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                    ? 'bg-red-600 text-white border-red-500 shadow-xs'
                     : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800'
                 }`}
                 title="Умови повернення та обміну товару (14 днів)"
               >
-                <RotateCcw className={`w-3.5 h-3.5 ${activeView === 'returns' ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                <RotateCcw className={`w-3.5 h-3.5 ${activeView === 'returns' ? 'text-white' : 'text-emerald-400'}`} />
                 <span className="font-medium text-[10px] sm:text-xs">Повернення</span>
               </button>
 
@@ -246,15 +246,17 @@ export const Header: React.FC = () => {
                 onClick={() => setActiveView(activeView === 'account' ? 'store' : 'account')}
                 className={`inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-colors cursor-pointer ${
                   activeView === 'account'
-                    ? 'bg-slate-900 text-white border-slate-900'
+                    ? 'bg-red-600 text-white border-red-500'
                     : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800'
                 }`}
               >
-                <span className={`font-medium text-[10px] sm:text-xs ${activeView === 'account' ? 'text-white' : 'text-slate-800'}`}>
+                <span className={`font-medium text-[10px] sm:text-xs ${
+                  activeView === 'account' ? 'text-white' : 'text-slate-800'
+                }`}>
                   {currentClient ? (currentClient.name || 'Кабінет').split(' ')[0] : 'Кабінет'}
                 </span>
                 {currentClient?.discount ? (
-                  <span className="bg-emerald-50 border border-emerald-400 text-emerald-700 text-[8.5px] sm:text-[10px] font-bold px-1 py-0.2 rounded">
+                  <span className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-700 text-[8.5px] sm:text-[10px] font-bold px-1 py-0.2 rounded">
                     -{currentClient.discount}%
                   </span>
                 ) : null}
@@ -281,13 +283,13 @@ export const Header: React.FC = () => {
                 }}
                 className={`relative p-1 sm:p-1.5 rounded-xl transition-all cursor-pointer ${
                   showWishlistOnly 
-                    ? 'text-red-600 bg-red-50 ring-2 ring-red-400 shadow-xs' 
+                    ? 'text-red-500 bg-red-500/20 ring-2 ring-red-400 shadow-xs' 
                     : 'text-slate-800 hover:text-red-600'
                 }`}
                 title={showWishlistOnly ? "Показати весь каталог" : "Показати тільки обрані товари"}
                 aria-label="Обрані товари"
               >
-                <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform ${showWishlistOnly ? 'fill-red-600 text-red-600 scale-110' : 'text-slate-800 stroke-[1.8]'}`} />
+                <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform ${showWishlistOnly ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-800 stroke-[1.8]'}`} />
                 {wishlist.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] sm:text-[10px] font-bold w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center animate-in zoom-in-50">
                     {wishlist.length}
@@ -295,7 +297,7 @@ export const Header: React.FC = () => {
                 )}
               </button>
 
-              {/* Shopping Cart Drawer Trigger (Red button with bag icon and sum) */}
+              {/* Shopping Cart Drawer Trigger */}
               <button
                 onClick={() => setIsCartDrawerOpen(true)}
                 className="inline-flex items-center gap-1 sm:gap-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
@@ -307,10 +309,10 @@ export const Header: React.FC = () => {
                 </span>
               </button>
 
-              {/* Mobile menu trigger (Three stripes / Burger) - enlarged and comfortable touch target */}
+              {/* Mobile menu trigger */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="ml-2 sm:ml-3 p-2 text-slate-800 hover:text-black hover:bg-slate-100 active:bg-slate-200 rounded-xl md:hidden cursor-pointer flex items-center justify-center min-w-[42px] min-h-[42px] transition-colors"
+                className="ml-2 sm:ml-3 p-2 rounded-xl md:hidden cursor-pointer flex items-center justify-center min-w-[42px] min-h-[42px] transition-colors text-slate-800 hover:text-black hover:bg-slate-100 active:bg-slate-200"
                 aria-label="Меню сайту"
               >
                 {isMobileMenuOpen ? (
@@ -327,9 +329,9 @@ export const Header: React.FC = () => {
           <div className="md:hidden pb-2.5 pt-0.5 flex items-center gap-2">
             <button
               onClick={() => setIsCatalogOpen(true)}
-              className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer active:scale-95 bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
             >
-              <LayoutGrid className="w-4 h-4 text-red-500" />
+              <LayoutGrid className="w-4 h-4 text-white" />
               <span>Каталог</span>
             </button>
 
@@ -344,7 +346,7 @@ export const Header: React.FC = () => {
                 }}
                 onFocus={() => setIsSearchFocused(true)}
                 placeholder="Пошук серед товарів..."
-                className="w-full pl-8 pr-7 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/10 transition-all"
+                className="w-full pl-8 pr-7 py-2 rounded-xl text-xs outline-none transition-all border border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/10"
               />
               {searchQuery && (
                 <button

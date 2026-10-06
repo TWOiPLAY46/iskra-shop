@@ -252,7 +252,7 @@ export function classifyProduct(name: string, sku: string = ''): CategoryClassif
   if (text.includes('бойлер') || text.includes('водонагрівач') || text.includes('арістон') || text.includes('ariston') || text.includes('атлантік') || text.includes('atlantic')) {
     return {
       mainCategory: 'Сантехніка та опалення',
-      subCategory: 'Радіатори та опалення',
+      subCategory: 'Бойлери та водонагрівачі',
       category: 'Бойлер'
     };
   }
