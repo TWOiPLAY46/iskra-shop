@@ -317,9 +317,9 @@ export const AccountView: React.FC = () => {
   }, [clientOrders, statusFilter, orderSearchQuery]);
 
   // Standalone tracking search handler
-  const handleStandaloneTrack = (e: React.FormEvent) => {
-    e.preventDefault();
-    const query = standaloneTrackQuery.trim().replace(/^№/, '').toLowerCase();
+  const handleStandaloneTrack = (e?: React.FormEvent, customQuery?: string) => {
+    if (e) e.preventDefault();
+    const query = (customQuery !== undefined ? customQuery : standaloneTrackQuery).trim().replace(/^№/, '').toLowerCase();
     if (!query) return;
 
     setHasSearchedTrack(true);
@@ -332,12 +332,35 @@ export const AccountView: React.FC = () => {
       return idMatch || ttnMatch || phoneMatch;
     });
 
-    setSearchedOrderResult(found || null);
     if (found) {
+      setSearchedOrderResult(found);
       showToast(`Знайдено замовлення №${found.id}`, 'success');
-    } else {
-      showToast('Замовлення за вказаним номером не знайдено', 'error');
+      return;
     }
+
+    // Direct 14-digit Nova Poshta TTN support even if not in local demo orders list
+    if (cleanQuery.length === 14) {
+      const syntheticOrder: Order = {
+        id: `ТТН-${cleanQuery}`,
+        date: new Date().toLocaleDateString('uk-UA'),
+        fio: 'Одержувач посилки',
+        phone: '+380',
+        city: 'Україна',
+        delivery: `Нова Пошта: ${cleanQuery}`,
+        ttn: cleanQuery,
+        paymentMethod: 'cash_on_delivery',
+        status: 'Відправлено',
+        items: [],
+        total: 0,
+        isPaid: false
+      };
+      setSearchedOrderResult(syntheticOrder);
+      showToast(`Підключено Live-трекінг Нової Пошти для ТТН ${cleanQuery}`, 'info');
+      return;
+    }
+
+    setSearchedOrderResult(null);
+    showToast('Замовлення за вказаним номером не знайдено', 'error');
   };
 
   // Re-order items
@@ -482,26 +505,26 @@ export const AccountView: React.FC = () => {
           /* ========================================================= */
           /* UNAUTHENTICATED VIEW: DUAL LOGIN OR QUICK TRACKING        */
           /* ========================================================= */
-          <div className="max-w-4xl mx-auto space-y-8">
+          <div className="max-w-xl mx-auto space-y-8">
             
             {/* Title Section */}
-            <div className="text-center max-w-xl mx-auto space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-100/80 text-orange-700 rounded-full text-xs font-bold mb-1">
-                <Truck className="w-3.5 h-3.5" />
-                <span>Особистий кабінет та відстеження посилок</span>
+            <div className="text-center max-w-lg mx-auto space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-orange-100/80 text-orange-700 rounded-full text-xs font-bold mb-1 shadow-2xs">
+                <User className="w-3.5 h-3.5" />
+                <span>Особистий кабінет покупця</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black font-display text-slate-900 tracking-tight">
-                Мої замовлення та відстеження
+                {authMode === 'login' ? 'Вхід до кабінету' : 'Реєстрація в ISKRA'}
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                Увійдіть за номером телефону, щоб переглянути всі замовлення та бонуси, або введіть номер ТТН для миттєвого відстеження.
+                {authMode === 'login'
+                  ? 'Увійдіть за номером телефону або Email, щоб переглянути замовлення, знижки та баланс'
+                  : 'Створіть власний кабінет та отримайте +100 вітальних бонусів на покупки'}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              
-              {/* Left Column: Login/Register Card (7 cols) */}
-              <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+            {/* Centered Login/Register Card */}
+            <div className="w-full bg-white rounded-3xl border border-slate-200/90 shadow-xl shadow-slate-200/50 p-6 sm:p-8 space-y-6">
                 
                 {/* Auth Mode Tabs: Login vs Register */}
                 <div className="flex items-center p-1 bg-slate-100/80 rounded-2xl border border-slate-200/80">
@@ -758,59 +781,177 @@ export const AccountView: React.FC = () => {
 
               </div>
 
-              {/* Right Column: Quick Single Order Tracking Search (5 cols) */}
-              <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl border border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center font-bold">
-                    <Search className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-bold text-white">Швидке відстеження</h2>
-                    <p className="text-[11px] text-slate-400">Без реєстрації та входу</p>
+              {/* Centered Divider */}
+              <div className="relative flex items-center justify-center my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200" />
+                </div>
+                <div className="relative px-4 bg-slate-50 text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
+                  Або швидке відстеження посилки
+                </div>
+              </div>
+
+              {/* Centered Quick Single Order Tracking Search */}
+              <div className="w-full relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-800/80 overflow-hidden">
+                
+                {/* Ambient glow decoration */}
+                <div className="absolute -top-16 -right-16 w-64 h-64 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
+
+                {/* Header */}
+                <div className="relative z-10 flex items-center justify-between pb-4 border-b border-white/5">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-red-600 via-orange-600 to-amber-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-red-600/25">
+                      <Truck className="w-6 h-6 stroke-[2.2]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 text-[10px] font-extrabold uppercase tracking-wider">
+                          Нова Пошта ⚡ Live
+                        </span>
+                      </div>
+                      <h2 className="text-base sm:text-lg font-black text-white font-display tracking-tight mt-0.5">
+                        Швидке відстеження
+                      </h2>
+                      <p className="text-[11px] text-slate-400">
+                        Миттєвий трекінг посилок без реєстрації та входу
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Введіть номер замовлення (напр. <code className="text-orange-400 font-mono">174092182</code>) або номер накладної Нової Пошти (14 цифр).
+                <p className="text-xs text-slate-300 leading-relaxed relative z-10">
+                  Введіть номер замовлення (напр. <code className="text-amber-400 font-mono font-bold bg-slate-800/80 px-1.5 py-0.5 rounded">174092182</code>) або 14-значний номер ТТН Нової Пошти.
                 </p>
 
-                <form onSubmit={handleStandaloneTrack} className="space-y-3">
-                  <div className="relative">
+                {/* Interactive Search Input Form */}
+                <form onSubmit={(e) => handleStandaloneTrack(e)} className="space-y-3 relative z-10">
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-400 transition-colors pointer-events-none">
+                      <Search className="w-4 h-4" />
+                    </div>
                     <input
                       type="text"
-                      placeholder="Введіть номер або ТТН..."
+                      placeholder="Номер замовлення або ТТН (14 цифр)..."
                       value={standaloneTrackQuery}
                       onChange={(e) => setStandaloneTrackQuery(e.target.value)}
-                      className="w-full pl-4 pr-10 py-3 bg-slate-800/90 border border-slate-700 rounded-2xl text-xs text-white placeholder:text-slate-500 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition-all font-mono"
+                      className="w-full pl-11 pr-24 py-3.5 bg-slate-900/90 border border-slate-700/80 group-focus-within:border-red-500 rounded-2xl text-xs text-white placeholder:text-slate-500 outline-none focus:ring-4 focus:ring-red-500/15 transition-all font-mono font-bold shadow-inner"
                     />
-                    <button
-                      type="submit"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl transition-colors"
-                      title="Знайти посилку"
-                    >
-                      <Search className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      {standaloneTrackQuery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStandaloneTrackQuery('');
+                            setHasSearchedTrack(false);
+                            setSearchedOrderResult(null);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                          title="Очистити"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        className="px-3.5 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-red-600/30 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        title="Знайти посилку"
+                      >
+                        <span>Пошук</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quick Sample / Test Chips */}
+                  <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-slate-400">
+                    <span className="font-semibold text-slate-400">Спробувати зразок:</span>
+                    {orders.length > 0 && orders[0].id && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStandaloneTrackQuery(orders[0].id);
+                          handleStandaloneTrack(undefined, orders[0].id);
+                        }}
+                        className="px-2 py-0.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-amber-300 border border-slate-700 font-mono hover:border-amber-400/50 transition-all cursor-pointer"
+                      >
+                        №{orders[0].id}
+                      </button>
+                    )}
+                    {orders.find(o => o.ttn)?.ttn && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sampleTtn = orders.find(o => o.ttn)!.ttn!;
+                          setStandaloneTrackQuery(sampleTtn);
+                          handleStandaloneTrack(undefined, sampleTtn);
+                        }}
+                        className="px-2 py-0.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-red-300 border border-slate-700 font-mono hover:border-red-400/50 transition-all cursor-pointer"
+                      >
+                        ТТН: {orders.find(o => o.ttn)!.ttn}
+                      </button>
+                    )}
                   </div>
                 </form>
 
-                {/* Quick results if searched */}
+                {/* Quick Results Container */}
                 {hasSearchedTrack && (
-                  <div className="pt-2 animate-in fade-in duration-200">
+                  <div className="pt-2 animate-in fade-in zoom-in-95 duration-200 relative z-10 space-y-3">
                     {searchedOrderResult ? (
-                      <div className="bg-slate-800/90 border border-slate-700 rounded-2xl p-4 space-y-3">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-white font-mono">
-                            Замовлення №{searchedOrderResult.id}
-                          </span>
-                          <span className="text-emerald-400 font-bold">
-                            {searchedOrderResult.status}
-                          </span>
+                      <div className="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+                        
+                        {/* Order Header Summary */}
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-black text-white text-sm">
+                                {searchedOrderResult.id.startsWith('ТТН-') ? searchedOrderResult.id : `Замовлення №${searchedOrderResult.id}`}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                · {searchedOrderResult.date}
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-300 mt-0.5 font-medium">
+                              Одержувач: <strong className="text-white">{searchedOrderResult.fio || 'Покупець'}</strong> · {searchedOrderResult.city}
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className={`px-2.5 py-1 rounded-xl text-xs font-black inline-flex items-center gap-1.5 border ${
+                              searchedOrderResult.status === 'Доставлено'
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                : searchedOrderResult.status === 'Відправлено'
+                                  ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                            }`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                              {searchedOrderResult.status}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-[11px] text-slate-400">
-                          {searchedOrderResult.fio} · {searchedOrderResult.city}
-                        </div>
+
+                        {/* Order Items Preview if available */}
+                        {searchedOrderResult.items && searchedOrderResult.items.length > 0 && (
+                          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
+                            <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
+                              <span>Товари в замовленні ({searchedOrderResult.items.length}):</span>
+                              <span className="text-white font-mono font-black">{searchedOrderResult.total} грн</span>
+                            </div>
+                            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                              {searchedOrderResult.items.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs text-slate-300 bg-slate-900/60 p-1.5 rounded-lg">
+                                  <span className="truncate pr-2 font-medium">{item.name}</span>
+                                  <span className="shrink-0 font-mono text-[11px] text-slate-400">
+                                    {item.qty} × {item.price} грн
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Live Tracking Widget or Waiting state */}
                         {searchedOrderResult.ttn ? (
-                          <div className="pt-2 border-t border-slate-700">
+                          <div className="pt-1">
                             <LiveTrackingWidget 
                               order={searchedOrderResult}
                               apiKey={siteSettings.novaPoshtaApiKey}
@@ -818,29 +959,56 @@ export const AccountView: React.FC = () => {
                             />
                           </div>
                         ) : (
-                          <div className="text-[11px] text-slate-400 pt-2 border-t border-slate-700">
-                            ТТН ще готується до відправки
+                          <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 text-xs text-amber-300 flex items-center gap-3">
+                            <Clock className="w-5 h-5 text-amber-400 shrink-0" />
+                            <div>
+                              <div className="font-bold text-amber-200">Посилка комплектується на складі ISKRA</div>
+                              <div className="text-[11px] text-amber-400/80 mt-0.5">
+                                Номер ТТН Нової Пошти буде згенеровано та надіслано в SMS після передачі кур'єру.
+                              </div>
+                            </div>
                           </div>
                         )}
+
                       </div>
                     ) : (
-                      <div className="bg-rose-950/40 border border-rose-800/60 rounded-2xl p-4 text-xs text-rose-300 flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                        <span>Замовлення не знайдено. Перевірте номер або зателефонуйте менеджеру.</span>
+                      <div className="bg-rose-950/50 border border-rose-800/70 rounded-2xl p-4 text-xs text-rose-200 space-y-2">
+                        <div className="flex items-center gap-2 font-bold text-rose-300">
+                          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                          <span>Замовлення за вказаним номером не знайдено</span>
+                        </div>
+                        <p className="text-[11px] text-rose-300/80 leading-relaxed">
+                          Перевірте правильність введеного номера (напр. <code>174092182</code>) або 14 цифр ТТН Нової Пошти. Якщо замовлення оформлено щойно, воно з'явиться в системі протягом кількох хвилин.
+                        </p>
                       </div>
                     )}
                   </div>
                 )}
 
-                <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50 text-[11px] text-slate-400 space-y-1">
-                  <div className="font-bold text-slate-300">Потрібна допомога менеджера?</div>
-                  <div>Гаряча лінія ISKRA: <a href={`tel:${siteSettings.phone.replace(/\D/g, '')}`} className="text-orange-400 font-bold hover:underline">{siteSettings.phone}</a></div>
-                  <div>Графік: {siteSettings.workHours}</div>
+                {/* Manager Hotline Assistance Box */}
+                <div className="relative z-10 p-4 bg-slate-900/80 rounded-2xl border border-slate-800 text-[11px] text-slate-400 space-y-2 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-slate-200 text-xs">Потрібна допомога менеджера?</span>
+                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      На зв'язку
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+                    <div>
+                      <div className="text-slate-400 text-[10px]">Гаряча лінія ISKRA:</div>
+                      <a href={`tel:${siteSettings.phone.replace(/\D/g, '')}`} className="text-orange-400 font-black text-xs hover:underline tracking-tight">
+                        {siteSettings.phone}
+                      </a>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-slate-400 text-[10px]">Графік роботи:</div>
+                      <div className="text-slate-300 font-semibold">{siteSettings.workHours}</div>
+                    </div>
+                  </div>
                 </div>
 
               </div>
-
-            </div>
 
           </div>
         ) : (
