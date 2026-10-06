@@ -140,23 +140,19 @@ export const StoreFront: React.FC = () => {
         );
       }
 
-      // Filter by Subcategory Card selection
-      if (selectedSubCategory) {
+      // Filter by Specific Tag / Leaf click or Subcategory Card selection
+      if (selectedLeafTag) {
+        const leaf = selectedLeafTag;
+        list = list.filter((p) => 
+          matchCategoryOrLeaf(p.category, leaf) ||
+          matchCategoryOrLeaf(p.name, leaf)
+        );
+      } else if (selectedSubCategory) {
         const sub = selectedSubCategory;
         list = list.filter((p) => 
           (p.subCategory && matchCategoryOrLeaf(p.subCategory, sub)) ||
           matchCategoryOrLeaf(p.category, sub) ||
           (p.mainCategory && matchCategoryOrLeaf(p.mainCategory, sub))
-        );
-      }
-
-      // Filter by Specific Tag / Leaf click
-      if (selectedLeafTag) {
-        const leaf = selectedLeafTag;
-        list = list.filter((p) => 
-          matchCategoryOrLeaf(p.category, leaf) ||
-          (p.subCategory && matchCategoryOrLeaf(p.subCategory, leaf)) ||
-          (p.mainCategory && matchCategoryOrLeaf(p.mainCategory, leaf))
         );
       }
     }
