@@ -1132,23 +1132,7 @@ export const AdminPanel: React.FC = () => {
             {loginError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2 animate-in fade-in">
                 <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <span>{loginError}</span>
-                  {loginError.includes('не знайдено') && !isRegisterMode && (
-                    <div className="pt-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsRegisterMode(true);
-                          setLoginError(null);
-                        }}
-                        className="text-red-800 underline font-bold"
-                      >
-                        Створити цей обліковий запис в Firebase Auth?
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <span>{loginError}</span>
               </div>
             )}
 
@@ -1156,45 +1140,23 @@ export const AdminPanel: React.FC = () => {
             <button
               type="submit"
               disabled={isAuthenticating}
-              className="w-full py-3 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10"
+              className="w-full py-3 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 cursor-pointer"
             >
               {isAuthenticating ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>
-                    {isRegisterMode ? 'Створення в Firebase Auth...' : 'Авторизація у Firebase Auth...'}
-                  </span>
+                  <span>Авторизація у Firebase Auth...</span>
                 </>
               ) : (
-                <span>
-                  {isRegisterMode ? 'Зареєструвати адміністратора' : 'Увійти в панель керування'}
-                </span>
+                <span>Увійти в панель керування</span>
               )}
             </button>
           </form>
 
-          {/* Toggle Register / Login */}
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegisterMode(!isRegisterMode);
-                setLoginError(null);
-              }}
-              className="text-[11px] text-slate-500 hover:text-slate-900 transition-colors"
-            >
-              {isRegisterMode ? (
-                <span>Вже є обліковий запис? <strong>Увійти</strong></span>
-              ) : (
-                <span>Немає створеного користувача? <strong>Зареєструвати в Firebase Auth</strong></span>
-              )}
-            </button>
-          </div>
-
           <div className="mt-6 pt-4 border-t border-slate-100">
             <button
               onClick={() => setActiveView('store')}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Повернутися до магазину</span>
