@@ -7878,26 +7878,33 @@ export const AdminPanel: React.FC = () => {
 
             {/* Edit / Add Client Modal */}
             {clientModalOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
-                <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 animate-in zoom-in-95 space-y-5">
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0 border border-violet-200">
-                        <Users className="w-5 h-5" />
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200">
+                <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl shadow-indigo-950/20 border border-slate-100 animate-in zoom-in-95 space-y-6 max-h-[90vh] overflow-y-auto">
+                  
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between pb-5 border-b border-slate-100">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xl shadow-indigo-600/30">
+                        <Users className="w-7 h-7" />
                       </div>
                       <div>
-                        <h3 className="font-black text-base text-slate-900 font-display">
-                          {clientForm.isNew ? 'Додати нового покупця' : 'Редагувати картку покупця'}
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 rounded-full bg-violet-50 text-violet-700 font-bold text-[10px] tracking-wide uppercase border border-violet-100">
+                            {clientForm.isNew ? 'Новий клієнт' : 'Картка покупця'}
+                          </span>
+                        </div>
+                        <h3 className="font-black text-xl text-slate-900 font-display tracking-tight mt-0.5">
+                          {clientForm.isNew ? 'Додати нового покупця' : 'Редагувати профіль'}
                         </h3>
-                        <p className="text-xs text-slate-500">
-                          {clientForm.isNew ? 'Створення нової картки в системі лояльності' : `Телефон: ${clientForm.originalPhone || clientForm.phone}`}
+                        <p className="text-xs text-slate-500 font-mono mt-0.5">
+                          {clientForm.isNew ? 'Створення картки лояльності в базі' : `Телефон: +${clientForm.originalPhone || clientForm.phone}`}
                         </p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setClientModalOpen(false)}
-                      className="p-2 rounded-2xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                      className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 flex items-center justify-center transition-all cursor-pointer"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -7927,166 +7934,228 @@ export const AdminPanel: React.FC = () => {
                       });
                       setClientModalOpen(false);
                     }}
-                    className="space-y-4 text-xs"
+                    className="space-y-5 text-xs"
                   >
-                    <div>
-                      <label className="block font-bold text-slate-800 mb-1.5 flex items-center justify-between">
-                        <span>Номер телефону покупця *</span>
-                        <span className="text-[11px] text-violet-600 font-mono">Формат: +380 (XX) XXX-XX-XX</span>
-                      </label>
-                      <div className="relative">
-                        <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                          type="tel"
-                          required
-                          placeholder="+380 (67) 000-00-00"
-                          value={clientForm.phone}
-                          onChange={(e) => setClientForm({ ...clientForm, phone: formatUkrainianPhone(e.target.value) })}
-                          className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 font-mono text-sm font-bold bg-slate-50 focus:bg-white transition-all"
-                        />
+                    {/* Section 1: Main Info */}
+                    <div className="p-5 rounded-3xl bg-slate-50/90 border border-slate-200/70 space-y-4 shadow-xs">
+                      <div className="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2 text-violet-700">
+                        <div className="w-7 h-7 rounded-xl bg-violet-100 flex items-center justify-center">
+                          <Users className="w-4 h-4 text-violet-600" />
+                        </div>
+                        <span>Основні дані</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1.5">
+                            Номер телефону *
+                          </label>
+                          <div className="relative">
+                            <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                              type="tel"
+                              required
+                              placeholder="+380 (67) 000-00-00"
+                              value={clientForm.phone}
+                              onChange={(e) => setClientForm({ ...clientForm, phone: formatUkrainianPhone(e.target.value) })}
+                              className="w-full pl-10 pr-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 font-mono text-xs font-bold bg-white text-slate-900 transition-all shadow-xs"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1.5">
+                            Ім'я / Назва компанії *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Олександр Петренко"
+                            value={clientForm.name}
+                            onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
+                            className="w-full px-4 py-3 border border-slate-300 rounded-2xl outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 font-semibold bg-white text-slate-900 text-xs transition-all shadow-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1.5">
+                            Електронна пошта (Email)
+                          </label>
+                          <input
+                            type="email"
+                            placeholder="client@gmail.com"
+                            value={clientForm.email || ''}
+                            onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                            className="w-full px-4 py-3 border border-slate-300 rounded-2xl outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 bg-white text-slate-900 text-xs transition-all shadow-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1.5">
+                            Telegram / Viber нік
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="@username"
+                            value={clientForm.messenger || ''}
+                            onChange={(e) => setClientForm({ ...clientForm, messenger: e.target.value })}
+                            className="w-full px-4 py-3 border border-slate-300 rounded-2xl outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 font-mono bg-white text-slate-900 text-xs transition-all shadow-xs"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block font-bold text-slate-800 mb-1.5">
-                        Ім'я або назва компанії / Майстра
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Олександр (Майстер сантехнік)"
-                        value={clientForm.name}
-                        onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-semibold bg-slate-50 focus:bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block font-bold text-slate-800 mb-1.5">
-                          Місто / Населений пункт
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="смт. Оратів, Вінниця..."
-                          value={clientForm.city || ''}
-                          onChange={(e) => setClientForm({ ...clientForm, city: e.target.value })}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-semibold bg-slate-50 focus:bg-white transition-all"
-                        />
+                    {/* Section 2: Delivery & Nova Poshta */}
+                    <div className="p-5 rounded-3xl bg-slate-50/90 border border-slate-200/70 space-y-4 shadow-xs">
+                      <div className="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2 text-emerald-700">
+                        <div className="w-7 h-7 rounded-xl bg-emerald-100 flex items-center justify-center">
+                          <MapPin className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <span>Адреса та Нова Пошта</span>
                       </div>
 
-                      <div>
-                        <label className="block font-bold text-slate-800 mb-1.5 flex items-center justify-between">
-                          <span>Персональна знижка (%)</span>
-                          <span className="text-amber-600 font-mono font-bold">{clientForm.discount}%</span>
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="90"
-                          step="1"
-                          value={clientForm.discount}
-                          onChange={(e) => setClientForm({ ...clientForm, discount: parseInt(e.target.value) || 0 })}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-mono font-black text-amber-700 bg-amber-50/50 focus:bg-white transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block font-bold text-slate-800 mb-1.5">
-                          Електронна пошта (Email)
-                        </label>
-                        <input
-                          type="email"
-                          placeholder="client@gmail.com"
-                          value={clientForm.email || ''}
-                          onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs bg-slate-50 focus:bg-white transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-bold text-slate-800 mb-1.5">
-                          Telegram / Viber нік
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="@username"
-                          value={clientForm.messenger || ''}
-                          onChange={(e) => setClientForm({ ...clientForm, messenger: e.target.value })}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-mono bg-slate-50 focus:bg-white transition-all"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1.5">
+                            Місто доставки
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Оратів..."
+                            value={clientForm.city || ''}
+                            onChange={(e) => setClientForm({ ...clientForm, city: e.target.value })}
+                            className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 bg-white text-slate-900 text-xs transition-all shadow-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1.5">
+                            Улюблене місто (НП)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Вінниця"
+                            value={clientForm.defaultCity || ''}
+                            onChange={(e) => setClientForm({ ...clientForm, defaultCity: e.target.value })}
+                            className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 bg-white text-slate-900 text-xs transition-all shadow-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1.5">
+                            Відділення НП
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Відділення №1"
+                            value={clientForm.defaultWarehouse || ''}
+                            onChange={(e) => setClientForm({ ...clientForm, defaultWarehouse: e.target.value })}
+                            className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 bg-white text-slate-900 text-xs transition-all shadow-xs"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block font-bold text-slate-800 mb-1.5">
-                          Улюблене місто (НП)
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="напр. Вінниця"
-                          value={clientForm.defaultCity || ''}
-                          onChange={(e) => setClientForm({ ...clientForm, defaultCity: e.target.value })}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs bg-slate-50 focus:bg-white transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-bold text-slate-800 mb-1.5">
-                          Відділення НП
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="напр. Відділення №1"
-                          value={clientForm.defaultWarehouse || ''}
-                          onChange={(e) => setClientForm({ ...clientForm, defaultWarehouse: e.target.value })}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs bg-slate-50 focus:bg-white transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block font-bold text-slate-800 mb-1.5">
-                          Бонусний баланс (грн)
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={clientForm.balance}
-                          onChange={(e) => setClientForm({ ...clientForm, balance: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-mono font-black text-emerald-700 bg-emerald-50/50 focus:bg-white transition-all"
-                        />
+                    {/* Section 3: Loyalty & Finance */}
+                    <div className="p-5 rounded-3xl bg-slate-50/90 border border-slate-200/70 space-y-4 shadow-xs">
+                      <div className="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2 text-amber-700">
+                        <div className="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center">
+                          <DollarSign className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <span>Лояльність та фінанси</span>
                       </div>
 
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block font-bold text-slate-700">
+                              Персональна знижка
+                            </label>
+                            <span className="text-amber-700 font-mono font-black text-sm bg-amber-100 px-2 py-0.5 rounded-lg">
+                              {clientForm.discount}%
+                            </span>
+                          </div>
+                          <input
+                            type="number"
+                            min="0"
+                            max="90"
+                            step="1"
+                            value={clientForm.discount}
+                            onChange={(e) => setClientForm({ ...clientForm, discount: parseInt(e.target.value) || 0 })}
+                            className="w-full px-4 py-3 border border-amber-200 rounded-2xl outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 font-mono font-bold text-amber-800 bg-amber-50/50 text-xs transition-all shadow-xs"
+                          />
+                          <div className="flex items-center gap-1.5 mt-2">
+                            {[0, 3, 5, 7, 10, 15].map((d) => (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() => setClientForm({ ...clientForm, discount: d })}
+                                className={`px-2.5 py-1 rounded-xl text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                                  clientForm.discount === d
+                                    ? 'bg-amber-600 text-white shadow-xs'
+                                    : 'bg-white hover:bg-amber-100/60 text-slate-700 border border-slate-200'
+                                }`}
+                              >
+                                {d}%
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1.5">
+                            Бонусний баланс (грн)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={clientForm.balance}
+                            onChange={(e) => setClientForm({ ...clientForm, balance: parseFloat(e.target.value) || 0 })}
+                            className="w-full px-4 py-3 border border-emerald-200 rounded-2xl outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 font-mono font-bold text-emerald-800 bg-emerald-50/50 text-xs transition-all shadow-xs"
+                          />
+                          <div className="flex items-center gap-1.5 mt-2">
+                            {[0, 100, 500, 1000].map((b) => (
+                              <button
+                                key={b}
+                                type="button"
+                                onClick={() => setClientForm({ ...clientForm, balance: (clientForm.balance || 0) + b })}
+                                className="px-2.5 py-1 rounded-xl text-[11px] font-mono font-bold bg-white hover:bg-emerald-100/60 text-emerald-700 border border-slate-200 transition-all cursor-pointer shadow-xs"
+                              >
+                                +{b}₴
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
                       <div>
-                        <label className="block font-bold text-slate-800 mb-1.5">
-                          Нотатки про покупця
+                        <label className="block font-bold text-slate-700 mb-1.5">
+                          Нотатки адміністратора про покупця
                         </label>
                         <input
                           type="text"
-                          placeholder="Монтажник, об'єкт на Вусатого..."
+                          placeholder="Монтажник, оптовий клієнт, об'єкт у Києві..."
                           value={clientForm.notes || ''}
                           onChange={(e) => setClientForm({ ...clientForm, notes: e.target.value })}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-2xl outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs font-semibold bg-slate-50 focus:bg-white transition-all"
+                          className="w-full px-4 py-3 border border-slate-300 rounded-2xl outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 bg-white text-slate-900 text-xs font-semibold transition-all shadow-xs"
                         />
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={() => setClientModalOpen(false)}
-                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-colors cursor-pointer"
+                        className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all cursor-pointer text-xs"
                       >
                         Скасувати
                       </button>
                       <button
                         type="submit"
-                        className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black rounded-2xl shadow-md shadow-violet-600/20 transition-all cursor-pointer"
+                        className="px-7 py-3 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-black rounded-2xl shadow-lg shadow-violet-600/30 transition-all cursor-pointer text-xs flex items-center gap-2 transform active:scale-95"
                       >
-                        Зберегти в базу
+                        <Check className="w-4 h-4 stroke-[3]" />
+                        <span>Зберегти в базу</span>
                       </button>
                     </div>
                   </form>
@@ -13984,142 +14053,181 @@ export const AdminPanel: React.FC = () => {
       {/* PRODUCT ADD / EDIT MODAL */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsProductModalOpen(false)} />
+          <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setIsProductModalOpen(false)} />
           <div className="flex min-h-full items-center justify-center p-4">
-            <div onPaste={handleModalPaste} className="relative bg-white rounded-2xl max-w-3xl sm:max-w-4xl lg:max-w-5xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200">
-              <h3 className="text-base font-bold font-display text-slate-900 mb-4 pb-3 border-b border-slate-100 flex items-center justify-between">
-                <span>{editingProduct ? 'Редагувати товар' : 'Додати новий товар'}</span>
+            <div onPaste={handleModalPaste} className="relative bg-white rounded-3xl max-w-3xl sm:max-w-4xl lg:max-w-5xl w-full p-6 sm:p-8 shadow-2xl shadow-slate-950/20 border border-slate-100 animate-in zoom-in-95 space-y-6 max-h-[92vh] overflow-y-auto">
+              
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-5 border-b border-slate-100">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-600 via-amber-600 to-yellow-500 text-white flex items-center justify-center shrink-0 shadow-xl shadow-orange-600/30">
+                    <Package className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 font-bold text-[10px] tracking-wide uppercase border border-orange-100">
+                        {editingProduct ? 'Редагування позиції' : 'Новий товар'}
+                      </span>
+                    </div>
+                    <h3 className="font-black text-xl text-slate-900 font-display tracking-tight mt-0.5">
+                      {editingProduct ? 'Редагувати товар у каталозі' : 'Додати новий товар'}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-mono mt-0.5">
+                      {editingProduct ? `Артикул: ${pSku || 'Без SKU'} • ${pName}` : 'Створення товарної позиції для сайту та бази'}
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsProductModalOpen(false)}
-                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer text-lg font-bold"
+                  className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 flex items-center justify-center transition-all cursor-pointer"
                 >
-                  ×
+                  <X className="w-5 h-5" />
                 </button>
-              </h3>
+              </div>
 
-              <form onSubmit={handleSaveProductForm} className="space-y-4 text-xs">
-                <div>
-                  <label className="block font-semibold text-emerald-700 mb-1">Назва товару *</label>
-                  <input
-                    type="text"
-                    required
-                    value={pName}
-                    onChange={(e) => setPName(e.target.value)}
-                    placeholder="напр., Змішувач для ванни одноважільний"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
-                  />
+              <form onSubmit={handleSaveProductForm} className="space-y-5 text-xs">
+                
+                {/* Section 1: Main Info */}
+                <div className="p-5 rounded-3xl bg-slate-50/90 border border-slate-200/70 space-y-4 shadow-xs">
+                  <div className="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2 text-orange-700">
+                    <div className="w-7 h-7 rounded-xl bg-orange-100 flex items-center justify-center">
+                      <ShoppingBag className="w-4 h-4 text-orange-600" />
+                    </div>
+                    <span>Основна інформація</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div className="sm:col-span-2">
+                      <label className="block font-bold text-slate-700 mb-1.5">
+                        Назва товару *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={pName}
+                        onChange={(e) => setPName(e.target.value)}
+                        placeholder="напр., Змішувач для ванни одноважільний"
+                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15 font-semibold bg-white text-slate-900 text-xs transition-all shadow-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5">
+                        Виробник / Бренд
+                      </label>
+                      <input
+                        type="text"
+                        value={pBrand}
+                        onChange={(e) => setPBrand(e.target.value)}
+                        placeholder="напр., WAGO, Valtec, Grohe"
+                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15 font-medium bg-white text-slate-900 text-xs transition-all shadow-xs"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Виробник / Бренд</label>
-                  <input
-                    type="text"
-                    value={pBrand}
-                    onChange={(e) => setPBrand(e.target.value)}
-                    placeholder="напр., WAGO, Valtec, Grohe, Cersanit"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
-                  />
-                </div>
+                {/* Section 2: Categories */}
+                <div className="p-5 rounded-3xl bg-slate-50/90 border border-slate-200/70 space-y-4 shadow-xs">
+                  <div className="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2 text-indigo-700">
+                    <div className="w-7 h-7 rounded-xl bg-indigo-100 flex items-center justify-center">
+                      <FolderPlus className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    <span>Категоризація товару</span>
+                  </div>
 
-                {/* Cascading Category Pickers */}
-                {(() => {
-                  // 1. Gather all main categories from categoriesTree AND all products in catalog
-                  const mainSet = new Set<string>();
-                  Object.keys(categoriesTree).forEach((k) => {
-                    if (k && !k.startsWith('_')) mainSet.add(k.trim());
-                  });
-                  products.forEach((p) => {
-                    if (p.mainCategory?.trim()) {
-                      mainSet.add(p.mainCategory.trim());
-                    } else if (p.category && p.category.includes('/')) {
-                      const parts = p.category.split('/').map((s) => s.trim());
-                      if (parts[0]) mainSet.add(parts[0]);
-                    }
-                  });
-                  const allMainCategories = Array.from(mainSet);
-
-                  // 2. Gather all subcategories for selected pMainCat
-                  const subSet = new Set<string>();
-                  if (pMainCat && categoriesTree[pMainCat]) {
-                    Object.keys(categoriesTree[pMainCat]).forEach((k) => {
-                      if (k && k !== '_leaves' && !k.startsWith('_')) subSet.add(k.trim());
+                  {(() => {
+                    const mainSet = new Set<string>();
+                    Object.keys(categoriesTree).forEach((k) => {
+                      if (k && !k.startsWith('_')) mainSet.add(k.trim());
                     });
-                  }
-                  products.forEach((p) => {
-                    const matchMain = p.mainCategory?.trim() === pMainCat || (p.category && p.category.startsWith(pMainCat + ' /'));
-                    if (matchMain && p.subCategory?.trim()) {
-                      subSet.add(p.subCategory.trim());
-                    }
-                  });
-                  const subCategories = Array.from(subSet);
-
-                  // 3. Direct leaves for pMainCat
-                  const directLeavesSet = new Set<string>();
-                  if (pMainCat && categoriesTree[pMainCat] && Array.isArray(categoriesTree[pMainCat]._leaves)) {
-                    categoriesTree[pMainCat]._leaves.forEach((l: string) => {
-                      if (l?.trim()) directLeavesSet.add(l.trim());
-                    });
-                  }
-                  products.forEach((p) => {
-                    const matchMain = p.mainCategory?.trim() === pMainCat;
-                    if (matchMain && (!p.subCategory || !p.subCategory.trim()) && p.category?.trim()) {
-                      const cleanLeaf = p.category.includes('/') ? p.category.split('/').pop()?.trim() || p.category : p.category;
-                      if (cleanLeaf) directLeavesSet.add(cleanLeaf);
-                    }
-                  });
-                  const directLeaves = Array.from(directLeavesSet);
-
-                  // 4. Available leaves for selected pMainCat and pSubCat
-                  let availableLeaves: string[] = [];
-                  const leavesSet = new Set<string>();
-
-                  if (pMainCat) {
-                    if (pSubCat) {
-                      if (categoriesTree[pMainCat] && Array.isArray(categoriesTree[pMainCat][pSubCat])) {
-                        categoriesTree[pMainCat][pSubCat].forEach((l: string) => {
-                          if (l?.trim()) leavesSet.add(l.trim());
-                        });
+                    products.forEach((p) => {
+                      if (p.mainCategory?.trim()) {
+                        mainSet.add(p.mainCategory.trim());
+                      } else if (p.category && p.category.includes('/')) {
+                        const parts = p.category.split('/').map((s) => s.trim());
+                        if (parts[0]) mainSet.add(parts[0]);
                       }
-                      products.forEach((p) => {
-                        const matchMain = p.mainCategory?.trim() === pMainCat || (p.category && p.category.startsWith(pMainCat + ' /'));
-                        if (matchMain && p.subCategory?.trim() === pSubCat && p.category?.trim()) {
-                          const leafName = p.category.includes('/') ? p.category.split('/').pop()?.trim() || p.category : p.category;
-                          if (leafName) leavesSet.add(leafName);
-                        }
+                    });
+                    const allMainCategories = Array.from(mainSet);
+
+                    const subSet = new Set<string>();
+                    if (pMainCat && categoriesTree[pMainCat]) {
+                      Object.keys(categoriesTree[pMainCat]).forEach((k) => {
+                        if (k && k !== '_leaves' && !k.startsWith('_')) subSet.add(k.trim());
                       });
-                    } else {
-                      if (categoriesTree[pMainCat]) {
-                        if (Array.isArray(categoriesTree[pMainCat]._leaves)) {
-                          categoriesTree[pMainCat]._leaves.forEach((l: string) => {
+                    }
+                    products.forEach((p) => {
+                      const matchMain = p.mainCategory?.trim() === pMainCat || (p.category && p.category.startsWith(pMainCat + ' /'));
+                      if (matchMain && p.subCategory?.trim()) {
+                        subSet.add(p.subCategory.trim());
+                      }
+                    });
+                    const subCategories = Array.from(subSet);
+
+                    const directLeavesSet = new Set<string>();
+                    if (pMainCat && categoriesTree[pMainCat] && Array.isArray(categoriesTree[pMainCat]._leaves)) {
+                      categoriesTree[pMainCat]._leaves.forEach((l: string) => {
+                        if (l?.trim()) directLeavesSet.add(l.trim());
+                      });
+                    }
+                    products.forEach((p) => {
+                      const matchMain = p.mainCategory?.trim() === pMainCat;
+                      if (matchMain && (!p.subCategory || !p.subCategory.trim()) && p.category?.trim()) {
+                        const cleanLeaf = p.category.includes('/') ? p.category.split('/').pop()?.trim() || p.category : p.category;
+                        if (cleanLeaf) directLeavesSet.add(cleanLeaf);
+                      }
+                    });
+                    const directLeaves = Array.from(directLeavesSet);
+
+                    let availableLeaves: string[] = [];
+                    const leavesSet = new Set<string>();
+
+                    if (pMainCat) {
+                      if (pSubCat) {
+                        if (categoriesTree[pMainCat] && Array.isArray(categoriesTree[pMainCat][pSubCat])) {
+                          categoriesTree[pMainCat][pSubCat].forEach((l: string) => {
                             if (l?.trim()) leavesSet.add(l.trim());
                           });
                         }
-                        subCategories.forEach((sub) => {
-                          if (Array.isArray(categoriesTree[pMainCat][sub])) {
-                            categoriesTree[pMainCat][sub].forEach((l: string) => {
+                        products.forEach((p) => {
+                          const matchMain = p.mainCategory?.trim() === pMainCat || (p.category && p.category.startsWith(pMainCat + ' /'));
+                          if (matchMain && p.subCategory?.trim() === pSubCat && p.category?.trim()) {
+                            const leafName = p.category.includes('/') ? p.category.split('/').pop()?.trim() || p.category : p.category;
+                            if (leafName) leavesSet.add(leafName);
+                          }
+                        });
+                      } else {
+                        if (categoriesTree[pMainCat]) {
+                          if (Array.isArray(categoriesTree[pMainCat]._leaves)) {
+                            categoriesTree[pMainCat]._leaves.forEach((l: string) => {
                               if (l?.trim()) leavesSet.add(l.trim());
                             });
                           }
+                          subCategories.forEach((sub) => {
+                            if (Array.isArray(categoriesTree[pMainCat][sub])) {
+                              categoriesTree[pMainCat][sub].forEach((l: string) => {
+                                if (l?.trim()) leavesSet.add(l.trim());
+                              });
+                            }
+                          });
+                        }
+                        directLeaves.forEach((l) => leavesSet.add(l));
+                        products.forEach((p) => {
+                          if (p.mainCategory?.trim() === pMainCat && p.category?.trim()) {
+                            const leafName = p.category.includes('/') ? p.category.split('/').pop()?.trim() || p.category : p.category;
+                            if (leafName) leavesSet.add(leafName);
+                          }
                         });
                       }
-                      directLeaves.forEach((l) => leavesSet.add(l));
-                      products.forEach((p) => {
-                        if (p.mainCategory?.trim() === pMainCat && p.category?.trim()) {
-                          const leafName = p.category.includes('/') ? p.category.split('/').pop()?.trim() || p.category : p.category;
-                          if (leafName) leavesSet.add(leafName);
-                        }
-                      });
+                      availableLeaves = Array.from(leavesSet);
                     }
-                    availableLeaves = Array.from(leavesSet);
-                  }
 
-                  return (
-                    <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
                         {/* 1. Main Category */}
                         <div>
-                          <label className="block font-semibold text-slate-700 mb-1">
+                          <label className="block font-bold text-slate-700 mb-1.5">
                             1. Головна категорія *
                           </label>
                           <select
@@ -14131,7 +14239,7 @@ export const AdminPanel: React.FC = () => {
                               setPSubCat('');
                               setPLeafCat('');
                             }}
-                            className="w-full px-2.5 py-2 border border-slate-300 rounded-xl bg-white focus:border-orange-500 outline-none text-xs font-medium cursor-pointer"
+                            className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 outline-none text-xs font-bold text-slate-900 cursor-pointer shadow-xs"
                           >
                             {allMainCategories.map((main) => (
                               <option key={main} value={main}>{main}</option>
@@ -14141,7 +14249,7 @@ export const AdminPanel: React.FC = () => {
 
                         {/* 2. Sub Category */}
                         <div>
-                          <label className="block font-semibold text-slate-700 mb-1">
+                          <label className="block font-bold text-slate-700 mb-1.5">
                             2. Підкатегорія
                           </label>
                           <select
@@ -14151,7 +14259,7 @@ export const AdminPanel: React.FC = () => {
                               setPSubCat(newSub);
                               setPLeafCat('');
                             }}
-                            className="w-full px-2.5 py-2 border border-slate-300 rounded-xl bg-white focus:border-orange-500 outline-none text-xs font-medium cursor-pointer"
+                            className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 outline-none text-xs font-bold text-slate-900 cursor-pointer shadow-xs"
                           >
                             <option value="">(Без підкатегорії)</option>
                             {subCategories.map((sub) => (
@@ -14162,7 +14270,7 @@ export const AdminPanel: React.FC = () => {
 
                         {/* 3. Leaf Category */}
                         <div>
-                          <label className="block font-semibold text-slate-700 mb-1">
+                          <label className="block font-bold text-slate-700 mb-1.5">
                             3. Кінцева категорія
                           </label>
                           <select
@@ -14179,7 +14287,7 @@ export const AdminPanel: React.FC = () => {
                                 }
                               }
                             }}
-                            className="w-full px-2.5 py-2 border border-slate-300 rounded-xl bg-white focus:border-orange-500 outline-none text-xs font-medium cursor-pointer"
+                            className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 outline-none text-xs font-bold text-slate-900 cursor-pointer shadow-xs"
                           >
                             <option value="">(Оберіть кінцеву категорію)</option>
                             {pLeafCat && !availableLeaves.includes(pLeafCat) && (
@@ -14193,7 +14301,7 @@ export const AdminPanel: React.FC = () => {
 
                         {/* 4. Direct Leaf Category */}
                         <div>
-                          <label className="block font-semibold text-slate-700 mb-1">
+                          <label className="block font-bold text-slate-700 mb-1.5">
                             4. Пряма кінцева
                           </label>
                           <select
@@ -14205,7 +14313,7 @@ export const AdminPanel: React.FC = () => {
                                 setPLeafCat(val);
                               }
                             }}
-                            className="w-full px-2.5 py-2 border border-slate-300 rounded-xl bg-white focus:border-orange-500 outline-none text-xs font-medium cursor-pointer"
+                            className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 outline-none text-xs font-bold text-slate-900 cursor-pointer shadow-xs"
                           >
                             <option value="">(Без прямої кінцевої)</option>
                             {directLeaves.map((leaf) => (
@@ -14214,149 +14322,159 @@ export const AdminPanel: React.FC = () => {
                           </select>
                         </div>
                       </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Section 3: Pricing, Stock, SKU & Badge */}
+                <div className="p-5 rounded-3xl bg-slate-50/90 border border-slate-200/70 space-y-4 shadow-xs">
+                  <div className="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2 text-emerald-700">
+                    <div className="w-7 h-7 rounded-xl bg-emerald-100 flex items-center justify-center">
+                      <DollarSign className="w-4 h-4 text-emerald-600" />
                     </div>
-                  );
-                })()}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Артикул (SKU)</label>
-                    <input
-                      type="text"
-                      placeholder="напр., ISK-492 або залиште порожнім"
-                      value={pSku}
-                      onChange={(e) => setPSku(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs"
-                    />
+                    <span>Ціна, склад та маркування</span>
                   </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Спеціальна мітка</label>
-                    <select
-                      value={pBadge}
-                      onChange={(e) => setPBadge(e.target.value as ProductBadge)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-xs"
-                    >
-                      <option value="">(Без мітки)</option>
-                      <option value="Хіт продажу">🔥 Хіт продажу</option>
-                      <option value="Акція">🏷️ Акція (-%)</option>
-                      <option value="Новинка">✨ Новинка</option>
-                    </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5">Артикул (SKU)</label>
+                      <input
+                        type="text"
+                        placeholder="напр., ISK-492"
+                        value={pSku}
+                        onChange={(e) => setPSku(e.target.value)}
+                        className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl font-mono text-xs font-bold bg-white text-slate-900 shadow-xs outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5">Спеціальна мітка</label>
+                      <select
+                        value={pBadge}
+                        onChange={(e) => setPBadge(e.target.value as ProductBadge)}
+                        className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl bg-white text-xs font-bold text-slate-900 shadow-xs outline-none focus:border-emerald-500 cursor-pointer"
+                      >
+                        <option value="">(Без мітки)</option>
+                        <option value="Хіт продажу">🔥 Хіт продажу</option>
+                        <option value="Акція">🏷️ Акція (-%)</option>
+                        <option value="Новинка">✨ Новинка</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5">Залишок (склад)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder="0"
+                        value={pStock}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          if (raw === '') {
+                            setPStock('');
+                          } else {
+                            const cleaned = raw.replace(/^0+(?=\d)/, '');
+                            setPStock(cleaned);
+                          }
+                        }}
+                        className="w-full px-3.5 py-3 border border-emerald-200 rounded-2xl font-mono text-xs font-bold bg-emerald-50/50 text-emerald-800 shadow-xs outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block font-bold text-slate-700">Ціна (грн)</label>
+                        <span className="text-[10px] font-bold text-slate-500">{pUnit}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          placeholder="0.00"
+                          value={pPrice}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            if (raw === '') {
+                              setPPrice('');
+                            } else {
+                              const cleaned = raw.replace(/^0+(?=\d)/, '');
+                              setPPrice(cleaned);
+                            }
+                          }}
+                          className="w-full px-3.5 py-3 border border-orange-200 rounded-2xl font-mono text-xs font-black text-orange-800 bg-orange-50/50 shadow-xs outline-none focus:border-orange-500"
+                        />
+                        <select
+                          value={pUnit}
+                          onChange={(e) => setPUnit(e.target.value)}
+                          className="px-2.5 py-3 border border-slate-300 rounded-2xl bg-white font-bold text-[11px] text-slate-700 shrink-0 cursor-pointer shadow-xs"
+                        >
+                          <option value="грн/шт">грн/шт</option>
+                          <option value="грн/м">грн/м</option>
+                          <option value="грн/кг">грн/кг</option>
+                          <option value="грн/упак">грн/упак</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Залишок (склад)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="0"
-                      value={pStock}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        if (raw === '') {
-                          setPStock('');
-                        } else {
-                          const cleaned = raw.replace(/^0+(?=\d)/, '');
-                          setPStock(cleaned);
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Ціна (грн)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      placeholder="0.00"
-                      value={pPrice}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        if (raw === '') {
-                          setPPrice('');
-                        } else {
-                          const cleaned = raw.replace(/^0+(?=\d)/, '');
-                          setPPrice(cleaned);
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Одиниця виміру</label>
-                    <select
-                      value={pUnit}
-                      onChange={(e) => setPUnit(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white"
-                    >
-                      <option value="грн/шт">грн/шт</option>
-                      <option value="грн/м">грн/м</option>
-                      <option value="грн/кг">грн/кг</option>
-                      <option value="грн/упак">грн/упак</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Product Image Selection: Upload from PC or URL */}
-                <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 space-y-3">
+                {/* Section 4: Image Selection */}
+                <div className="p-5 rounded-3xl bg-slate-50/90 border border-slate-200/70 space-y-4 shadow-xs">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <label className="block font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                      <ImageIcon className="w-4 h-4 text-orange-600" />
+                    <div className="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2 text-amber-700">
+                      <div className="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center">
+                        <ImageIcon className="w-4 h-4 text-amber-600" />
+                      </div>
                       <span>Зображення товару</span>
-                    </label>
+                    </div>
                     
-                    <div className="flex items-center gap-1 bg-slate-200/70 p-1 rounded-xl text-[11px] font-semibold">
+                    <div className="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-2xl text-[11px] font-bold">
                       <button
                         type="button"
                         onClick={() => setProductImageTab('upload')}
-                        className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+                        className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                           productImageTab === 'upload'
-                            ? 'bg-white text-orange-600 shadow-xs font-bold'
+                            ? 'bg-white text-orange-600 shadow-xs'
                             : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
                         <Upload className="w-3.5 h-3.5" />
-                        <span>З комп'ютера (ПК)</span>
+                        <span>З ПК</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setProductImageTab('search')}
-                        className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+                        className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                           productImageTab === 'search'
-                            ? 'bg-white text-orange-600 shadow-xs font-bold'
+                            ? 'bg-white text-orange-600 shadow-xs'
                             : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
                         <Search className="w-3.5 h-3.5" />
-                        <span>Google / Prom / Вставка</span>
+                        <span>Google / Prom</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setProductImageTab('url')}
-                        className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+                        className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                           productImageTab === 'url'
-                            ? 'bg-white text-orange-600 shadow-xs font-bold'
+                            ? 'bg-white text-orange-600 shadow-xs'
                             : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
-                        <span>URL / Посилання</span>
+                        <span>URL</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Mode 1: Upload from local PC */}
                   {productImageTab === 'upload' && (
                     <div className="space-y-2">
-                      <label className="border-2 border-dashed border-orange-200 hover:border-orange-500 bg-white hover:bg-orange-50/20 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all group shadow-2xs">
+                      <label className="border-2 border-dashed border-orange-300 hover:border-orange-500 bg-white hover:bg-orange-50/20 rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer transition-all group shadow-2xs">
                         <input
                           type="file"
                           accept="image/png, image/jpeg, image/jpg, image/webp, image/gif, image/bmp"
@@ -14364,7 +14482,7 @@ export const AdminPanel: React.FC = () => {
                           disabled={isUploadingProductImage}
                           className="hidden"
                         />
-                        <div className="w-12 h-12 rounded-2xl bg-orange-100/70 text-orange-600 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-2xs">
+                        <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-2.5 group-hover:scale-110 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-xs">
                           {isUploadingProductImage ? (
                             <RefreshCw className="w-5 h-5 animate-spin" />
                           ) : (
@@ -14372,15 +14490,15 @@ export const AdminPanel: React.FC = () => {
                           )}
                         </div>
                         <p className="text-xs font-bold text-slate-800 text-center">
-                          {isUploadingProductImage ? 'Обробка та оптимізація фото...' : 'Оберіть фотографію товару з ПК'}
+                          {isUploadingProductImage ? 'Обробка та оптимізація фото...' : 'Оберіть фотографію товару з комп\'ютера'}
                         </p>
-                        <p className="text-[11px] text-slate-500 text-center mt-0.5">
-                          Натисніть для вибору файлу (PNG, JPG, WEBP) • Автоматично підв'язується до бази даних
+                        <p className="text-[11px] text-slate-500 text-center mt-1">
+                          PNG, JPG, WEBP • Автоматичне збереження в базу даних
                         </p>
                       </label>
 
                       {productImageUploadError && (
-                        <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium flex items-center gap-2">
+                        <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 font-medium flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                           <span>{productImageUploadError}</span>
                         </div>
@@ -14388,22 +14506,21 @@ export const AdminPanel: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Mode 2: Search Google/Prom & paste from clipboard */}
                   {productImageTab === 'search' && (
-                    <div className="space-y-3">
+                    <div className="space-y-3.5">
                       <div className="space-y-1.5">
                         <label className="text-[11px] font-bold text-slate-700 block">
-                          Пошуковий запит (назва або модель товару):
+                          Пошуковий запит для пошуку фото:
                         </label>
                         <div className="flex flex-wrap sm:flex-nowrap gap-2">
                           <div className="relative flex-1 min-w-[200px]">
-                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input
                               type="text"
                               value={onlineImageQuery}
                               onChange={(e) => setOnlineImageQuery(e.target.value)}
-                              placeholder="Введіть назву товару або ключові слова..."
-                              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 outline-none focus:border-orange-500 font-medium"
+                              placeholder="Назва товару або модель..."
+                              className="w-full pl-10 pr-3.5 py-2.5 bg-white border border-slate-300 rounded-2xl text-xs text-slate-900 outline-none focus:border-orange-500 font-medium shadow-xs"
                             />
                           </div>
 
@@ -14411,8 +14528,7 @@ export const AdminPanel: React.FC = () => {
                             href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(onlineImageQuery || pName)}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 hover:shadow-xs"
-                            title="Відкрити точний пошук у Google Зображення"
+                            className="px-4 py-2.5 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-xs"
                           >
                             <ExternalLink className="w-3.5 h-3.5 text-sky-600" />
                             <span>Google Фото</span>
@@ -14422,8 +14538,7 @@ export const AdminPanel: React.FC = () => {
                             href={`https://prom.ua/search?search_term=${encodeURIComponent(onlineImageQuery || pName)}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3.5 py-2 bg-violet-50 hover:bg-violet-100 border border-violet-200 text-violet-800 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 hover:shadow-xs"
-                            title="Знайти цей товар на маркетплейсі Prom.ua"
+                            className="px-4 py-2.5 bg-violet-50 hover:bg-violet-100 border border-violet-200 text-violet-800 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-xs"
                           >
                             <ExternalLink className="w-3.5 h-3.5 text-violet-600" />
                             <span>Prom.ua</span>
@@ -14433,8 +14548,7 @@ export const AdminPanel: React.FC = () => {
                             href={`https://epicentrk.ua/ua/search/?q=${encodeURIComponent(onlineImageQuery || pName)}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 hover:shadow-xs"
-                            title="Знайти цей товар в Епіцентрі"
+                            className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-xs"
                           >
                             <ExternalLink className="w-3.5 h-3.5 text-amber-600" />
                             <span>Епіцентр</span>
@@ -14442,44 +14556,23 @@ export const AdminPanel: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Interactive Paste & Drop Zone */}
                       <div
                         onClick={handlePasteFromClipboard}
-                        className="border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/50 hover:bg-amber-50/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center cursor-pointer transition-all group shadow-2xs"
+                        className="border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/60 hover:bg-amber-50/90 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center cursor-pointer transition-all group shadow-2xs"
                       >
-                        <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition-all shadow-2xs">
+                        <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition-all shadow-xs">
                           <Clipboard className="w-5 h-5" />
                         </div>
                         <p className="text-xs font-bold text-amber-950 text-center">
                           📋 Вставити скопійоване фото (Ctrl + V)
                         </p>
-                        <p className="text-[11px] text-amber-800/90 text-center mt-1 max-w-md">
-                          Натисніть сюди або використовуйте гарячі клавіші <b>Ctrl + V</b> після копіювання картинки
+                        <p className="text-[11px] text-amber-800/90 text-center mt-0.5">
+                          Скопіюйте картинку в Google та натисніть <b>Ctrl + V</b> тут
                         </p>
-                      </div>
-
-                      {/* 3-Step Clear Guide */}
-                      <div className="bg-slate-100/90 border border-slate-200/90 rounded-2xl p-3.5 text-xs text-slate-700 space-y-2">
-                        <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                          <span className="text-base shrink-0">💡</span>
-                          <span>Як за 2 кліки вставити точне фото саме вашого товару:</span>
-                        </div>
-                        <ol className="list-decimal list-inside space-y-1.5 text-[11px] text-slate-600 pl-1 leading-relaxed">
-                          <li>
-                            Натисніть кнопку <b>«Google Фото»</b> або <b>«Prom.ua»</b> вище — у новій вкладці відкриється точний пошук вашого товару.
-                          </li>
-                          <li>
-                            На потрібному фото товару натисніть правою кнопкою миші → оберіть <b>«Копіювати зображення»</b>.
-                          </li>
-                          <li>
-                            Поверніться сюди та натисніть кнопку <b>«Вставити (Ctrl + V)»</b> (або клавіші Ctrl+V) — точне заводське фото миттєво підтягнеться в базу!
-                          </li>
-                        </ol>
                       </div>
                     </div>
                   )}
 
-                  {/* Mode 2: Input URL / Path directly */}
                   {productImageTab === 'url' && (
                     <div className="space-y-1.5">
                       <input
@@ -14487,18 +14580,14 @@ export const AdminPanel: React.FC = () => {
                         value={pImage}
                         onChange={(e) => setPImage(e.target.value)}
                         placeholder="https://... або /src/assets/images/..."
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl outline-none focus:border-orange-500 text-xs font-mono"
+                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-2xl outline-none focus:border-orange-500 text-xs font-mono shadow-xs"
                       />
-                      <p className="text-[11px] text-slate-500">
-                        Вставте пряме інтернет-посилання або шлях до внутрішнього зображення
-                      </p>
                     </div>
                   )}
 
-                  {/* Live Image Preview Card */}
                   {pImage && (
-                    <div className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl shadow-2xs">
-                      <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center shadow-2xs">
+                    <div className="flex items-center gap-3.5 p-3.5 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                      <div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center shadow-xs">
                         <img
                           src={getSafeImageUrl(pImage)}
                           alt="Попередній перегляд"
@@ -14510,61 +14599,51 @@ export const AdminPanel: React.FC = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-xs font-bold text-slate-900 block truncate">
-                          Фото товару готове
+                          Фото товару готове до збереження
                         </span>
                         <p className="text-[11px] text-slate-500 truncate mt-0.5 font-mono">
                           {pImage.startsWith('data:') ? `Base64 (~${Math.round(pImage.length / 1024)} КБ)` : pImage}
                         </p>
                       </div>
                       
-                      <div className="flex items-center gap-1 shrink-0">
-                        <label className="p-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg cursor-pointer transition-colors" title="Завантажити інше фото">
-                          <Upload className="w-4 h-4" />
-                          <input
-                            type="file"
-                            accept="image/png, image/jpeg, image/jpg, image/webp, image/gif, image/bmp"
-                            onChange={handleProductImageFileChange}
-                            disabled={isUploadingProductImage}
-                            className="hidden"
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setPImage('')}
-                          className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Очистити фото"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPImage('')}
+                        className="p-2.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                        title="Очистити фото"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   )}
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Опис товару</label>
+                {/* Section 5: Description */}
+                <div className="p-5 rounded-3xl bg-slate-50/90 border border-slate-200/70 space-y-2 shadow-xs">
+                  <label className="block font-bold text-slate-700 mb-1">Опис товару та характеристики</label>
                   <textarea
-                    rows={2}
+                    rows={3}
                     value={pDesc}
                     onChange={(e) => setPDesc(e.target.value)}
-                    placeholder="Матеріал, технічні особливості, призначення..."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
+                    placeholder="Матеріал, розмір, технічні особливості, комплектація..."
+                    className="w-full px-4 py-3 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15 text-xs bg-white text-slate-900 shadow-xs"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsProductModalOpen(false)}
-                    className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-semibold"
+                    className="px-6 py-3 border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100 transition-all cursor-pointer text-xs"
                   >
                     Скасувати
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl"
+                    className="px-7 py-3 bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-500 hover:from-orange-500 hover:to-yellow-400 text-white font-black rounded-2xl shadow-lg shadow-orange-600/30 transition-all cursor-pointer text-xs flex items-center gap-2 transform active:scale-95"
                   >
-                    {editingProduct ? 'Зберегти зміни' : 'Створити товар'}
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>{editingProduct ? 'Зберегти зміни' : 'Створити товар в базі'}</span>
                   </button>
                 </div>
               </form>
