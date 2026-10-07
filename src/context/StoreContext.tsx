@@ -2094,7 +2094,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const idSet = productIds && productIds.length > 0 ? new Set(productIds) : null;
     let updatedCount = 0;
     let updatedTree = { ...categoriesTree };
-    let treeChanged = false;
+
+    console.log(`🚀 [СИНХРОНІЗАЦІЯ ТОВАРІВ] Початок перевірки та примусового розподілу товарів...`);
 
     const next = products.map((p) => {
       if (!idSet || idSet.has(p.id)) {
@@ -2103,63 +2104,49 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const shouldUpdateBrand = (!p.brand || p.brand.trim() === '' || p.brand === 'Інші виробники') && detectedBrand !== 'Інші виробники';
         const brandToSet = shouldUpdateBrand ? detectedBrand : p.brand;
 
-        const isCategoryDifferent = 
-          p.mainCategory !== classified.mainCategory ||
-          p.subCategory !== classified.subCategory ||
-          p.category !== classified.category;
+        updatedCount++;
+        console.log(`📦 "${p.name}" ➔ Категорія: [${classified.mainCategory} / ${classified.subCategory} / ${classified.category}] (Бренд: ${brandToSet})`);
 
-        if (isCategoryDifferent || shouldUpdateBrand) {
-          updatedCount++;
-          console.log(`📦 "${p.name}" → Нова категорія: [${classified.mainCategory} / ${classified.subCategory} / ${classified.category}] (Бренд: ${brandToSet})`);
-          const { mainCategory, subCategory, category } = classified;
-          if (!updatedTree[mainCategory]) {
-            updatedTree[mainCategory] = { _leaves: [] };
-            treeChanged = true;
-          }
-          if (!updatedTree[mainCategory][subCategory] || !Array.isArray(updatedTree[mainCategory][subCategory])) {
-            updatedTree[mainCategory] = { ...updatedTree[mainCategory], [subCategory]: [] };
-            treeChanged = true;
-          }
-          if (!updatedTree[mainCategory][subCategory].includes(category)) {
-            updatedTree[mainCategory] = {
-              ...updatedTree[mainCategory],
-              [subCategory]: [...updatedTree[mainCategory][subCategory], category]
-            };
-            treeChanged = true;
-          }
-
-          return {
-            ...p,
-            mainCategory: classified.mainCategory,
-            subCategory: classified.subCategory,
-            category: classified.category,
-            brand: brandToSet
+        const { mainCategory, subCategory, category } = classified;
+        if (!updatedTree[mainCategory]) {
+          updatedTree[mainCategory] = { _leaves: [] };
+        }
+        if (!updatedTree[mainCategory][subCategory] || !Array.isArray(updatedTree[mainCategory][subCategory])) {
+          updatedTree[mainCategory] = { ...updatedTree[mainCategory], [subCategory]: [] };
+        }
+        if (!updatedTree[mainCategory][subCategory].includes(category)) {
+          updatedTree[mainCategory] = {
+            ...updatedTree[mainCategory],
+            [subCategory]: [...updatedTree[mainCategory][subCategory], category]
           };
         }
+
+        return {
+          ...p,
+          mainCategory: classified.mainCategory,
+          subCategory: classified.subCategory,
+          category: classified.category,
+          brand: brandToSet
+        };
       }
       return p;
     });
 
-    if (updatedCount > 0) {
-      setProducts(next);
-      localStorage.setItem('iskra_products_react_v4', JSON.stringify(next));
+    setProducts(next);
+    localStorage.setItem('iskra_products_react_v4', JSON.stringify(next));
+    setCategoriesTree(updatedTree);
+    localStorage.setItem('iskra_categories_tree_react', JSON.stringify(updatedTree));
 
-      if (treeChanged) {
-        setCategoriesTree(updatedTree);
-        localStorage.setItem('iskra_categories_tree_react', JSON.stringify(updatedTree));
-      }
-
-      if (firebaseConfig.enabled) {
-        pushStoreToFirebase(firebaseConfig, {
-          products: next,
-          categoriesTree: treeChanged ? updatedTree : categoriesTree,
-          lastSyncTimestamp: Date.now()
-        });
-      }
-      showToast(`Автоматично розподілено ${updatedCount} товарів за категоріями!`, 'success');
-    } else {
-      showToast('Всі вибрані товари вже відповідають своїм категоріям', 'info');
+    if (firebaseConfig.enabled) {
+      pushStoreToFirebase(firebaseConfig, {
+        products: next,
+        categoriesTree: updatedTree,
+        lastSyncTimestamp: Date.now()
+      });
     }
+
+    console.log(`🎉 [УСПІХ] Усі ${updatedCount} товарів перевірено та оновлено в базі даних Firebase!`);
+    showToast(`Успішно оновлено та синхронізовано ${updatedCount} товарів у базі!`, 'success');
   };
 
   const autoAssignProductImages = async (
