@@ -39,34 +39,23 @@ import {
 
 const matchCategoryOrLeaf = (text: string, filter: string): boolean => {
   if (!text || !filter) return false;
-  const t = text.toLowerCase();
-  const f = filter.toLowerCase();
+  const t = text.toLowerCase().trim();
+  const f = filter.toLowerCase().trim();
   if (t === f) return true;
 
-  const synonyms: Record<string, string[]> = {
-    'кабель та провід': ['кабельна продукція', 'кабель', 'провід', 'ввг', 'пвс', 'кабель силовий ввг', 'провід пвс шввп'],
-    'автомати': ['модульне обладнання', 'автоматичні вимикачі', 'автомат'],
-    'розетки': ['електрофурнітура', 'розетки', 'вимикачі', 'розетки з заземленням', 'вимикачі прихованого монтажу'],
-    'led лампи': ['освітлення', 'лампи led', 'лампа led', 'світильники', 'прожектори', 'світлодіодна стрічка'],
-    'щитки': ['електрощити', 'бокси', 'модульне обладнання', 'електрощити та бокси'],
-  };
+  // Direct containment check
+  if (t.includes(f) || f.includes(t)) return true;
 
-  for (const [key, list] of Object.entries(synonyms)) {
-    if (f.includes(key) || key.includes(f)) {
-      if (list.some(syn => t.includes(syn))) return true;
-    }
-  }
-
-  // Prevent false positive substring matches like "провідний" matching "провід"
-  if (f.includes('провід') && t.includes('провідний') && !t.includes(' провід ') && !t.startsWith('провід ') && !t.endsWith(' провід')) {
-    return false;
-  }
-
-  const cleanWords = (str: string) => str.toLowerCase().replace(/[^\wа-яієїґ\s]/g, '').split(/\s+/).filter(w => w.length >= 2);
+  // Word-by-word stem matching (requires words to be at least 3 chars)
+  const cleanWords = (str: string) => str.toLowerCase().replace(/[^\wа-яієїґ\s]/g, '').split(/\s+/).filter(w => w.length >= 3);
   const filterWords = cleanWords(f);
   const textWords = cleanWords(t);
+
   if (filterWords.length === 0) return false;
-  return filterWords.every(fw => textWords.some(tw => tw === fw || (tw.startsWith(fw) && !tw.includes('ний'))));
+
+  return filterWords.every(fw => 
+    textWords.some(tw => tw === fw || tw.startsWith(fw.slice(0, Math.min(fw.length, 4))))
+  );
 };
 
 export const StoreFront: React.FC = () => {
