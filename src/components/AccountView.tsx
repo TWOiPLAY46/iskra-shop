@@ -2657,20 +2657,20 @@ export const AccountView: React.FC = () => {
 
         {/* 9. Edit Profile Modal */}
         {isEditProfileOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-hidden">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden my-0 sm:my-auto animate-in slide-in-from-bottom duration-250 relative">
               
               {/* Modal Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/25">
-                    <User className="w-6 h-6" />
+              <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/25 shrink-0">
+                    <User className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-black font-display text-slate-900 tracking-tight">
+                  <div className="min-w-0">
+                    <h3 className="text-base sm:text-lg font-black font-display text-slate-900 tracking-tight truncate">
                       Редагування профілю
                     </h3>
-                    <p className="text-xs text-slate-500 font-mono">
+                    <p className="text-[11px] sm:text-xs text-slate-500 font-mono truncate">
                       {currentClientPhone ? `+${currentClientPhone}` : 'Особистий кабінет'}
                     </p>
                   </div>
@@ -2678,193 +2678,196 @@ export const AccountView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsEditProfileOpen(false)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0 ml-2"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Avatar Preview */}
-              {profileAvatar && (
-                <div className="flex items-center gap-3.5 p-3.5 bg-gradient-to-r from-orange-50/80 to-amber-50/80 border border-orange-200/80 rounded-2xl shadow-2xs">
-                  <img src={getSafeImageUrl(profileAvatar)} alt="Avatar" className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm" />
-                  <div className="text-xs">
-                    <div className="font-bold text-slate-950">Поточна аватарка встановлена</div>
-                    <div className="text-[11px] text-slate-500 truncate max-w-[280px] font-mono">{profileAvatar}</div>
-                  </div>
-                </div>
-              )}
+              <form onSubmit={handleSaveProfile} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="p-4 sm:p-6 space-y-4 text-xs overflow-y-auto flex-1">
+                  
+                  {/* Avatar Preview */}
+                  {profileAvatar && (
+                    <div className="flex items-center gap-3.5 p-3.5 bg-gradient-to-r from-orange-50/80 to-amber-50/80 border border-orange-200/80 rounded-2xl shadow-2xs">
+                      <img src={getSafeImageUrl(profileAvatar)} alt="Avatar" className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm" />
+                      <div className="text-xs">
+                        <div className="font-bold text-slate-950">Поточна аватарка встановлена</div>
+                        <div className="text-[11px] text-slate-500 truncate max-w-[240px] font-mono">{profileAvatar}</div>
+                      </div>
+                    </div>
+                  )}
 
-              <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-orange-600" />
-                    <span>Прізвище та ім'я (ПІБ) *</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={profileName}
-                    onChange={(e) => setProfileName(e.target.value)}
-                    placeholder="Олександр Петренко"
-                    className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-sm bg-slate-50/50 transition-all font-medium text-slate-900"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-orange-600" />
-                      <span>Номер телефону</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={profilePhone}
-                      onChange={(e) => setProfilePhone(e.target.value)}
-                      placeholder="+380 (67) 000-00-00"
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-sky-600" />
-                      <span>Електронна пошта (Email)</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={profileEmail}
-                      onChange={(e) => setProfileEmail(e.target.value)}
-                      placeholder="vash@gmail.com"
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Новий пароль (залишіть порожнім, якщо не змінюєте)</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showProfilePassword ? 'text' : 'password'}
-                      value={profileNewPassword}
-                      onChange={(e) => setProfileNewPassword(e.target.value)}
-                      placeholder="Мін. 4 символи для входу"
-                      className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowProfilePassword(!showProfilePassword)}
-                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer"
-                    >
-                      {showProfilePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Місто / Населений пункт для доставки</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={profileCity}
-                    onChange={(e) => setProfileCity(e.target.value)}
-                    placeholder="с-ще. Оратів, Вінницька обл."
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">
-                      Улюблене місто (НП)
+                      <User className="w-3.5 h-3.5 text-orange-600" />
+                      <span>Прізвище та ім'я (ПІБ) *</span>
                     </label>
                     <input
                       type="text"
-                      value={profileDefaultCity}
-                      onChange={(e) => setProfileDefaultCity(e.target.value)}
-                      placeholder="напр. Вінниця"
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
+                      required
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      placeholder="Олександр Петренко"
+                      className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-sm bg-slate-50/50 transition-all font-medium text-slate-900"
                     />
                   </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">
-                      Відділення НП
-                    </label>
-                    <input
-                      type="text"
-                      value={profileDefaultWarehouse}
-                      onChange={(e) => setProfileDefaultWarehouse(e.target.value)}
-                      placeholder="напр. Відділення №1"
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">
-                      Telegram / Viber нік
-                    </label>
-                    <input
-                      type="text"
-                      value={profileMessenger}
-                      onChange={(e) => setProfileMessenger(e.target.value)}
-                      placeholder="@username"
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
-                      <span>Аватарка (URL або з ПК)</span>
-                      <label className="text-[10px] text-orange-600 hover:underline cursor-pointer font-extrabold flex items-center gap-1 bg-orange-100/80 px-2 py-0.5 rounded-lg">
-                        <Upload className="w-3 h-3" />
-                        <span>З ПК</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarFileChange}
-                          className="hidden"
-                        />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-orange-600" />
+                        <span>Номер телефону</span>
                       </label>
+                      <input
+                        type="tel"
+                        value={profilePhone}
+                        onChange={(e) => setProfilePhone(e.target.value)}
+                        placeholder="+380 (67) 000-00-00"
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-sky-600" />
+                        <span>Електронна пошта (Email)</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={profileEmail}
+                        onChange={(e) => setProfileEmail(e.target.value)}
+                        placeholder="vash@gmail.com"
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Новий пароль (залишіть порожнім, якщо не змінюєте)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showProfilePassword ? 'text' : 'password'}
+                        value={profileNewPassword}
+                        onChange={(e) => setProfileNewPassword(e.target.value)}
+                        placeholder="Мін. 4 символи для входу"
+                        className="w-full pl-3.5 pr-10 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowProfilePassword(!showProfilePassword)}
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer"
+                      >
+                        {showProfilePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Місто / Населений пункт для доставки</span>
                     </label>
                     <input
                       type="text"
-                      value={profileAvatar}
-                      onChange={(e) => setProfileAvatar(e.target.value)}
-                      placeholder="https:// або файл"
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
+                      value={profileCity}
+                      onChange={(e) => setProfileCity(e.target.value)}
+                      placeholder="с-ще. Оратів, Вінницька обл."
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        Улюблене місто (НП)
+                      </label>
+                      <input
+                        type="text"
+                        value={profileDefaultCity}
+                        onChange={(e) => setProfileDefaultCity(e.target.value)}
+                        placeholder="напр. Вінниця"
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        Відділення НП
+                      </label>
+                      <input
+                        type="text"
+                        value={profileDefaultWarehouse}
+                        onChange={(e) => setProfileDefaultWarehouse(e.target.value)}
+                        placeholder="напр. Відділення №1"
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        Telegram / Viber нік
+                      </label>
+                      <input
+                        type="text"
+                        value={profileMessenger}
+                        onChange={(e) => setProfileMessenger(e.target.value)}
+                        placeholder="@username"
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                        <span>Аватарка (URL або з ПК)</span>
+                        <label className="text-[10px] text-orange-600 hover:underline cursor-pointer font-extrabold flex items-center gap-1 bg-orange-100/80 px-2 py-0.5 rounded-lg">
+                          <Upload className="w-3 h-3" />
+                          <span>З ПК</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                      </label>
+                      <input
+                        type="text"
+                        value={profileAvatar}
+                        onChange={(e) => setProfileAvatar(e.target.value)}
+                        placeholder="https:// або файл"
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 font-mono text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Бажана адреса або коментар до замовлень
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={profileNotes}
+                      onChange={(e) => setProfileNotes(e.target.value)}
+                      placeholder="Відділення №1, доставка до дверей, тощо..."
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    Бажана адреса або коментар до замовлень
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={profileNotes}
-                    onChange={(e) => setProfileNotes(e.target.value)}
-                    placeholder="Відділення №1, доставка до дверей, тощо..."
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-xs bg-slate-50/50 text-slate-900"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/90 shrink-0 flex items-center justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => setIsEditProfileOpen(false)}
-                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-colors cursor-pointer text-xs"
+                    className="px-4 sm:px-5 py-2.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold rounded-2xl transition-colors cursor-pointer text-xs"
                   >
                     Скасувати
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-2xl shadow-md shadow-orange-500/25 transition-all cursor-pointer text-xs flex items-center gap-2"
+                    className="px-5 sm:px-6 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-2xl shadow-md shadow-orange-500/25 transition-all cursor-pointer text-xs flex items-center gap-2 active:scale-95"
                   >
                     <Check className="w-4 h-4 stroke-[3]" />
                     <span>Зберегти зміни</span>
@@ -2877,20 +2880,20 @@ export const AccountView: React.FC = () => {
 
         {/* 10. Custom Product Request Modal (Товар під замовлення) */}
         {isCustomModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-hidden">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden my-0 sm:my-auto animate-in slide-in-from-bottom duration-250 relative">
               
               {/* Modal Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25">
-                    <Sparkles className="w-6 h-6" />
+              <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25 shrink-0">
+                    <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-black font-display text-slate-900 tracking-tight">
+                  <div className="min-w-0">
+                    <h3 className="text-base sm:text-lg font-black font-display text-slate-900 tracking-tight truncate">
                       Замовити відсутній товар
                     </h3>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-[11px] sm:text-xs text-slate-500 truncate">
                       Товар під замовлення з прямих складів виробників
                     </p>
                   </div>
@@ -2898,129 +2901,131 @@ export const AccountView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsCustomModalOpen(false)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0 ml-2"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleCustomRequestSubmit} className="space-y-4 text-xs">
-                
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-                    <span>Назва / марка / модель товару *</span>
-                    <span className="text-[11px] font-semibold text-orange-600">Обов'язкове поле</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={customTitle}
-                    onChange={(e) => setCustomTitle(e.target.value)}
-                    placeholder="напр. Кабель ВВГ-Пнг 3х2.5 ЗЗЦМ або Автомат Schneider 16A"
-                    className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-sm bg-slate-50/50 transition-all font-medium text-slate-900"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <form onSubmit={handleCustomRequestSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="p-4 sm:p-6 space-y-4 text-xs overflow-y-auto flex-1">
+                  
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1.5">
-                      Категорія / Сфера
-                    </label>
-                    <select
-                      value={customCategory}
-                      onChange={(e) => setCustomCategory(e.target.value)}
-                      className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 transition-all font-medium text-slate-900"
-                    >
-                      <option value="Електрика & Кабельна продукція">Електрика & Кабель</option>
-                      <option value="Сантехніка & Опалення">Сантехніка & Опалення</option>
-                      <option value="Інструмент & Кріплення">Інструмент & Кріплення</option>
-                      <option value="Господарчі товари">Господарчі товари</option>
-                      <option value="Інше / Не впевнений">Інше / Спецзамовлення</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1.5">
-                      Кількість та од. виміру
-                    </label>
-                    <input
-                      type="text"
-                      value={customQuantity}
-                      onChange={(e) => setCustomQuantity(e.target.value)}
-                      placeholder="напр. 100 метрів або 5 шт"
-                      className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 transition-all font-medium text-slate-900"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1.5">
-                    Посилання на фото, сайт аналог чи креслення (опціонально)
-                  </label>
-                  <input
-                    type="text"
-                    value={customLinkOrPhoto}
-                    onChange={(e) => setCustomLinkOrPhoto(e.target.value)}
-                    placeholder="https://... або назва каталогу"
-                    className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 transition-all font-mono text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1.5">
-                    Коментар / Особливі вимоги
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={customDescription}
-                    onChange={(e) => setCustomDescription(e.target.value)}
-                    placeholder="Уточніть колір, бренд, терміновість поставки або важливі параметри..."
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 text-slate-900"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">
-                      Контактний телефон *
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      value={customPhone}
-                      onChange={(e) => setCustomPhone(formatUkrainianPhone(e.target.value))}
-                      placeholder="+380 (67)..."
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 text-xs font-mono text-slate-900 bg-slate-50/50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">
-                      Ваше ім'я *
+                    <label className="block font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                      <span>Назва / марка / модель товару *</span>
+                      <span className="text-[11px] font-semibold text-orange-600">Обов'язкове поле</span>
                     </label>
                     <input
                       type="text"
                       required
-                      value={customName}
-                      onChange={(e) => setCustomName(e.target.value)}
-                      placeholder="Олександр"
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 text-xs text-slate-900 bg-slate-50/50"
+                      value={customTitle}
+                      onChange={(e) => setCustomTitle(e.target.value)}
+                      placeholder="напр. Кабель ВВГ-Пнг 3х2.5 ЗЗЦМ або Автомат Schneider 16A"
+                      className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-sm bg-slate-50/50 transition-all font-medium text-slate-900"
                     />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5">
+                        Категорія / Сфера
+                      </label>
+                      <select
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                        className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 transition-all font-medium text-slate-900"
+                      >
+                        <option value="Електрика & Кабельна продукція">Електрика & Кабель</option>
+                        <option value="Сантехніка & Опалення">Сантехніка & Опалення</option>
+                        <option value="Інструмент & Кріплення">Інструмент & Кріплення</option>
+                        <option value="Господарчі товари">Господарчі товари</option>
+                        <option value="Інше / Не впевнений">Інше / Спецзамовлення</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5">
+                        Кількість та од. виміру
+                      </label>
+                      <input
+                        type="text"
+                        value={customQuantity}
+                        onChange={(e) => setCustomQuantity(e.target.value)}
+                        placeholder="напр. 100 метрів або 5 шт"
+                        className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 transition-all font-medium text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5">
+                      Посилання на фото, сайт аналог чи креслення (опціонально)
+                    </label>
+                    <input
+                      type="text"
+                      value={customLinkOrPhoto}
+                      onChange={(e) => setCustomLinkOrPhoto(e.target.value)}
+                      placeholder="https://... або назва каталогу"
+                      className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 transition-all font-mono text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5">
+                      Коментар / Особливі вимоги
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={customDescription}
+                      onChange={(e) => setCustomDescription(e.target.value)}
+                      placeholder="Уточніть колір, бренд, терміновість поставки або важливі параметри..."
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 text-slate-900"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        Контактний телефон *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={customPhone}
+                        onChange={(e) => setCustomPhone(formatUkrainianPhone(e.target.value))}
+                        placeholder="+380 (67)..."
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 text-xs font-mono text-slate-900 bg-slate-50/50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        Ваше ім'я *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={customName}
+                        onChange={(e) => setCustomName(e.target.value)}
+                        placeholder="Олександр"
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 text-xs text-slate-900 bg-slate-50/50"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/90 shrink-0 flex items-center justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => setIsCustomModalOpen(false)}
-                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-colors cursor-pointer text-xs"
+                    className="px-4 sm:px-5 py-2.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold rounded-2xl transition-colors cursor-pointer text-xs"
                   >
                     Скасувати
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmittingCustom}
-                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-2xl shadow-md shadow-amber-500/25 transition-all cursor-pointer text-xs flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                    className="px-5 sm:px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-2xl shadow-md shadow-amber-500/25 transition-all cursor-pointer text-xs flex items-center gap-2 active:scale-95 disabled:opacity-50"
                   >
                     <Plus className="w-4 h-4 stroke-[3]" />
                     <span>{isSubmittingCustom ? 'Надсилання...' : 'Надіслати запит'}</span>
