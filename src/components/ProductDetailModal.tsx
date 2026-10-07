@@ -221,14 +221,10 @@ export const ProductDetailModal: React.FC = () => {
                   <div className="flex justify-between py-1.5 items-center">
                     <span className="text-slate-500 font-medium">Статус товару</span>
                     {isOutOfStock ? (
-                      <button
-                        type="button"
-                        onClick={() => openStockAlertModal(quickViewProduct)}
-                        className="font-bold text-amber-800 hover:text-amber-950 text-xs flex items-center gap-1.5 cursor-pointer underline decoration-amber-400 underline-offset-2 transition-colors"
-                      >
-                        <Bell className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Закінчився (Повідомити про наявність)</span>
-                      </button>
+                      <span className="inline-flex items-center gap-1.5 text-rose-600 font-bold text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        <span>Немає в наявності</span>
+                      </span>
                     ) : showLowStockBadge ? (
                       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-900 text-xs font-bold">
                         <span className="relative flex h-2 w-2">
