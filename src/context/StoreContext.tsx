@@ -2110,6 +2110,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         if (isCategoryDifferent || shouldUpdateBrand) {
           updatedCount++;
+          console.log(`📦 "${p.name}" → Нова категорія: [${classified.mainCategory} / ${classified.subCategory} / ${classified.category}] (Бренд: ${brandToSet})`);
           const { mainCategory, subCategory, category } = classified;
           if (!updatedTree[mainCategory]) {
             updatedTree[mainCategory] = { _leaves: [] };
