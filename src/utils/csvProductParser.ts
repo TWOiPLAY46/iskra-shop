@@ -289,7 +289,25 @@ export function parseProductCSV(csvText: string, options?: CsvImportOptions): Pa
       category = classified.category;
     } else {
       const catLower = category.toLowerCase();
-      if (catLower.includes('світл') || catLower.includes('освітл') || catLower.includes('електр') || catLower.includes('кабель') || catLower.includes('автомат')) {
+      const nameLower = name.toLowerCase();
+
+      // Disambiguate fixtures vs lamps even if column was rough
+      if (
+        (catLower.includes('ламп') || catLower === 'лампи led') &&
+        (nameLower.includes('світильник') || nameLower.includes('светильник') || nameLower.includes('downlight') || nameLower.includes('ndp') || nameLower.includes('люстра') || nameLower.includes('спот') || nameLower.includes('панель'))
+      ) {
+        mainCategory = 'Електротовари';
+        subCategory = 'Освітлення';
+        category = 'Світильники';
+      } else if (
+        catLower.includes('світильник') &&
+        (nameLower.includes('лампа') || nameLower.includes('лампочк') || nameLower.includes('філамент')) &&
+        !nameLower.includes('світильник') && !nameLower.includes('светильник')
+      ) {
+        mainCategory = 'Електротовари';
+        subCategory = 'Освітлення';
+        category = 'Лампи LED';
+      } else if (catLower.includes('світл') || catLower.includes('освітл') || catLower.includes('електр') || catLower.includes('кабель') || catLower.includes('автомат')) {
         mainCategory = 'Електротовари';
       } else if (catLower.includes('сантех') || catLower.includes('опален') || catLower.includes('кран') || catLower.includes('змішувач') || catLower.includes('труб')) {
         mainCategory = 'Сантехніка та опалення';

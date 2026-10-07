@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Product } from '../types/store';
 import { useStore } from '../context/StoreContext';
 import { getProductBrand } from '../utils/brandHelper';
-import { ShoppingBag, Heart, Droplets, Zap, Check, AlertTriangle, Flame, Bell } from 'lucide-react';
+import { ShoppingBag, Heart, Droplets, Zap, Check, AlertTriangle, Flame, Bell, Wrench, Home, Cog } from 'lucide-react';
 import { getSafeImageUrl } from '../utils/assetImages';
 import { formatUnit, formatPriceUnit } from '../utils/unitFormatter';
 
@@ -23,14 +23,39 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isLowStock = !isOutOfStock && product.stock <= lowThreshold;
   const showLowStockBadge = isLowStock && (siteSettings?.features?.showLowStockBadgeToBuyers ?? true);
 
+  const catLower = (product.category || '').toLowerCase();
+  const mainLower = (product.mainCategory || '').toLowerCase();
+
   const isPlumbing = 
-    product.category?.toLowerCase().includes('сантех') ||
-    product.category?.toLowerCase().includes('радіатор') ||
-    product.category?.toLowerCase().includes('змішувач') ||
-    product.category?.toLowerCase().includes('труб') ||
-    product.category?.toLowerCase().includes('фітинг') ||
-    product.category?.toLowerCase().includes('унітаз') ||
-    product.mainCategory?.toLowerCase().includes('сантех');
+    catLower.includes('сантех') ||
+    catLower.includes('радіатор') ||
+    catLower.includes('змішувач') ||
+    catLower.includes('труб') ||
+    catLower.includes('фітинг') ||
+    catLower.includes('унітаз') ||
+    catLower.includes('бойлер') ||
+    catLower.includes('насос') ||
+    mainLower.includes('сантех');
+
+  const isTool = 
+    catLower.includes('інструмент') ||
+    catLower.includes('дриль') ||
+    catLower.includes('шуруп') ||
+    catLower.includes('перфоратор') ||
+    catLower.includes('болгарк') ||
+    mainLower.includes('інструмент');
+
+  const isHousehold = 
+    catLower.includes('господар') ||
+    catLower.includes('кріплен') ||
+    catLower.includes('замок') ||
+    catLower.includes('прибиран') ||
+    mainLower.includes('господар');
+
+  const isOther = 
+    mainLower.includes('інш') || 
+    mainLower.includes('нерозподіл') ||
+    catLower.includes('інш');
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -109,6 +134,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="w-full h-full flex items-center justify-center text-slate-400 relative z-10">
             {isPlumbing ? (
               <Droplets className="w-20 h-20 sm:w-24 sm:h-24 text-slate-400 stroke-[1.5]" />
+            ) : isTool ? (
+              <Wrench className="w-20 h-20 sm:w-24 sm:h-24 text-slate-400 stroke-[1.5]" />
+            ) : isHousehold ? (
+              <Home className="w-20 h-20 sm:w-24 sm:h-24 text-slate-400 stroke-[1.5]" />
+            ) : isOther ? (
+              <Cog className="w-20 h-20 sm:w-24 sm:h-24 text-slate-400 stroke-[1.5]" />
             ) : (
               <Zap className="w-20 h-20 sm:w-24 sm:h-24 text-slate-400 stroke-[1.5]" />
             )}

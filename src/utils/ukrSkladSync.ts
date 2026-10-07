@@ -200,6 +200,25 @@ export function parseUkrSkladCSV(csvText: string): UkrSkladParsedData {
       if (rawCat) {
         category = rawCat;
         subCategory = rawCat;
+
+        const catLower = category.toLowerCase();
+        const nameLower = name.toLowerCase();
+        if (
+          (catLower.includes('ламп') || catLower === 'лампи led') &&
+          (nameLower.includes('світильник') || nameLower.includes('светильник') || nameLower.includes('downlight') || nameLower.includes('ndp') || nameLower.includes('люстра') || nameLower.includes('спот') || nameLower.includes('панель'))
+        ) {
+          mainCategory = 'Електротовари';
+          subCategory = 'Освітлення';
+          category = 'Світильники';
+        } else if (
+          catLower.includes('світильник') &&
+          (nameLower.includes('лампа') || nameLower.includes('лампочк') || nameLower.includes('філамент')) &&
+          !nameLower.includes('світильник') && !nameLower.includes('светильник')
+        ) {
+          mainCategory = 'Електротовари';
+          subCategory = 'Освітлення';
+          category = 'Лампи LED';
+        }
       } else {
         const classified = classifyProduct(name, sku);
         mainCategory = classified.mainCategory;

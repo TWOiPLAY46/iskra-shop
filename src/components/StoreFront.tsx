@@ -38,25 +38,38 @@ import {
   Package
 } from 'lucide-react';
 
-const matchCategoryOrLeaf = (text: string, filter: string): boolean => {
-  if (!text || !filter) return false;
+const normalizeCategoryStem = (word: string): string => {
+  return word.toLowerCase().replace(/[^a-zа-яієїґ0-9]/g, '').replace(/(?<=[а-яієїґ]{3,})[иіаяеоуів]$/g, '');
+};
+
+const matchSingleCategoryPhrase = (text: string, filter: string): boolean => {
   const t = text.toLowerCase().trim();
   const f = filter.toLowerCase().trim();
   if (t === f) return true;
 
-  // Direct containment check
-  if (t.includes(f) || f.includes(t)) return true;
+  const tWords = t.split(/\s+/).map(normalizeCategoryStem).filter(w => w.length >= 2);
+  const fWords = f.split(/\s+/).map(normalizeCategoryStem).filter(w => w.length >= 2);
 
-  // Word-by-word stem matching (requires words to be at least 3 chars)
-  const cleanWords = (str: string) => str.toLowerCase().replace(/[^\wа-яієїґ\s]/g, '').split(/\s+/).filter(w => w.length >= 3);
-  const filterWords = cleanWords(f);
-  const textWords = cleanWords(t);
+  if (tWords.length === 0 || fWords.length === 0) return false;
 
-  if (filterWords.length === 0) return false;
+  // Exact stem matching (both must have the exact same number of meaningful words matching)
+  // This correctly matches "Розетка" <=> "Розетки", "Автоматичні вимикачі" <=> "Вимикач автоматичний",
+  // but strictly avoids matching "Розетки з заземленням" when filtering by "Розетка",
+  // and avoids matching "Вимикач автоматичний" when filtering by "Автомат" or "Вимикач".
+  if (tWords.length === fWords.length) {
+    return fWords.every(fw => tWords.some(tw => tw === fw || tw.startsWith(fw) || fw.startsWith(tw)));
+  }
 
-  return filterWords.every(fw => 
-    textWords.some(tw => tw === fw || tw.startsWith(fw.slice(0, Math.min(fw.length, 4))))
-  );
+  return false;
+};
+
+const matchCategoryOrLeaf = (text: string, filter: string): boolean => {
+  if (!text || !filter) return false;
+  const parts = filter.split(/[,/|]/).map(p => p.trim()).filter(Boolean);
+  if (parts.length > 1) {
+    return parts.some(part => matchSingleCategoryPhrase(text, part));
+  }
+  return matchSingleCategoryPhrase(text, filter);
 };
 
 export const StoreFront: React.FC = () => {
@@ -514,7 +527,7 @@ export const StoreFront: React.FC = () => {
                     chipColor: isPremium
                       ? 'hover:bg-amber-600 hover:text-white border-slate-800 text-slate-300 bg-slate-900/90'
                       : 'hover:bg-amber-600 hover:text-white border-amber-200 text-amber-950 bg-white/90',
-                    chips: ['Автомати', 'Кабель та провід', 'Розетки', 'LED лампи', 'Щитки'],
+                    chips: ['Автоматичні вимикачі', 'Кабель та провід', 'Розетки', 'LED лампи', 'Світильники', 'Щитки'],
                     popularBrands: ['WAGO', 'Schneider', 'Hager']
                   };
                 } else if (lower.includes('інструмент')) {

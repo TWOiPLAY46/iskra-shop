@@ -13,7 +13,10 @@ import {
   Star,
   ShieldCheck,
   ZoomIn,
-  Bell
+  Bell,
+  Wrench,
+  Home,
+  Cog
 } from 'lucide-react';
 import { Product } from '../types/store';
 import { getProductBrand } from '../utils/brandHelper';
@@ -63,19 +66,15 @@ export const ProductDetailModal: React.FC = () => {
   const isLowStock = !isOutOfStock && quickViewProduct ? quickViewProduct.stock <= lowThreshold : false;
   const showLowStockBadge = isLowStock && (siteSettings?.features?.showLowStockBadgeToBuyers ?? true);
 
-  const isPlumbing = useMemo(() => {
-    if (!quickViewProduct) return false;
-    const cat = (quickViewProduct.category + ' ' + (quickViewProduct.mainCategory || '')).toLowerCase();
-    return (
-      cat.includes('сантех') ||
-      cat.includes('радіатор') ||
-      cat.includes('змішувач') ||
-      cat.includes('труб') ||
-      cat.includes('фітинг') ||
-      cat.includes('унітаз') ||
-      cat.includes('опалення')
-    );
+  const cat = useMemo(() => {
+    if (!quickViewProduct) return '';
+    return ((quickViewProduct.category || '') + ' ' + (quickViewProduct.mainCategory || '')).toLowerCase();
   }, [quickViewProduct]);
+
+  const isPlumbing = cat.includes('сантех') || cat.includes('радіатор') || cat.includes('змішувач') || cat.includes('труб') || cat.includes('фітинг') || cat.includes('унітаз') || cat.includes('опалення') || cat.includes('бойлер') || cat.includes('насос');
+  const isTool = cat.includes('інструмент') || cat.includes('дриль') || cat.includes('шуруп') || cat.includes('перфоратор') || cat.includes('болгарк');
+  const isHousehold = cat.includes('господар') || cat.includes('кріплен') || cat.includes('замок') || cat.includes('прибиран');
+  const isOther = cat.includes('інш') || cat.includes('нерозподіл');
 
   // Smart related cross-sell accessories ("З цим часто купують")
   const frequentlyBoughtTogether = useMemo(() => {
@@ -164,6 +163,12 @@ export const ProductDetailModal: React.FC = () => {
                   <div className="w-full h-full flex items-center justify-center text-slate-400">
                     {isPlumbing ? (
                       <Droplets className="w-24 h-24 text-slate-400/80 stroke-[1.5]" />
+                    ) : isTool ? (
+                      <Wrench className="w-24 h-24 text-slate-400/80 stroke-[1.5]" />
+                    ) : isHousehold ? (
+                      <Home className="w-24 h-24 text-slate-400/80 stroke-[1.5]" />
+                    ) : isOther ? (
+                      <Cog className="w-24 h-24 text-slate-400/80 stroke-[1.5]" />
                     ) : (
                       <Zap className="w-24 h-24 text-slate-400/80 stroke-[1.5]" />
                     )}

@@ -2882,8 +2882,13 @@ export const AccountView: React.FC = () => {
 
         {/* 10. Custom Product Request Modal (Товар під замовлення) */}
         {isCustomModalOpen && typeof document !== 'undefined' && createPortal(
-          <div className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-hidden">
-            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden my-0 sm:my-auto animate-in slide-in-from-bottom duration-250 relative">
+          <div 
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setIsCustomModalOpen(false);
+            }}
+            className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
+          >
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-hidden my-0 sm:my-auto animate-in slide-in-from-bottom duration-250 relative">
               
               {/* Modal Header */}
               <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
