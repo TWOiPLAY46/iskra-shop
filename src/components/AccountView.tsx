@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useStore } from '../context/StoreContext';
 import { getSafeImageUrl } from '../utils/assetImages';
 import { 
@@ -2656,9 +2657,9 @@ export const AccountView: React.FC = () => {
         )}
 
         {/* 9. Edit Profile Modal */}
-        {isEditProfileOpen && (
-          <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-hidden">
-            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden my-0 sm:my-auto animate-in slide-in-from-bottom duration-250 relative">
+        {isEditProfileOpen && typeof document !== 'undefined' && createPortal(
+          <div className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-hidden">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden my-0 sm:my-auto animate-in slide-in-from-bottom duration-250 relative">
               
               {/* Modal Header */}
               <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
@@ -2875,13 +2876,14 @@ export const AccountView: React.FC = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* 10. Custom Product Request Modal (Товар під замовлення) */}
-        {isCustomModalOpen && (
-          <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-hidden">
-            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden my-0 sm:my-auto animate-in slide-in-from-bottom duration-250 relative">
+        {isCustomModalOpen && typeof document !== 'undefined' && createPortal(
+          <div className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-hidden">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden my-0 sm:my-auto animate-in slide-in-from-bottom duration-250 relative">
               
               {/* Modal Header */}
               <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
@@ -3033,7 +3035,8 @@ export const AccountView: React.FC = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
       </div>
