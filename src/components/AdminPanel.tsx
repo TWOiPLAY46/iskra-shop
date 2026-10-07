@@ -690,6 +690,9 @@ export const AdminPanel: React.FC = () => {
     updateReturnRequestStatus,
     deleteReturnRequest,
     clearAllReturnRequests,
+    customRequests,
+    updateCustomRequestStatus,
+    deleteCustomRequest,
     updateSiteSettings,
     updateSiteFeatures,
     updateHeaderDesign,
@@ -2013,6 +2016,40 @@ export const AdminPanel: React.FC = () => {
                   {pendingStockAlertsCount}
                 </span>
               ) : activeTab === 'stock_alerts' && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              )}
+            </button>
+
+            {/* 7.5 Товари під замовлення */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('custom_requests' as any)}
+              className={`p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 select-none ${
+                activeTab === ('custom_requests' as any)
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20 ring-2 ring-slate-900/10'
+                  : 'bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  activeTab === ('custom_requests' as any) ? 'bg-amber-400 text-slate-950 font-bold shadow-xs shadow-amber-400/40' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  <Sparkles className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs truncate leading-tight ${activeTab === ('custom_requests' as any) ? 'text-white font-extrabold' : 'text-slate-800 font-bold'}`}>
+                    Під замовлення
+                  </div>
+                  <div className={`text-[10px] font-mono leading-tight ${activeTab === ('custom_requests' as any) ? 'text-slate-300 font-medium' : 'text-slate-500'}`}>
+                    {customRequests.length} запитів
+                  </div>
+                </div>
+              </div>
+              {customRequests.filter(r => r.status === 'new').length > 0 ? (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 animate-pulse shrink-0 shadow-xs">
+                  +{customRequests.filter(r => r.status === 'new').length}
+                </span>
+              ) : activeTab === ('custom_requests' as any) && (
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               )}
             </button>
@@ -6049,6 +6086,247 @@ export const AdminPanel: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* TAB: CUSTOM PRODUCT REQUESTS (ТОВАРИ ПІД ЗАМОВЛЕННЯ) */}
+      {activeTab === ('custom_requests' as any) && (() => {
+        const newCount = customRequests.filter(r => r.status === 'new').length;
+        const processingCount = customRequests.filter(r => r.status === 'processing').length;
+        const quotedCount = customRequests.filter(r => r.status === 'quoted').length;
+        const completedCount = customRequests.filter(r => r.status === 'completed').length;
+
+        return (
+          <div className="space-y-6 max-w-7xl animate-in fade-in duration-200">
+            {/* Hero Header */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 p-6 sm:p-8 text-white shadow-2xl border border-amber-500/30">
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      ✨ Запити під замовлення
+                    </span>
+                    {newCount > 0 && (
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-orange-500 text-slate-950 animate-bounce">
+                        +{newCount} нових
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3 font-display">
+                    <Sparkles className="w-8 h-8 text-amber-400" />
+                    <span>Товари під замовлення (відсутні на сайті)</span>
+                  </h2>
+                  <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                    Клієнтські заявки на товари, яких немає у стандартному каталозі. Менеджер може розрахувати ціну, вказати термін поставки та сповістити замовника.
+                  </p>
+                </div>
+
+                {/* Counter metrics */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+                  <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-800 text-center">
+                    <div className="text-xs text-slate-400 font-bold">Всього</div>
+                    <div className="text-xl font-black font-display text-white">{customRequests.length}</div>
+                  </div>
+                  <div className="bg-amber-950/40 p-3 rounded-2xl border border-amber-800/50 text-center">
+                    <div className="text-xs text-amber-300 font-bold">Нових</div>
+                    <div className="text-xl font-black font-display text-amber-400">{newCount}</div>
+                  </div>
+                  <div className="bg-sky-950/40 p-3 rounded-2xl border border-sky-800/50 text-center">
+                    <div className="text-xs text-sky-300 font-bold">Оцінених</div>
+                    <div className="text-xl font-black font-display text-sky-400">{quotedCount}</div>
+                  </div>
+                  <div className="bg-emerald-950/40 p-3 rounded-2xl border border-emerald-800/50 text-center">
+                    <div className="text-xs text-emerald-300 font-bold">Виконано</div>
+                    <div className="text-xl font-black font-display text-emerald-400">{completedCount}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Requests List */}
+            {customRequests.length === 0 ? (
+              <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-3">
+                <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-500 mx-auto flex items-center justify-center">
+                  <Sparkles className="w-8 h-8" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">Немає заявлених товарів під замовлення</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Коли покупці в особистому кабінеті залишать запит на відсутній товар, він з'явиться тут для обробки та підбору ціни.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {customRequests.map((req) => (
+                  <div key={req.id} className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-4 pb-4 border-b border-slate-100">
+                      <div>
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="text-lg font-black text-slate-900 font-display">
+                            {req.title}
+                          </span>
+                          <span className="px-3 py-1 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200">
+                            {req.category || 'Загальна категорія'}
+                          </span>
+                          <span className="px-3 py-1 rounded-xl bg-amber-50 text-amber-800 text-xs font-black border border-amber-200 font-mono">
+                            Кількість: {req.quantity || '1 шт'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500 font-mono mt-2 flex-wrap">
+                          <span className="font-bold text-slate-900">👤 {req.clientName}</span>
+                          <span>·</span>
+                          <a href={`tel:${req.clientPhone.replace(/\D/g, '')}`} className="text-orange-600 font-bold hover:underline">
+                            📞 {req.clientPhone}
+                          </a>
+                          <span>·</span>
+                          <span>Час: {new Date(req.createdAt).toLocaleString('uk-UA')}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => deleteCustomRequest(req.id)}
+                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Видалити</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Details if any */}
+                    {(req.description || req.linkOrPhoto) && (
+                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs space-y-1.5">
+                        {req.description && (
+                          <div>
+                            <span className="font-bold text-slate-900">Коментар клієнта:</span> {req.description}
+                          </div>
+                        )}
+                        {req.linkOrPhoto && (
+                          <div className="truncate">
+                            <span className="font-bold text-slate-900">Посилання/Фото:</span>{' '}
+                            <a href={req.linkOrPhoto.startsWith('http') ? req.linkOrPhoto : `https://${req.linkOrPhoto}`} target="_blank" rel="noopener noreferrer" className="text-orange-600 font-semibold hover:underline">
+                              {req.linkOrPhoto}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Interactive Admin Quote & Status Panel */}
+                    <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/80 space-y-3">
+                      <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                        <Edit3 className="w-4 h-4 text-amber-600" />
+                        <span>Калькулятор та статус обробки менеджера</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Оціночна ціна (грн)
+                          </label>
+                          <input
+                            type="number"
+                            placeholder="напр. 450"
+                            value={req.adminQuotePrice !== undefined ? req.adminQuotePrice : ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                              updateCustomRequestStatus(req.id, req.status, val, req.adminDeliveryDays, req.adminNotes);
+                            }}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-amber-500 font-mono font-bold bg-white text-slate-900"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Термін доставки (дні)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="напр. 1-2 дні"
+                            value={req.adminDeliveryDays || ''}
+                            onChange={(e) => {
+                              updateCustomRequestStatus(req.id, req.status, req.adminQuotePrice, e.target.value, req.adminNotes);
+                            }}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-amber-500 text-xs bg-white text-slate-900"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Примітка / Інфо про наявність
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Знайшли аналог на складі в Києві..."
+                            value={req.adminNotes || ''}
+                            onChange={(e) => {
+                              updateCustomRequestStatus(req.id, req.status, req.adminQuotePrice, req.adminDeliveryDays, e.target.value);
+                            }}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:border-amber-500 text-xs bg-white text-slate-900"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Quick Status Setter Buttons */}
+                      <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-amber-200/60">
+                        <span className="text-[11px] font-bold text-slate-600">Змінити статус:</span>
+
+                        <button
+                          type="button"
+                          onClick={() => updateCustomRequestStatus(req.id, 'processing', req.adminQuotePrice, req.adminDeliveryDays, req.adminNotes)}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            req.status === 'processing' ? 'bg-sky-600 text-white border-sky-600 shadow-xs' : 'bg-white text-sky-700 border-sky-200 hover:bg-sky-50'
+                          }`}
+                        >
+                          🔵 В обробці
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => updateCustomRequestStatus(req.id, 'quoted', req.adminQuotePrice, req.adminDeliveryDays, req.adminNotes)}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            req.status === 'quoted' ? 'bg-amber-600 text-white border-amber-600 shadow-xs' : 'bg-white text-amber-800 border-amber-200 hover:bg-amber-50'
+                          }`}
+                        >
+                          🏷️ Оцінено
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => updateCustomRequestStatus(req.id, 'ordered', req.adminQuotePrice, req.adminDeliveryDays, req.adminNotes)}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            req.status === 'ordered' ? 'bg-purple-600 text-white border-purple-600 shadow-xs' : 'bg-white text-purple-700 border-purple-200 hover:bg-purple-50'
+                          }`}
+                        >
+                          📦 Замовлено у постачальника
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => updateCustomRequestStatus(req.id, 'completed', req.adminQuotePrice, req.adminDeliveryDays, req.adminNotes)}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            req.status === 'completed' ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+                          }`}
+                        >
+                          ✅ Виконано
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => updateCustomRequestStatus(req.id, 'rejected', req.adminQuotePrice, req.adminDeliveryDays, req.adminNotes)}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            req.status === 'rejected' ? 'bg-rose-600 text-white border-rose-600 shadow-xs' : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
+                          }`}
+                        >
+                          ❌ Відхилено
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* TAB: ANALYTICS & REPORTS */}
       {activeTab === 'analytics' && (() => {

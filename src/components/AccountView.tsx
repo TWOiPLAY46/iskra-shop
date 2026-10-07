@@ -44,7 +44,8 @@ import {
   Gift,
   ShoppingBag,
   PhoneCall,
-  Upload
+  Upload,
+  Plus
 } from 'lucide-react';
 import { Order, OrderStatus } from '../types/store';
 import { LiveTrackingWidget } from './LiveTrackingWidget';
@@ -77,6 +78,9 @@ export const AccountView: React.FC = () => {
     updateOrderStatus,
     editOrder,
     deleteOrder,
+    customRequests,
+    createCustomRequest,
+    deleteCustomRequest,
     showToast
   } = useStore();
 
@@ -172,15 +176,26 @@ export const AccountView: React.FC = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Active view tab in account
-  const [activeTab, setActiveTab] = useState<'orders' | 'track' | 'loyalty'>(() => {
+  const [activeTab, setActiveTab] = useState<'orders' | 'custom' | 'track' | 'loyalty'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('iskra_account_tab');
-      if (saved === 'orders' || saved === 'track' || saved === 'loyalty') {
+      if (saved === 'orders' || saved === 'custom' || saved === 'track' || saved === 'loyalty') {
         return saved;
       }
     }
     return 'orders';
   });
+
+  // Custom Product Request Modal State
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  const [customTitle, setCustomTitle] = useState('');
+  const [customCategory, setCustomCategory] = useState('Електрика & Кабельна продукція');
+  const [customQuantity, setCustomQuantity] = useState('1 шт');
+  const [customDescription, setCustomDescription] = useState('');
+  const [customLinkOrPhoto, setCustomLinkOrPhoto] = useState('');
+  const [customPhone, setCustomPhone] = useState('');
+  const [customName, setCustomName] = useState('');
+  const [isSubmittingCustom, setIsSubmittingCustom] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -287,6 +302,59 @@ export const AccountView: React.FC = () => {
       return cleanO && cleanC && (cleanO === cleanC || cleanO.includes(cleanC) || cleanC.includes(cleanO));
     });
   }, [orders, currentClientPhone]);
+
+  // Filter custom requests for authorized client
+  const clientCustomRequests = useMemo(() => {
+    if (!currentClientPhone) return [];
+    const cleanC = currentClientPhone.replace(/\D/g, '');
+    return customRequests.filter((r) => {
+      const cleanR = (r.clientPhone || '').replace(/\D/g, '');
+      return cleanR && cleanC && (cleanR === cleanC || cleanR.includes(cleanC) || cleanC.includes(cleanR));
+    });
+  }, [customRequests, currentClientPhone]);
+
+  const handleOpenCustomModal = () => {
+    setCustomTitle('');
+    setCustomCategory('Електрика & Кабельна продукція');
+    setCustomQuantity('1 шт');
+    setCustomDescription('');
+    setCustomLinkOrPhoto('');
+    setCustomPhone(currentClientPhone ? formatUkrainianPhone(currentClientPhone) : '');
+    setCustomName(currentClient?.name || '');
+    setIsCustomModalOpen(true);
+  };
+
+  const handleCustomRequestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customTitle.trim()) {
+      showToast('Вкажіть назву або марку товару', 'error');
+      return;
+    }
+    const targetPhone = customPhone.trim() || currentClientPhone || '';
+    if (!targetPhone) {
+      showToast('Вкажіть ваш номер телефону для зв\'язку', 'error');
+      return;
+    }
+
+    setIsSubmittingCustom(true);
+    try {
+      await createCustomRequest({
+        clientPhone: targetPhone,
+        clientName: customName.trim() || currentClient?.name || 'Покупець',
+        title: customTitle.trim(),
+        category: customCategory,
+        quantity: customQuantity.trim() || '1 шт',
+        description: customDescription.trim(),
+        linkOrPhoto: customLinkOrPhoto.trim()
+      });
+      setIsCustomModalOpen(false);
+      setActiveTab('custom');
+    } catch (err: any) {
+      showToast(err.message || 'Помилка створення запиту', 'error');
+    } finally {
+      setIsSubmittingCustom(false);
+    }
+  };
 
   // Auto-sync status to "Доставлено" for orders confirmed delivered or paid at post branch
   useEffect(() => {
@@ -1096,39 +1164,60 @@ export const AccountView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Quick Actions (Catalog, Support & Logout) */}
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <button
-                    onClick={() => setActiveView('store')}
-                    className="px-4 py-2.5 rounded-2xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-orange-500/20 inline-flex items-center gap-2 active:scale-95 cursor-pointer"
-                  >
-                    <ShoppingBag className="w-4 h-4 text-slate-950" />
-                    <span>До каталогу товарів</span>
-                  </button>
+                {/* Quick Actions (Catalog, Support, Profile & Logout) */}
+                <div className="w-full lg:w-auto space-y-2 lg:space-y-0 lg:flex lg:items-center lg:gap-2.5">
+                  {/* Row 1: Primary CTAs */}
+                  <div className="grid grid-cols-2 gap-2 w-full lg:w-auto lg:flex lg:items-center">
+                    <button
+                      type="button"
+                      onClick={() => setActiveView('store')}
+                      className="w-full px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+                    >
+                      <ShoppingBag className="w-4 h-4 text-slate-950 shrink-0" />
+                      <span className="truncate">Каталог</span>
+                    </button>
 
-                  <button
-                    onClick={handleOpenEditProfile}
-                    className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 backdrop-blur-md transition-all shadow-sm inline-flex items-center gap-2 active:scale-95 cursor-pointer"
-                  >
-                    <Edit3 className="w-4 h-4 text-amber-400" />
-                    <span>Редагувати профіль</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenCustomModal}
+                      className="w-full px-3.5 py-2.5 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs border border-amber-500/40 backdrop-blur-md transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span className="truncate">Під замовлення</span>
+                    </button>
+                  </div>
 
-                  <a
-                    href={`tel:${siteSettings.phone.replace(/\D/g, '')}`}
-                    className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 backdrop-blur-md transition-all shadow-sm inline-flex items-center gap-2 active:scale-95 cursor-pointer"
-                  >
-                    <PhoneCall className="w-4 h-4 text-emerald-400" />
-                    <span>Підтримка ISKRA</span>
-                  </a>
+                  {/* Row 2: Secondary Quick Utilities */}
+                  <div className="grid grid-cols-3 gap-2 w-full lg:w-auto lg:flex lg:items-center">
+                    <button
+                      type="button"
+                      onClick={handleOpenEditProfile}
+                      className="w-full px-3 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 backdrop-blur-md transition-all shadow-sm flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                      title="Редагувати свій профіль"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="truncate">Профіль</span>
+                    </button>
 
-                  <button
-                    onClick={logoutClient}
-                    className="px-4 py-2.5 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold border border-rose-500/30 backdrop-blur-md transition-all shadow-sm inline-flex items-center gap-2 active:scale-95 cursor-pointer"
-                  >
-                    <LogOut className="w-4 h-4 text-rose-400" />
-                    <span>Вийти</span>
-                  </button>
+                    <a
+                      href={`tel:${siteSettings.phone.replace(/\D/g, '')}`}
+                      className="w-full px-3 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 backdrop-blur-md transition-all shadow-sm flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer text-center"
+                      title="Гаряча лінія підтримки ISKRA"
+                    >
+                      <PhoneCall className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span className="truncate">Дзвінок</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={logoutClient}
+                      className="w-full px-3 py-2.5 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold border border-rose-500/30 backdrop-blur-md transition-all shadow-sm flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                      title="Вийти з кабінету"
+                    >
+                      <LogOut className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                      <span className="truncate">Вийти</span>
+                    </button>
+                  </div>
                 </div>
 
               </div>
@@ -1210,10 +1299,43 @@ export const AccountView: React.FC = () => {
               </div>
             </div>
 
+            {/* Main Cabinet Navigation Tabs */}
+            <div className="grid grid-cols-2 gap-1.5 sm:flex sm:items-center sm:gap-2 p-1.5 bg-slate-900 rounded-2xl border border-slate-800 text-xs font-bold shadow-lg w-full">
+              <button
+                type="button"
+                onClick={() => setActiveTab('orders')}
+                className={`w-full sm:w-auto px-2.5 sm:px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer ${
+                  activeTab === 'orders'
+                    ? 'bg-orange-500 text-slate-950 font-black shadow-md shadow-orange-500/20'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Package className="w-4 h-4 shrink-0" />
+                <span className="truncate">Замовлення ({clientOrders.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('custom')}
+                className={`w-full sm:w-auto px-2.5 sm:px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer relative ${
+                  activeTab === 'custom'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300/30 shrink-0" />
+                <span className="truncate">Під замовлення ({clientCustomRequests.length})</span>
+                {clientCustomRequests.some(r => r.status === 'quoted') && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping absolute top-1 right-1" />
+                )}
+              </button>
+            </div>
+
             {/* 2. Main Orders Section */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
-              
-              {/* Section Header with Tabs & Search */}
+            {activeTab === 'orders' && (
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+                
+                {/* Section Header with Tabs & Search */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
                 
                 <div className="space-y-1">
@@ -1903,7 +2025,151 @@ export const AccountView: React.FC = () => {
                 </div>
               )}
 
-            </div>
+              </div>
+            )}
+
+            {/* Custom Product Requests Section */}
+            {activeTab === 'custom' && (
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6 animate-in fade-in duration-200">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                  <div className="space-y-1">
+                    <h2 className="text-lg font-black font-display text-slate-900 flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <span>Товари під замовлення (відсутні в каталозі)</span>
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Запити на підбір позицій, яких немає на сайті. Менеджер шукає їх на складах партнерів
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleOpenCustomModal}
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs rounded-2xl shadow-md shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 shrink-0"
+                  >
+                    <Plus className="w-4 h-4 text-slate-950 stroke-[3]" />
+                    <span>+ Замовити відсутній товар</span>
+                  </button>
+                </div>
+
+                {clientCustomRequests.length === 0 ? (
+                  <div className="text-center py-16 px-4 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 space-y-4">
+                    <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-100 to-orange-100 text-amber-600 mx-auto flex items-center justify-center shadow-inner">
+                      <Sparkles className="w-8 h-8" />
+                    </div>
+                    <div className="space-y-1 max-w-md mx-auto">
+                      <h3 className="text-base font-bold text-slate-900">
+                        У вас немає активних запитів на товари під замовлення
+                      </h3>
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        Потрібен деталь, кабель чи сантехніка, якої немає в нашому каталозі? Надішліть заявку, і ми знайдемо її за найкращою ціною!
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleOpenCustomModal}
+                      className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs rounded-2xl shadow-lg shadow-amber-500/20 transition-all inline-flex items-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <Plus className="w-4 h-4 text-slate-950 stroke-[3]" />
+                      <span>Створити перший запит під замовлення</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {clientCustomRequests.map((req) => {
+                      const statusConfig = {
+                        new: { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: '🟢 Новий запит (Очікує оцінки)' },
+                        processing: { bg: 'bg-sky-50 text-sky-700 border-sky-200', label: '🔵 В обробці (Шукаємо на складах)' },
+                        quoted: { bg: 'bg-amber-50 text-amber-800 border-amber-300', label: '🏷️ Оцінено менеджером' },
+                        ordered: { bg: 'bg-purple-50 text-purple-700 border-purple-200', label: '📦 Замовлено у постачальника' },
+                        completed: { bg: 'bg-emerald-100 text-emerald-800 border-emerald-300', label: '✅ Виконано' },
+                        rejected: { bg: 'bg-rose-50 text-rose-700 border-rose-200', label: '❌ Відхилено' }
+                      }[req.status] || { bg: 'bg-slate-100 text-slate-700 border-slate-200', label: req.status };
+
+                      return (
+                        <div key={req.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4 hover:border-amber-300 transition-colors">
+                          <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-slate-100">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-base font-extrabold text-slate-900 font-display">
+                                  {req.title}
+                                </span>
+                                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px] border border-slate-200">
+                                  {req.category || 'Загальне'}
+                                </span>
+                                <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px] border border-amber-200 font-mono">
+                                  К-сть: {req.quantity || '1 шт'}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-slate-400 font-mono mt-1">
+                                Створено: {new Date(req.createdAt).toLocaleString('uk-UA')} · Запит ID: {req.id}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className={`px-3 py-1 rounded-xl text-xs font-bold border ${statusConfig.bg}`}>
+                                {statusConfig.label}
+                              </span>
+                              <button
+                                onClick={() => deleteCustomRequest(req.id)}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                title="Видалити запит"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Description & Link if provided */}
+                          {(req.description || req.linkOrPhoto) && (
+                            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-2 text-xs">
+                              {req.description && (
+                                <div className="text-slate-700">
+                                  <span className="font-bold text-slate-900">Коментар/вимоги:</span> {req.description}
+                                </div>
+                              )}
+                              {req.linkOrPhoto && (
+                                <div className="text-slate-600 flex items-center gap-1.5 truncate">
+                                  <span className="font-bold text-slate-900 shrink-0">Посилання/Фото:</span>
+                                  <a href={req.linkOrPhoto.startsWith('http') ? req.linkOrPhoto : `https://${req.linkOrPhoto}`} target="_blank" rel="noopener noreferrer" className="text-orange-600 font-medium hover:underline truncate">
+                                    {req.linkOrPhoto}
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Manager Quote Section if available */}
+                          {req.adminQuotePrice !== undefined && (
+                            <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl space-y-2 text-xs">
+                              <div className="flex items-center justify-between font-bold text-amber-950">
+                                <span className="flex items-center gap-1.5 text-amber-800">
+                                  <Sparkles className="w-4 h-4 text-amber-600" />
+                                  <span>Відповідь та розрахунок менеджера ISKRA:</span>
+                                </span>
+                                <span className="text-lg font-black font-display text-orange-600">
+                                  {req.adminQuotePrice.toFixed(2)} грн
+                                </span>
+                              </div>
+                              {req.adminDeliveryDays && (
+                                <div className="text-slate-700">
+                                  <span className="font-semibold text-slate-900">Очікуваний термін доставки:</span> <b className="text-slate-900 font-mono">{req.adminDeliveryDays}</b>
+                                </div>
+                              )}
+                              {req.adminNotes && (
+                                <div className="text-slate-700 pt-1 border-t border-amber-200/60">
+                                  <span className="font-semibold text-slate-900">Примітка менеджера:</span> {req.adminNotes}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
           </div>
         )}
@@ -2602,6 +2868,162 @@ export const AccountView: React.FC = () => {
                   >
                     <Check className="w-4 h-4 stroke-[3]" />
                     <span>Зберегти зміни</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 10. Custom Product Request Modal (Товар під замовлення) */}
+        {isCustomModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 max-h-[90vh] overflow-y-auto">
+              
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black font-display text-slate-900 tracking-tight">
+                      Замовити відсутній товар
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Товар під замовлення з прямих складів виробників
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomModalOpen(false)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCustomRequestSubmit} className="space-y-4 text-xs">
+                
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                    <span>Назва / марка / модель товару *</span>
+                    <span className="text-[11px] font-semibold text-orange-600">Обов'язкове поле</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={customTitle}
+                    onChange={(e) => setCustomTitle(e.target.value)}
+                    placeholder="напр. Кабель ВВГ-Пнг 3х2.5 ЗЗЦМ або Автомат Schneider 16A"
+                    className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-sm bg-slate-50/50 transition-all font-medium text-slate-900"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5">
+                      Категорія / Сфера
+                    </label>
+                    <select
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 transition-all font-medium text-slate-900"
+                    >
+                      <option value="Електрика & Кабельна продукція">Електрика & Кабель</option>
+                      <option value="Сантехніка & Опалення">Сантехніка & Опалення</option>
+                      <option value="Інструмент & Кріплення">Інструмент & Кріплення</option>
+                      <option value="Господарчі товари">Господарчі товари</option>
+                      <option value="Інше / Не впевнений">Інше / Спецзамовлення</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5">
+                      Кількість та од. виміру
+                    </label>
+                    <input
+                      type="text"
+                      value={customQuantity}
+                      onChange={(e) => setCustomQuantity(e.target.value)}
+                      placeholder="напр. 100 метрів або 5 шт"
+                      className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 transition-all font-medium text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1.5">
+                    Посилання на фото, сайт аналог чи креслення (опціонально)
+                  </label>
+                  <input
+                    type="text"
+                    value={customLinkOrPhoto}
+                    onChange={(e) => setCustomLinkOrPhoto(e.target.value)}
+                    placeholder="https://... або назва каталогу"
+                    className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 transition-all font-mono text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1.5">
+                    Коментар / Особливі вимоги
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={customDescription}
+                    onChange={(e) => setCustomDescription(e.target.value)}
+                    placeholder="Уточніть колір, бренд, терміновість поставки або важливі параметри..."
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-xs bg-slate-50/50 text-slate-900"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Контактний телефон *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={customPhone}
+                      onChange={(e) => setCustomPhone(formatUkrainianPhone(e.target.value))}
+                      placeholder="+380 (67)..."
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 text-xs font-mono text-slate-900 bg-slate-50/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Ваше ім'я *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={customName}
+                      onChange={(e) => setCustomName(e.target.value)}
+                      placeholder="Олександр"
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-2xl outline-none focus:border-amber-500 text-xs text-slate-900 bg-slate-50/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomModalOpen(false)}
+                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-colors cursor-pointer text-xs"
+                  >
+                    Скасувати
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingCustom}
+                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-2xl shadow-md shadow-amber-500/25 transition-all cursor-pointer text-xs flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3]" />
+                    <span>{isSubmittingCustom ? 'Надсилання...' : 'Надіслати запит'}</span>
                   </button>
                 </div>
               </form>

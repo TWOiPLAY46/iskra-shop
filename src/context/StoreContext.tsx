@@ -2,11 +2,14 @@ import React, { createContext, useContext, useEffect, useMemo, useState, useRef 
 import { initialCategoriesTree, initialHeaderDesign, initialProducts, initialSiteSettings, initialWeeklyDeal, initialPromoCodes } from '../data/initialData';
 import { getSafeImageUrl } from '../utils/assetImages';
 import { sendTelegramAlert } from '../utils/telegramHelper';
+import { formatUkrainianPhone } from '../utils/phoneFormatter';
 import { initialReviews } from '../data/productReviews';
 import { 
   CartItem, 
   CategoryTree, 
   ClientData, 
+  CustomProductRequest,
+  CustomRequestStatus,
   FirebaseConnectionConfig, 
   HeaderDesign, 
   Order, 
@@ -58,6 +61,7 @@ import { formatUnit, normalizeStorageUnit } from '../utils/unitFormatter';
 import { getProductBrand } from '../utils/brandHelper';
 import { parseProductCSV, CsvImportOptions } from '../utils/csvProductParser';
 import { classifyProduct } from '../utils/categoryClassifier';
+import { validateProduct, validateOrderData, validateReviewData } from '../utils/dataValidator';
 import { autoFindBestImageForProduct } from '../utils/productImageSearch';
 
 interface StoreContextType {
@@ -207,6 +211,18 @@ interface StoreContextType {
   ) => void;
   deleteReturnRequest: (id: string) => void;
   clearAllReturnRequests: () => void;
+
+  // Custom Product Requests (Замовлення товарів під замовлення)
+  customRequests: CustomProductRequest[];
+  createCustomRequest: (data: Omit<CustomProductRequest, 'id' | 'createdAt' | 'status'>) => Promise<CustomProductRequest>;
+  updateCustomRequestStatus: (
+    id: string,
+    status: CustomRequestStatus,
+    adminQuotePrice?: number,
+    adminDeliveryDays?: string,
+    adminNotes?: string
+  ) => void;
+  deleteCustomRequest: (id: string) => void;
 
   // Site Settings & Features
   updateSiteSettings: (settings: SiteSettings) => void;
@@ -490,6 +506,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
             return parsed.filter((r: ReturnRequest) => r && r.id && r.buyerPhone);
+          }
+        } catch {}
+      }
+    }
+    return [];
+  });
+
+  // Custom Product Requests (Запити на товари під замовлення)
+  const [customRequests, setCustomRequests] = useState<CustomProductRequest[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('iskra_custom_requests_v1');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            return parsed.filter((r: CustomProductRequest) => r && r.id && r.clientPhone);
           }
         } catch {}
       }
@@ -1685,10 +1717,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Products CRUD
   const saveProduct = (product: Product) => {
-    const sanitizedProduct: Product = {
-      ...product,
-      unit: normalizeStorageUnit(product.unit)
-    };
+    const { sanitized: sanitizedProduct } = validateProduct(product);
     let next: Product[];
     const idx = products.findIndex((p) => p.id === sanitizedProduct.id);
     if (idx > -1) {
@@ -2689,6 +2718,87 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Всі заявки на повернення очищено', 'info');
   };
 
+  // Custom Product Requests (Запити "Товар під замовлення / якого немає на сайті")
+  const createCustomRequest = async (data: Omit<CustomProductRequest, 'id' | 'createdAt' | 'status'>): Promise<CustomProductRequest> => {
+    const cleanPhone = formatUkrainianPhone(data.clientPhone);
+    const newReq: CustomProductRequest = {
+      id: 'cust_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      clientPhone: cleanPhone || data.clientPhone.trim(),
+      clientName: data.clientName?.trim() || 'Покупець',
+      title: data.title.trim(),
+      category: data.category?.trim() || undefined,
+      quantity: data.quantity?.trim() || '1 шт',
+      description: data.description?.trim() || undefined,
+      linkOrPhoto: data.linkOrPhoto?.trim() || undefined,
+      createdAt: new Date().toISOString(),
+      status: 'new'
+    };
+
+    const next = [newReq, ...customRequests];
+    setCustomRequests(next);
+    try {
+      localStorage.setItem('iskra_custom_requests_v1', JSON.stringify(next));
+    } catch {}
+
+    if (firebaseConfig.enabled || firebaseConfig.databaseURL) {
+      pushStoreToFirebase(firebaseConfig, { customRequests: next, lastSyncTimestamp: Date.now() }).catch(() => {});
+    }
+
+    if (siteSettings.botToken && siteSettings.chatId) {
+      const msg = `🔍 *Новий запит "Товар під замовлення"!*\n\n` +
+        `📦 *Назва товару:* ${newReq.title}\n` +
+        `📂 *Категорія:* ${newReq.category || 'Загальна'}\n` +
+        `🔢 *Кількість:* ${newReq.quantity || '1 шт'}\n` +
+        `👤 *Клієнт:* ${newReq.clientName}\n` +
+        `📞 *Телефон:* ${newReq.clientPhone}\n` +
+        `${newReq.description ? `💬 *Коментар:* ${newReq.description}\n` : ''}` +
+        `${newReq.linkOrPhoto ? `🔗 *Посилання/Фото:* ${newReq.linkOrPhoto}\n` : ''}` +
+        `⏰ *Час:* ${new Date().toLocaleString('uk-UA')}`;
+      sendTelegramAlert(siteSettings.botToken, siteSettings.chatId, msg).catch(() => {});
+    }
+
+    showToast('Запит успішно надіслано! Менеджер підбере товар та зв\'яжеться з вами.', 'success');
+    return newReq;
+  };
+
+  const updateCustomRequestStatus = (
+    id: string,
+    status: CustomRequestStatus,
+    adminQuotePrice?: number,
+    adminDeliveryDays?: string,
+    adminNotes?: string
+  ) => {
+    const next = customRequests.map(r => r.id === id ? {
+      ...r,
+      status,
+      adminQuotePrice: adminQuotePrice !== undefined ? adminQuotePrice : r.adminQuotePrice,
+      adminDeliveryDays: adminDeliveryDays !== undefined ? adminDeliveryDays : r.adminDeliveryDays,
+      adminNotes: adminNotes !== undefined ? adminNotes : r.adminNotes
+    } : r);
+    setCustomRequests(next);
+    try {
+      localStorage.setItem('iskra_custom_requests_v1', JSON.stringify(next));
+    } catch {}
+
+    if (firebaseConfig.enabled || firebaseConfig.databaseURL) {
+      pushStoreToFirebase(firebaseConfig, { customRequests: next, lastSyncTimestamp: Date.now() }).catch(() => {});
+    }
+    showToast('Статус запиту під замовлення оновлено', 'info');
+  };
+
+  const deleteCustomRequest = (id: string) => {
+    const next = customRequests.filter(r => r.id !== id);
+    setCustomRequests(next);
+    try {
+      localStorage.setItem('iskra_custom_requests_v1', JSON.stringify(next));
+    } catch {}
+
+    if (firebaseConfig.enabled || firebaseConfig.databaseURL) {
+      pushStoreToFirebase(firebaseConfig, { customRequests: next, lastSyncTimestamp: Date.now() }).catch(() => {});
+    }
+    showToast('Запит видалено', 'info');
+  };
+
   // Site Settings
   const updateSiteSettings = (settings: SiteSettings) => {
     setSiteSettings(settings);
@@ -2898,6 +3008,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateReturnRequestStatus,
         deleteReturnRequest,
         clearAllReturnRequests,
+        customRequests,
+        createCustomRequest,
+        updateCustomRequestStatus,
+        deleteCustomRequest,
         updateSiteSettings,
         updateSiteFeatures,
         updateHeaderDesign,

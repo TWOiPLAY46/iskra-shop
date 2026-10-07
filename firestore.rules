@@ -6,15 +6,34 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // 1. Catalog / Products: Public read, admin-only write
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'price', 'stock']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.price is number && data.price >= 0 &&
+             data.stock is number && data.stock >= 0;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['fio', 'phone']) &&
+             data.fio is string && data.fio.size() >= 2 &&
+             data.phone is string && data.phone.size() >= 10;
+    }
+
+    function isValidReview(data) {
+      return data.keys().hasAll(['productId', 'author', 'text', 'rating']) &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.text is string && data.text.size() >= 3;
+    }
+
+    // 1. Catalog / Products: Public read, admin-only write with product validation
     match /catalog/{doc=**} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 2. Orders: Public create (checkout), admin-only read/update/delete
+    // 2. Orders: Public create (checkout with order validation), admin-only read/update/delete
     match /orders/{doc=**} {
-      allow create: if true;
+      allow create: if isValidOrder(request.resource.data);
       allow read, update, delete: if isAdmin();
     }
 
@@ -34,9 +53,10 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // 6. Reviews: Public read & create, admin-only modify/delete
+    // 6. Reviews: Public read & create with review validation, admin-only modify/delete
     match /reviews/{doc=**} {
-      allow read, create: if true;
+      allow read: if true;
+      allow create: if isValidReview(request.resource.data);
       allow update, delete: if isAdmin();
     }
 

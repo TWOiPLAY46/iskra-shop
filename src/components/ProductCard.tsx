@@ -96,7 +96,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       </div>
 
       {/* Visual Image Showcase Area - Borderless Clean Product Photo */}
-      <div className="relative h-72 sm:h-80 w-full p-2.5 sm:p-3 flex items-center justify-center mb-3.5 transition-all duration-300 overflow-hidden rounded-2xl bg-slate-50/60">
+      <div className="relative h-44 sm:h-56 md:h-60 lg:h-64 w-full p-2.5 sm:p-3 flex items-center justify-center mb-3.5 transition-all duration-300 overflow-hidden rounded-2xl bg-slate-50/60">
         {!imageError && product.image && product.image.trim() !== '' ? (
           <img
             src={getSafeImageUrl(product.image)}

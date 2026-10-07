@@ -207,6 +207,24 @@ export interface ReturnRequest {
   adminNotes?: string;
 }
 
+export type CustomRequestStatus = 'new' | 'processing' | 'quoted' | 'ordered' | 'completed' | 'rejected';
+
+export interface CustomProductRequest {
+  id: string;
+  clientPhone: string;
+  clientName: string;
+  title: string;
+  category?: string;
+  quantity?: string;
+  description?: string;
+  linkOrPhoto?: string;
+  createdAt: string;
+  status: CustomRequestStatus;
+  adminQuotePrice?: number;
+  adminDeliveryDays?: string;
+  adminNotes?: string;
+}
+
 export interface StockAlertRequest {
   id: string;
   productId: string;
