@@ -31,6 +31,7 @@ export const Hero: React.FC = () => {
     headerDesign, 
     siteSettings, 
     setActiveCategory,
+    selectCategoryLeaf,
     products,
     setQuickViewProduct,
     addToCart
@@ -96,9 +97,9 @@ export const Hero: React.FC = () => {
   };
 
   const handleCategoryShortcut = (cat: string) => {
-    setActiveCategory(cat);
+    selectCategoryLeaf(cat);
     setTimeout(() => {
-      const el = document.getElementById('subcategory-gallery-section') || document.getElementById('catalog-products-section');
+      const el = document.getElementById('catalog-products-section') || document.getElementById('subcategory-gallery-section');
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
   };
@@ -171,7 +172,7 @@ export const Hero: React.FC = () => {
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => handleCategoryShortcut('Сантехніка & Опалення')}
+                    onClick={() => handleCategoryShortcut('Сантехніка та опалення')}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-blue-600 text-slate-200 hover:text-white border border-slate-700/80 hover:border-blue-500 text-xs font-bold transition-all cursor-pointer backdrop-blur-sm"
                   >
                     <Droplets className="w-3.5 h-3.5 text-blue-400" />
@@ -179,7 +180,7 @@ export const Hero: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleCategoryShortcut('Електрика & Освітлення')}
+                    onClick={() => handleCategoryShortcut('Електротовари')}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-amber-600 text-slate-200 hover:text-white border border-slate-700/80 hover:border-amber-500 text-xs font-bold transition-all cursor-pointer backdrop-blur-sm"
                   >
                     <Zap className="w-3.5 h-3.5 text-amber-400" />
@@ -187,7 +188,7 @@ export const Hero: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleCategoryShortcut('Інструмент & Обладнання')}
+                    onClick={() => handleCategoryShortcut('Інструменти та обладнання')}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-emerald-600 text-slate-200 hover:text-white border border-slate-700/80 hover:border-emerald-500 text-xs font-bold transition-all cursor-pointer backdrop-blur-sm"
                   >
                     <Wrench className="w-3.5 h-3.5 text-emerald-400" />
@@ -195,7 +196,7 @@ export const Hero: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleCategoryShortcut('Господарські товари & Кріплення')}
+                    onClick={() => handleCategoryShortcut('Господарчі товари')}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-violet-600 text-slate-200 hover:text-white border border-slate-700/80 hover:border-violet-500 text-xs font-bold transition-all cursor-pointer backdrop-blur-sm"
                   >
                     <Home className="w-3.5 h-3.5 text-violet-400" />
