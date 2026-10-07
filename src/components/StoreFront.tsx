@@ -25,6 +25,7 @@ import {
   Zap,
   Wrench,
   Home,
+  Cog,
   LayoutGrid,
   Layers,
   ChevronRight,
@@ -480,7 +481,25 @@ export const StoreFront: React.FC = () => {
                   popularBrands: ['Grohe', 'Valtec', 'Cersanit']
                 };
 
-                if (lower.includes('електр')) {
+                if (lower.includes('інш') || lower.includes('нерозподіл')) {
+                  theme = {
+                    gradient: 'from-sky-600 via-blue-600 to-indigo-600',
+                    border: isPremium ? 'border-sky-900/40 hover:border-sky-500/50' : 'border-sky-100 hover:border-sky-300',
+                    bgCard: isPremium ? 'bg-gradient-to-br from-slate-950/30 via-[#0a0f1d] to-[#070b14]' : 'bg-gradient-to-br from-sky-50/40 via-white to-slate-50/30',
+                    badge: isPremium ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' : 'bg-sky-100/80 text-sky-950 border-sky-200/60',
+                    activeBorder: 'border-2 border-sky-500 ring-4 ring-sky-500/15 shadow-xl shadow-sky-500/10',
+                    activeBg: 'bg-gradient-to-br from-sky-50/90 via-blue-50/40 to-white',
+                    activeBadge: 'bg-sky-600 text-white border-sky-500 shadow-xs',
+                    activeText: 'text-sky-950',
+                    activeStatus: 'text-sky-600',
+                    icon: <Cog className="w-6 h-6 text-white" />,
+                    chipColor: isPremium
+                      ? 'hover:bg-sky-600 hover:text-white border-slate-800 text-slate-300 bg-slate-900/90'
+                      : 'hover:bg-sky-600 hover:text-white border-sky-200 text-sky-950 bg-white/90',
+                    chips: ['Спецкріплення', 'Витратні матеріали', 'Аксесуари', 'Комплектуючі'],
+                    popularBrands: ['Iskra', 'MasterTool', 'Hardy']
+                  };
+                } else if (lower.includes('електр')) {
                   theme = {
                     gradient: 'from-amber-500 via-orange-500 to-yellow-500',
                     border: isPremium ? 'border-amber-900/40 hover:border-amber-500/50' : 'border-amber-100 hover:border-amber-300',

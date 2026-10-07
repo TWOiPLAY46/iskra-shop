@@ -9,7 +9,8 @@ import {
   Sparkles,
   ArrowRight,
   Wrench,
-  Home
+  Home,
+  Cog
 } from 'lucide-react';
 
 interface CatalogMegaMenuProps {
@@ -117,6 +118,9 @@ export const CatalogMegaMenu: React.FC<CatalogMegaMenuProps> = ({ isOpen, onClos
                     }
                     if (lower.includes('опал') || lower.includes('котел') || lower.includes('радіат')) {
                       return <Flame className="w-5 h-5 text-rose-500" />;
+                    }
+                    if (lower.includes('інш') || lower.includes('нерозподіл')) {
+                      return <Cog className="w-5 h-5 text-sky-600" />;
                     }
                     return <Sparkles className="w-5 h-5 text-red-500" />;
                   };

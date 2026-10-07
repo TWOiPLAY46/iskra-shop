@@ -12,6 +12,7 @@ import {
   Droplets,
   Wrench,
   Home,
+  Cog,
   Tag,
   Building2
 } from 'lucide-react';
@@ -1090,6 +1091,23 @@ export const SubcategoryDirectory: React.FC<SubcategoryDirectoryProps> = ({
         tabActiveText: isPremium ? 'text-indigo-400 border-b-2 border-indigo-400 font-black' : 'text-indigo-600 border-b-2 border-indigo-600 font-black',
         btnActive: 'bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 text-white font-black shadow-md shadow-indigo-500/30',
         btnHover: isPremium ? 'hover:bg-gradient-to-r hover:from-indigo-500 hover:to-violet-500 hover:text-slate-950 hover:shadow-indigo-500/25' : 'hover:bg-gradient-to-r hover:from-indigo-600 hover:to-violet-600 hover:text-white hover:shadow-indigo-500/25',
+      };
+    }
+    if (lower.includes('інш') || lower.includes('нерозподіл')) {
+      return {
+        accent: 'sky',
+        border: isPremium ? 'border-sky-500/50 ring-1 ring-sky-500/30' : 'border-2 border-sky-500/80 ring-4 ring-sky-500/10 shadow-lg shadow-sky-500/5',
+        bg: isPremium ? 'bg-[#091122] border-sky-500/40 text-white' : 'bg-gradient-to-br from-sky-50/70 via-white to-slate-50/30 text-slate-900',
+        topGradient: 'from-sky-600 via-blue-600 to-indigo-600',
+        badge: isPremium ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' : 'bg-sky-100/90 text-sky-950 border-sky-300/80',
+        icon: <Cog className="w-5 h-5 text-white" />,
+        iconBg: 'bg-gradient-to-tr from-sky-600 via-blue-600 to-indigo-600',
+        activeText: 'text-sky-700',
+        cardActiveBorder: isPremium ? 'border-2 border-sky-400 ring-2 ring-sky-400/30 shadow-2xl bg-[#091122]' : 'border-2 border-sky-500 ring-2 ring-sky-500/30 shadow-xl bg-sky-50/30',
+        cardHoverBorder: isPremium ? 'hover:border-sky-400/70 hover:shadow-sky-500/15' : 'hover:border-sky-400/80 hover:shadow-sky-500/10',
+        tabActiveText: isPremium ? 'text-sky-400 border-b-2 border-sky-400 font-black' : 'text-sky-600 border-b-2 border-sky-600 font-black',
+        btnActive: 'bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white font-black shadow-md shadow-sky-500/30',
+        btnHover: isPremium ? 'hover:bg-gradient-to-r hover:from-sky-500 hover:to-blue-500 hover:text-slate-950 hover:shadow-sky-500/25' : 'hover:bg-gradient-to-r hover:from-sky-600 hover:to-blue-600 hover:text-white hover:shadow-sky-500/25',
       };
     }
     // Default (Сантехніка та опалення)
