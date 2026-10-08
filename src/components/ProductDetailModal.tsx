@@ -245,18 +245,23 @@ export const ProductDetailModal: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  {quickViewProduct.specs && Object.entries(quickViewProduct.specs).slice(0, 2).map(([key, val]) => (
-                    <div key={key} className="flex justify-between py-1.5">
-                      <span className="text-slate-500 font-medium">{key}</span>
-                      <span className="font-semibold text-slate-800">{val}</span>
+                  {quickViewProduct.specs && Object.entries(quickViewProduct.specs).map(([key, val]) => (
+                    <div key={key} className="flex justify-between py-1.5 gap-2">
+                      <span className="text-slate-500 font-medium shrink-0">{key}</span>
+                      <span className="font-semibold text-slate-800 text-right">{val}</span>
                     </div>
                   ))}
                 </div>
 
-                {/* Short Description */}
-                <p className="text-xs text-slate-600 leading-relaxed pt-1">
-                  {quickViewProduct.desc || 'Якісний сертифікований товар для монтажу та ремонту.'}
-                </p>
+                {/* Product Description */}
+                <div className="pt-2 border-t border-slate-100">
+                  <div className="text-[11px] font-bold text-slate-800 uppercase tracking-wider mb-1 text-slate-400">
+                    Опис та переваги:
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
+                    {quickViewProduct.desc || 'Якісний сертифікований товар для монтажу та ремонту.'}
+                  </p>
+                </div>
               </div>
 
             </div>
