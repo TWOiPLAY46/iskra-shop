@@ -2,9 +2,19 @@ import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
+import { GoogleGenAI, Type } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY || '',
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
+});
 
 interface SearchResultItem {
   url: string;
@@ -259,6 +269,87 @@ async function startServer() {
       res.send(Buffer.from(arrayBuf));
     } catch (err: any) {
       res.status(500).send('Proxy error: ' + err?.message);
+    }
+  });
+
+  // AI Product Enrichment API via Gemini 3.8 Flash
+  app.post('/api/enrich-product', async (req: Request, res: Response) => {
+    try {
+      const { name, sku, category, currentDescription, price } = req.body || {};
+      if (!name || typeof name !== 'string') {
+        res.status(400).json({ error: 'Product name is required' });
+        return;
+      }
+
+      const prompt = `Ти — експерт зі збагачення товарних позицій для українського інтернет-магазину сантехніки, електротоварів, інструментів та господарчих товарів "ISKRA".
+Проаналізуй товар та сформуй вичерпні дані для розміщення на сайті.
+
+Товар для аналізу:
+- Назва: ${name}
+- Артикул / Код: ${sku || 'не вказано'}
+- Поточна категорія: ${category || 'не визначено'}
+- Ціна: ${price ? price + ' грн' : 'не вказано'}
+- Поточний опис: ${currentDescription || 'немає'}
+
+Вимоги:
+1. mainCategory: має бути точно одним із варіантів: "Сантехніка та опалення", "Електротовари", "Інструменти та обладнання", "Господарчі товари", "Інше".
+2. category: точна назва підкатегорії (наприклад: "Лампи LED", "Світильники", "Розетки та вимикачі", "Змішувачі", "Електроінструмент", "Фітинги та труби" тощо).
+3. description: якісний, структурований опис українською мовою (2-3 детальних абзаци про призначення, переваги, сферу застосування та надійність).
+4. features: список із 3-6 головних переваг (наприклад: "Високий коефіцієнт енергоефективності", "Термостійкий корпус із захистом IP44").
+5. specs: масив об'єктів з ключами "key" та "value" (наприклад: Потужність -> 12W, Цоколь -> E27, Колірна температура -> 4000K, Матеріал -> Полікарбонат / Алюміній, Гарантія -> 24 міс, Країна виробник -> Україна/Китай).
+6. tags: 5-8 ключових тегів для внутрішнього пошуку (наприклад: ["лампа led", "e27", "10w", "освітлення", "iskra", "лампочка 4000k"]).
+7. seoTitle: SEO заголовок до 65 символів (наприклад: "Купити Лампа LED E27 10W 4000K ISKRA за вигідною ціною в Україні").
+8. seoDescription: SEO опис до 160 символів (наприклад: "Офіційна лампа LED E27 10W 4000K. Гарантія якості, швидка доставка по Україні від магазину ISKRA. Замовляйте онлайн!").
+`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: {
+          temperature: 0.2,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              mainCategory: { type: Type.STRING },
+              category: { type: Type.STRING },
+              description: { type: Type.STRING },
+              features: { type: Type.ARRAY, items: { type: Type.STRING } },
+              specs: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    key: { type: Type.STRING },
+                    value: { type: Type.STRING }
+                  },
+                  required: ['key', 'value']
+                }
+              },
+              tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+              seoTitle: { type: Type.STRING },
+              seoDescription: { type: Type.STRING }
+            },
+            required: [
+              'mainCategory',
+              'category',
+              'description',
+              'features',
+              'specs',
+              'tags',
+              'seoTitle',
+              'seoDescription'
+            ]
+          }
+        }
+      });
+
+      const jsonText = response.text ? response.text.trim() : '{}';
+      const enriched = JSON.parse(jsonText);
+      res.json({ success: true, enriched });
+    } catch (err: any) {
+      console.error('API /api/enrich-product error:', err?.message || err);
+      res.status(500).json({ error: 'Failed to enrich product with Gemini AI', details: String(err?.message || err) });
     }
   });
 

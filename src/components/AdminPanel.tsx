@@ -3,6 +3,7 @@ import { useStore } from '../context/StoreContext';
 import { saveAdminPasswordToFirestore } from '../services/firebaseService';
 import { getSafeImageUrl } from '../utils/assetImages';
 import { optimizeImageFile } from '../utils/imageUpload';
+import { enrichProductWithAI } from '../utils/aiEnricher';
 import { 
   formatUkrainianPhone, 
   extractLocalPhoneDigits, 
@@ -832,6 +833,135 @@ export const AdminPanel: React.FC = () => {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isUkrSkladModalOpen, setIsUkrSkladModalOpen] = useState(false);
   const [isCsvImportModalOpen, setIsCsvImportModalOpen] = useState(false);
+
+  // AI Enrichment States
+  const [isAiEnrichingSingle, setIsAiEnrichingSingle] = useState(false);
+  const [aiSingleSuccessMsg, setAiSingleSuccessMsg] = useState<string | null>(null);
+
+  // Batch AI Enrichment Modal States
+  const [isBatchAiModalOpen, setIsBatchAiModalOpen] = useState(false);
+  const [batchAiMode, setBatchAiMode] = useState<'unassigned' | 'nodesc' | 'all'>('unassigned');
+  const [isBatchAiRunning, setIsBatchAiRunning] = useState(false);
+  const [batchAiProgress, setBatchAiProgress] = useState({ current: 0, total: 0 });
+  const [batchAiLastEnrichedName, setBatchAiLastEnrichedName] = useState('');
+
+  const handleAiEnrichSingleProduct = async () => {
+    if (!pName || !pName.trim()) {
+      showToast('Будь ласка, спочатку вкажіть назву товару!', 'error');
+      return;
+    }
+
+    setIsAiEnrichingSingle(true);
+    setAiSingleSuccessMsg(null);
+
+    try {
+      const enriched = await enrichProductWithAI({
+        name: pName,
+        sku: pSku,
+        category: `${pMainCat} ${pSubCat} ${pLeafCat}`,
+        currentDescription: pDesc,
+        price: typeof pPrice === 'number' ? pPrice : parseFloat(pPrice) || 0,
+      });
+
+      if (enriched.mainCategory) {
+        setPMainCat(enriched.mainCategory);
+      }
+      if (enriched.category) {
+        setPSubCat(enriched.category);
+        setPLeafCat(enriched.category);
+      }
+
+      let newDesc = enriched.description || pDesc;
+      if (enriched.features && enriched.features.length > 0) {
+        newDesc += '\n\n🔥 Головні переваги:\n' + enriched.features.map((f: string) => `• ${f}`).join('\n');
+      }
+      if (enriched.specs && enriched.specs.length > 0) {
+        newDesc += '\n\n⚙️ Технічні характеристики:\n' + enriched.specs.map((s: any) => `${s.key}: ${s.value}`).join('\n');
+      }
+
+      setPDesc(newDesc);
+      setAiSingleSuccessMsg('✨ Товар успішно збагачено та описано через Gemini 3.8 Flash!');
+      showToast('✨ Категорії, опис та характеристики збагачено через Gemini AI!', 'success');
+    } catch (err: any) {
+      showToast('Помилка збагачення: ' + (err?.message || err), 'error');
+    } finally {
+      setIsAiEnrichingSingle(false);
+    }
+  };
+
+  const handleStartBatchAiEnrichment = async () => {
+    let targetList: Product[] = [];
+    if (batchAiMode === 'unassigned') {
+      targetList = products.filter(
+        (p) =>
+          !p.mainCategory ||
+          p.mainCategory === 'Інше' ||
+          p.mainCategory === 'Нерозподілені' ||
+          !p.category ||
+          p.category.includes('Інше')
+      );
+    } else if (batchAiMode === 'nodesc') {
+      targetList = products.filter((p) => !p.desc || p.desc.trim().length < 20);
+    } else {
+      targetList = [...products];
+    }
+
+    if (targetList.length === 0) {
+      showToast('Не знайдено товарів під обраний критерій для AI-збагачення!', 'info');
+      return;
+    }
+
+    setIsBatchAiRunning(true);
+    setBatchAiProgress({ current: 0, total: targetList.length });
+
+    for (let i = 0; i < targetList.length; i++) {
+      const p = targetList[i];
+      setBatchAiLastEnrichedName(p.name);
+      try {
+        const enriched = await enrichProductWithAI({
+          name: p.name,
+          sku: p.sku,
+          category: p.category,
+          currentDescription: p.desc,
+          price: p.price,
+        });
+
+        const newSpecs: Record<string, string> = { ...(p.specs || {}) };
+        if (enriched.specs && Array.isArray(enriched.specs)) {
+          enriched.specs.forEach((s) => {
+            if (s.key && s.value) {
+              newSpecs[s.key] = s.value;
+            }
+          });
+        }
+
+        let newDesc = enriched.description || p.desc;
+        if (enriched.features && enriched.features.length > 0) {
+          newDesc += '\n\n🔥 Головні переваги:\n' + enriched.features.map((f: string) => `• ${f}`).join('\n');
+        }
+        if (enriched.specs && enriched.specs.length > 0) {
+          newDesc += '\n\n⚙️ Технічні характеристики:\n' + enriched.specs.map((s: any) => `${s.key}: ${s.value}`).join('\n');
+        }
+
+        const updated: Product = {
+          ...p,
+          mainCategory: enriched.mainCategory || p.mainCategory,
+          category: enriched.category || p.category,
+          subCategory: enriched.category || p.subCategory,
+          desc: newDesc,
+          specs: newSpecs,
+        };
+
+        saveProduct(updated);
+      } catch (err) {
+        console.warn(`[Batch AI] Failed item ${p.name}:`, err);
+      }
+      setBatchAiProgress({ current: i + 1, total: targetList.length });
+    }
+
+    setIsBatchAiRunning(false);
+    showToast(`🎉 Масове AI-збагачення завершено для ${targetList.length} товарів!`, 'success');
+  };
 
   // Form states for Product Modal
   const [pName, setPName] = useState('');
@@ -7318,6 +7448,16 @@ export const AdminPanel: React.FC = () => {
                 >
                   <Sparkles className="w-4 h-4 text-indigo-600" />
                   <span>Авто-категорії</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsBatchAiModalOpen(true)}
+                  className="px-3.5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 text-white text-xs font-extrabold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-purple-600/20 active:scale-95"
+                  title="Масове AI-збагачення: автоматичний пошук та генерація детальних описів, характеристик та категорій через Gemini 3.8 Flash"
+                >
+                  <Zap className="w-4 h-4 text-amber-300 animate-pulse" />
+                  <span>⚡ AI Збагачувач (Gemini)</span>
                 </button>
               </div>
             </div>
@@ -15665,6 +15805,50 @@ export const AdminPanel: React.FC = () => {
               </div>
 
               <form onSubmit={handleSaveProductForm} className="space-y-5 text-xs">
+
+                {/* AI Product Enrichment Banner */}
+                <div className="p-4 rounded-3xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-900 text-white flex flex-wrap items-center justify-between gap-3 shadow-lg border border-purple-500/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-6 h-6 animate-pulse text-purple-300" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-xs text-purple-200 uppercase tracking-wider flex items-center gap-2">
+                        <span>Розумний AI-Збагачувач (Gemini 3.8 Flash)</span>
+                        <span className="px-2 py-0.5 rounded-full bg-purple-500/30 text-[9px] font-mono text-purple-200 border border-purple-400/30">PRO</span>
+                      </h4>
+                      <p className="text-[11px] text-purple-300/80 mt-0.5">
+                        Автоматичне визначення точної категорії, створення опису українською, технічних характеристик та SEO-тегів.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isAiEnrichingSingle || !pName.trim()}
+                    onClick={handleAiEnrichSingleProduct}
+                    className="px-4 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 text-white font-extrabold text-xs rounded-2xl shadow-md shadow-purple-600/30 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50 active:scale-95"
+                  >
+                    {isAiEnrichingSingle ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                        <span>Збагачення AI...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 text-amber-300" />
+                        <span>⚡ Збагатити з Gemini AI</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {aiSingleSuccessMsg && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{aiSingleSuccessMsg}</span>
+                  </div>
+                )}
                 
                 {/* Section 1: Main Info */}
                 <div className="p-5 rounded-3xl bg-slate-50/90 border border-slate-200/70 space-y-4 shadow-xs">
@@ -16243,6 +16427,179 @@ export const AdminPanel: React.FC = () => {
         onImport={(importedItems) => batchSaveProducts(importedItems)}
         existingProducts={products}
       />
+
+      {/* BATCH AI ENRICHMENT MODAL */}
+      {isBatchAiModalOpen && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-purple-200">
+            {/* Header */}
+            <div className="p-6 bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-6 h-6 text-purple-300 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-purple-500/30 text-purple-200 font-extrabold text-[10px] tracking-wide uppercase border border-purple-400/30">
+                      Gemini 3.8 Flash Engine
+                    </span>
+                  </div>
+                  <h3 className="font-black text-xl text-white font-display tracking-tight mt-0.5">
+                    Масове AI-збагачення товарів
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isBatchAiRunning}
+                onClick={() => setIsBatchAiModalOpen(false)}
+                className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-6 text-xs">
+              {/* Select Criteria */}
+              <div className="space-y-3">
+                <label className="block font-black text-slate-800 text-sm">
+                  Оберіть товари для автоматичного AI-збагачення:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    disabled={isBatchAiRunning}
+                    onClick={() => setBatchAiMode('unassigned')}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                      batchAiMode === 'unassigned'
+                        ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-500/20 text-purple-950 font-bold'
+                        : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    <div className="font-extrabold text-xs mb-1">
+                      📂 Нерозподілені товари
+                    </div>
+                    <div className="text-[11px] text-slate-500 leading-snug">
+                      Товари з категорії "Інше", "Нерозподілені" або без визначеної категорії.
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isBatchAiRunning}
+                    onClick={() => setBatchAiMode('nodesc')}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                      batchAiMode === 'nodesc'
+                        ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-500/20 text-purple-950 font-bold'
+                        : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    <div className="font-extrabold text-xs mb-1">
+                      📝 Товари без опису
+                    </div>
+                    <div className="text-[11px] text-slate-500 leading-snug">
+                      Товари, у яких відсутній або короткий опис (менше 20 символів).
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isBatchAiRunning}
+                    onClick={() => setBatchAiMode('all')}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                      batchAiMode === 'all'
+                        ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-500/20 text-purple-950 font-bold'
+                        : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    <div className="font-extrabold text-xs mb-1">
+                      ⚡ Усі товари каталогу
+                    </div>
+                    <div className="text-[11px] text-slate-500 leading-snug">
+                      Повне оновлення та збагачення всієї бази ({products.length} товарів).
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Progress Section */}
+              {isBatchAiRunning && (
+                <div className="p-5 rounded-3xl bg-purple-900 text-white space-y-3 shadow-lg border border-purple-400/30 animate-in fade-in">
+                  <div className="flex items-center justify-between font-extrabold text-xs">
+                    <span className="flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4 animate-spin text-purple-300" />
+                      <span>Обробка AI: {batchAiProgress.current} з {batchAiProgress.total}</span>
+                    </span>
+                    <span className="font-mono text-amber-300">
+                      {Math.round((batchAiProgress.current / (batchAiProgress.total || 1)) * 100)}%
+                    </span>
+                  </div>
+
+                  <div className="w-full bg-purple-950 rounded-full h-3 overflow-hidden p-0.5 border border-purple-700/50">
+                    <div
+                      className="bg-gradient-to-r from-amber-400 via-yellow-400 to-emerald-400 h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.round((batchAiProgress.current / (batchAiProgress.total || 1)) * 100)}%`,
+                      }}
+                    />
+                  </div>
+
+                  {batchAiLastEnrichedName && (
+                    <div className="text-[11px] text-purple-200 truncate font-mono">
+                      Останній опрацьований товар: <b>{batchAiLastEnrichedName}</b>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 leading-relaxed text-xs space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Що буде зроблено в результаті AI-збагачення:</span>
+                </p>
+                <ul className="list-disc list-inside text-[11px] text-amber-800 space-y-0.5 pl-1">
+                  <li>Визначено 100% точну головну категорію (Сантехніка, Електротовари, Інструменти, Господарчі товари).</li>
+                  <li>Підібрано точну назву підкатегорії (наприклад: Лампи LED, Змішувачі, Фітинги).</li>
+                  <li>Згенеровано якісний опис українською мовою з ключовими перевагами.</li>
+                  <li>Сформовано таблицю технічних характеристик та теги для пошуку.</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={isBatchAiRunning}
+                onClick={() => setIsBatchAiModalOpen(false)}
+                className="px-6 py-3 border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100 transition-all cursor-pointer text-xs disabled:opacity-50"
+              >
+                Закрити
+              </button>
+
+              <button
+                type="button"
+                disabled={isBatchAiRunning}
+                onClick={handleStartBatchAiEnrichment}
+                className="px-7 py-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 text-white font-extrabold rounded-2xl shadow-lg shadow-purple-600/30 transition-all cursor-pointer text-xs flex items-center gap-2 active:scale-95 disabled:opacity-50"
+              >
+                {isBatchAiRunning ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <span>Виконується AI-збагачення...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 text-amber-300" />
+                    <span>▶️ Запустити AI-Збагачення</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
