@@ -28,6 +28,8 @@ import {
   AlertTriangle, 
   Send, 
   ArrowLeft,
+  ArrowUp,
+  ArrowDown,
   DollarSign,
   Database,
   RefreshCw,
@@ -357,6 +359,9 @@ const AdminCategoryCard: React.FC<{
   onDeleteSub: (main: string, sub: string) => void;
   onAddLeaf: (main: string, sub: string | null, leaf: string) => void;
   onDeleteLeaf: (main: string, sub: string | null, leaf: string) => void;
+  onReorderMain?: (direction: 'up' | 'down') => void;
+  isFirst?: boolean;
+  isLast?: boolean;
   searchQuery?: string;
 }> = ({
   mainCat,
@@ -366,6 +371,9 @@ const AdminCategoryCard: React.FC<{
   onDeleteSub,
   onAddLeaf,
   onDeleteLeaf,
+  onReorderMain,
+  isFirst = false,
+  isLast = false,
   searchQuery = ''
 }) => {
   const [subInput, setSubInput] = useState('');
@@ -409,37 +417,70 @@ const AdminCategoryCard: React.FC<{
           </div>
         </div>
 
-        {isConfirmingDelete ? (
-          <div className="flex items-center gap-1.5 animate-in fade-in bg-rose-50 p-1.5 rounded-2xl border border-rose-200">
-            <span className="text-xs text-rose-700 font-bold pl-1">Видалити категорію з усіма підгрупами?</span>
+        <div className="flex items-center gap-2">
+          {onReorderMain && (
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                disabled={isFirst}
+                onClick={() => onReorderMain('up')}
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+                  isFirst
+                    ? 'text-slate-300 cursor-not-allowed'
+                    : 'text-slate-700 hover:bg-white hover:text-emerald-700 shadow-2xs cursor-pointer active:scale-95'
+                }`}
+                title="Підняти категорію вище"
+              >
+                <ArrowUp className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                disabled={isLast}
+                onClick={() => onReorderMain('down')}
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+                  isLast
+                    ? 'text-slate-300 cursor-not-allowed'
+                    : 'text-slate-700 hover:bg-white hover:text-emerald-700 shadow-2xs cursor-pointer active:scale-95'
+                }`}
+                title="Опустити категорію нижче"
+              >
+                <ArrowDown className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {isConfirmingDelete ? (
+            <div className="flex items-center gap-1.5 animate-in fade-in bg-rose-50 p-1.5 rounded-2xl border border-rose-200">
+              <span className="text-xs text-rose-700 font-bold pl-1">Видалити категорію з усіма підгрупами?</span>
+              <button
+                type="button"
+                onClick={() => {
+                  onDeleteMain(mainCat);
+                  setIsConfirmingDelete(false);
+                }}
+                className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              >
+                Так, видалити
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsConfirmingDelete(false)}
+                className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-medium cursor-pointer"
+              >
+                Скасувати
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={() => {
-                onDeleteMain(mainCat);
-                setIsConfirmingDelete(false);
-              }}
-              className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              onClick={() => setIsConfirmingDelete(true)}
+              className="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
             >
-              Так, видалити
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Видалити категорію</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setIsConfirmingDelete(false)}
-              className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-medium cursor-pointer"
-            >
-              Скасувати
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setIsConfirmingDelete(true)}
-            className="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Видалити категорію</span>
-          </button>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Input forms for Subcategory and Direct Leaf */}
@@ -697,6 +738,10 @@ export const AdminPanel: React.FC = () => {
     updateSiteSettings,
     updateSiteFeatures,
     updateHeaderDesign,
+    moveHomepageBlock,
+    toggleHomepageBlock,
+    resetHomepageBlocks,
+    reorderMainCategory,
     weeklyDeal,
     updateWeeklyDeal,
     firebaseConfig,
@@ -9119,7 +9164,7 @@ export const AdminPanel: React.FC = () => {
                   )}
                 </div>
               ) : (
-                filteredMainCats.map((mainCat) => (
+                filteredMainCats.map((mainCat, idx, arr) => (
                   <AdminCategoryCard
                     key={mainCat}
                     mainCat={mainCat}
@@ -9129,6 +9174,9 @@ export const AdminPanel: React.FC = () => {
                     onDeleteSub={deleteSubCategory}
                     onAddLeaf={addLeafCategory}
                     onDeleteLeaf={deleteLeafCategory}
+                    onReorderMain={(dir) => reorderMainCategory(mainCat, dir)}
+                    isFirst={idx === 0}
+                    isLast={idx === arr.length - 1}
                     searchQuery={categorySearch}
                   />
                 ))
@@ -11543,6 +11591,127 @@ export const AdminPanel: React.FC = () => {
                   <span>Зберегти весь дизайн</span>
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* Section 0: Homepage Block Reordering & Positioning Constructor */}
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-3xl border border-indigo-500/30 p-5 sm:p-7 shadow-xl text-white space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 bg-indigo-500/20 text-indigo-300 rounded-lg border border-indigo-400/30">
+                    <Layers className="w-5 h-5" />
+                  </span>
+                  <h3 className="text-lg font-black font-display tracking-tight text-white">
+                    Конструктор порядку блоків (Підйом / Опускання)
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-300">
+                  Використовуйте кнопки <strong>«Підняти ↑»</strong> та <strong>«Опустити ↓»</strong> для точної зміни порядкового розміщення будь-якого блоку на головній сторінці сайту.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={resetHomepageBlocks}
+                className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white rounded-xl text-xs font-bold border border-white/15 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-amber-300" />
+                <span>Скинути макет</span>
+              </button>
+            </div>
+
+            {/* List of Homepage Blocks */}
+            <div className="space-y-3">
+              {(siteSettings.homepageBlocks && siteSettings.homepageBlocks.length > 0
+                ? siteSettings.homepageBlocks
+                : [
+                    { id: 'hero', name: 'Головний банер (Hero)', description: 'Вхідна група, акційний заголовок, статистика та швидка навігація', enabled: true },
+                    { id: 'weekly_deal', name: 'Акція тижня (Weekly Deal)', description: 'Таймер та спецпропозиція на обраний товар зі знижкою', enabled: true },
+                    { id: 'bestsellers', name: 'Хіти продажу (ТОП Вибір)', description: 'Блок популярних та затребуваних товарів', enabled: true },
+                    { id: 'categories', name: 'Швидкі категорії', description: 'Сітка основних розділів та швидкий перехід у підкатегорії', enabled: true },
+                    { id: 'brands', name: 'Вітрина брендів', description: 'Логотипи та підбірки перевірених виробників', enabled: true },
+                    { id: 'about', name: 'Про наш магазин', description: 'Переваги, досвід, фізичний склад та локація', enabled: true },
+                    { id: 'reviews', name: 'Відгуки покупців', description: 'Оцінки та коментарі реальних клієнтів', enabled: true },
+                    { id: 'faq', name: 'Часті питання (FAQ)', description: 'Відповіді на популярні запитання покупців', enabled: true }
+                  ]
+              ).map((block, idx, arr) => (
+                <div
+                  key={block.id}
+                  className={`p-4 sm:p-5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                    block.enabled
+                      ? 'bg-slate-800/80 border-indigo-500/30 shadow-md hover:border-indigo-400/50'
+                      : 'bg-slate-950/60 border-slate-800 opacity-60'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    {/* Index Badge */}
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600/30 border border-indigo-400/40 text-indigo-200 font-mono font-black text-sm flex items-center justify-center shrink-0 shadow-inner">
+                      #{idx + 1}
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-white">{block.name}</h4>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                          block.enabled
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                            : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                        }`}>
+                          {block.enabled ? 'Активний на сайті' : 'Прихований'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">{block.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Controls: Up, Down, Visibility Toggle */}
+                  <div className="flex items-center gap-2 sm:self-center self-end">
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={() => moveHomepageBlock(block.id, 'up')}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                        idx === 0
+                          ? 'bg-slate-800/40 text-slate-600 border border-slate-700/40 cursor-not-allowed'
+                          : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 active:scale-95'
+                      }`}
+                      title="Підняти блок вище на сторінці"
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                      <span>Підняти ↑</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={idx === arr.length - 1}
+                      onClick={() => moveHomepageBlock(block.id, 'down')}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                        idx === arr.length - 1
+                          ? 'bg-slate-800/40 text-slate-600 border border-slate-700/40 cursor-not-allowed'
+                          : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 active:scale-95'
+                      }`}
+                      title="Опустити блок нижче на сторінці"
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                      <span>Опустити ↓</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleHomepageBlock(block.id)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer ${
+                        block.enabled
+                          ? 'bg-slate-700 hover:bg-slate-600 text-slate-200 border-slate-600'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
+                      }`}
+                    >
+                      {block.enabled ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      <span>{block.enabled ? 'Приховати' : 'Показати'}</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -16430,13 +16599,21 @@ export const AdminPanel: React.FC = () => {
 
       {/* BATCH AI ENRICHMENT MODAL */}
       {isBatchAiModalOpen && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-purple-200">
+        <div 
+          className="fixed inset-0 z-[99999] overflow-y-auto p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 flex items-center justify-center min-h-screen py-4"
+          onClick={() => {
+            if (!isBatchAiRunning) setIsBatchAiModalOpen(false);
+          }}
+        >
+          <div 
+            className="relative w-full max-w-2xl max-h-[92dvh] sm:max-h-[85vh] bg-white rounded-3xl shadow-2xl overflow-hidden border border-purple-200 flex flex-col my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
-            <div className="p-6 bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
+            <div className="p-4 sm:p-6 bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-900 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-6 h-6 text-purple-300 animate-pulse" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-purple-300 animate-pulse" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -16444,7 +16621,7 @@ export const AdminPanel: React.FC = () => {
                       Gemini 3.8 Flash Engine
                     </span>
                   </div>
-                  <h3 className="font-black text-xl text-white font-display tracking-tight mt-0.5">
+                  <h3 className="font-black text-lg sm:text-xl text-white font-display tracking-tight mt-0.5">
                     Масове AI-збагачення товарів
                   </h3>
                 </div>
@@ -16460,7 +16637,7 @@ export const AdminPanel: React.FC = () => {
             </div>
 
             {/* Body */}
-            <div className="p-6 space-y-6 text-xs">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 text-xs overflow-y-auto flex-1 overscroll-contain">
               {/* Select Criteria */}
               <div className="space-y-3">
                 <label className="block font-black text-slate-800 text-sm">
@@ -16568,12 +16745,12 @@ export const AdminPanel: React.FC = () => {
             </div>
 
             {/* Footer */}
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+            <div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 shrink-0">
               <button
                 type="button"
                 disabled={isBatchAiRunning}
                 onClick={() => setIsBatchAiModalOpen(false)}
-                className="px-6 py-3 border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100 transition-all cursor-pointer text-xs disabled:opacity-50"
+                className="px-6 py-3 border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100 transition-all cursor-pointer text-xs disabled:opacity-50 text-center"
               >
                 Закрити
               </button>
@@ -16582,7 +16759,7 @@ export const AdminPanel: React.FC = () => {
                 type="button"
                 disabled={isBatchAiRunning}
                 onClick={handleStartBatchAiEnrichment}
-                className="px-7 py-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 text-white font-extrabold rounded-2xl shadow-lg shadow-purple-600/30 transition-all cursor-pointer text-xs flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                className="px-7 py-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 text-white font-extrabold rounded-2xl shadow-lg shadow-purple-600/30 transition-all cursor-pointer text-xs flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
               >
                 {isBatchAiRunning ? (
                   <>

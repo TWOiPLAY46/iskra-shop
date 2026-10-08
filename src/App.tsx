@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { Header } from './components/Header';
 import { StoreFront } from './components/StoreFront';
@@ -17,6 +17,11 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 
 const AppContent: React.FC = () => {
   const { activeView } = useStore();
+
+  useEffect(() => {
+    // Immediately scroll to the very top whenever the active view changes
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [activeView]);
 
   return (
     <div className="min-h-screen flex flex-col w-full overflow-x-clip relative bg-slate-50 text-slate-800">

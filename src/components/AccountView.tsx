@@ -85,6 +85,10 @@ export const AccountView: React.FC = () => {
     showToast
   } = useStore();
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
   // Authentication inputs
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone');

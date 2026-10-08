@@ -1,4 +1,16 @@
-import { CategoryTree, HeaderDesign, Product, SiteSettings, WeeklyDealConfig, PromoCode } from '../types/store';
+import { CategoryTree, HeaderDesign, HomepageBlock, Product, SiteSettings, WeeklyDealConfig, PromoCode } from '../types/store';
+
+export const initialHomepageBlocks: HomepageBlock[] = [
+  { id: 'hero', name: 'Головний банер (Hero)', description: 'Вхідна група, акційний заголовок, статистика та швидка навігація', enabled: true },
+  { id: 'weekly_deal', name: 'Акція тижня (Weekly Deal)', description: 'Таймер та спецпропозиція на обраний товар зі знижкою', enabled: true },
+  { id: 'bestsellers', name: 'Хіти продажу (ТОП Вибір)', description: 'Блок популярних та затребуваних товарів', enabled: true },
+  { id: 'categories', name: 'Швидкі категорії', description: 'Сітка основних розділів та швидкий перехід у підкатегорії', enabled: true },
+  { id: 'catalog_grid', name: 'Каталог товарів', description: 'Основний сітковий каталог товарів з фільтрами, сортуванням та пагінацією', enabled: true },
+  { id: 'brands', name: 'Вітрина брендів', description: 'Логотипи та підбірки перевірених виробників', enabled: true },
+  { id: 'about', name: 'Про наш магазин', description: 'Переваги, досвід, фізичний склад та локація', enabled: true },
+  { id: 'reviews', name: 'Відгуки покупців', description: 'Оцінки та коментарі реальних клієнтів', enabled: true },
+  { id: 'faq', name: 'Часті питання (FAQ)', description: 'Відповіді на популярні запитання покупців', enabled: true }
+];
 import { ASSET_IMAGES } from '../utils/assetImages';
 
 export const initialCategoriesTree: CategoryTree = {
@@ -759,6 +771,7 @@ export const initialProducts: Product[] = [
 ];
 
 export const initialSiteSettings: SiteSettings = {
+  homepageBlocks: initialHomepageBlocks,
   phone: "+38 (096) 647-36-67",
   email: "iskra.shop.ua@gmail.com",
   viber: "+380966473667",

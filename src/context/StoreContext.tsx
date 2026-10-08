@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useRef } from 'react';
-import { initialCategoriesTree, initialHeaderDesign, initialProducts, initialSiteSettings, initialWeeklyDeal, initialPromoCodes } from '../data/initialData';
+import { initialCategoriesTree, initialHeaderDesign, initialHomepageBlocks, initialProducts, initialSiteSettings, initialWeeklyDeal, initialPromoCodes } from '../data/initialData';
 import { getSafeImageUrl } from '../utils/assetImages';
 import { sendTelegramAlert } from '../utils/telegramHelper';
 import { formatUkrainianPhone } from '../utils/phoneFormatter';
@@ -228,6 +228,10 @@ interface StoreContextType {
   updateSiteSettings: (settings: SiteSettings) => void;
   updateSiteFeatures: (features: Partial<SiteFeatures>) => void;
   updateHeaderDesign: (design: HeaderDesign) => void;
+  moveHomepageBlock: (id: string, direction: 'up' | 'down') => void;
+  toggleHomepageBlock: (id: string) => void;
+  resetHomepageBlocks: () => void;
+  reorderMainCategory: (mainCatName: string, direction: 'up' | 'down') => void;
   weeklyDeal: WeeklyDealConfig;
   updateWeeklyDeal: (deal: Partial<WeeklyDealConfig>) => void;
 
@@ -2965,6 +2969,89 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const moveHomepageBlock = (id: string, direction: 'up' | 'down') => {
+    const currentBlocks = siteSettings.homepageBlocks && siteSettings.homepageBlocks.length > 0
+      ? [...siteSettings.homepageBlocks]
+      : [...initialHomepageBlocks];
+    
+    const index = currentBlocks.findIndex(b => b.id === id);
+    if (index === -1) return;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentBlocks.length) return;
+
+    const temp = currentBlocks[index];
+    currentBlocks[index] = currentBlocks[targetIndex];
+    currentBlocks[targetIndex] = temp;
+
+    const updatedSettings = {
+      ...siteSettings,
+      homepageBlocks: currentBlocks
+    };
+    setSiteSettings(updatedSettings);
+    localStorage.setItem('iskra_settings_react', JSON.stringify(updatedSettings));
+    showToast(`Блок "${temp.name}" переміщено ${direction === 'up' ? 'вище ↑' : 'нижче ↓'}`, 'info');
+    if (firebaseConfig.enabled) {
+      pushStoreToFirebase(firebaseConfig, { siteSettings: updatedSettings, lastSyncTimestamp: Date.now() });
+    }
+  };
+
+  const toggleHomepageBlock = (id: string) => {
+    const currentBlocks = siteSettings.homepageBlocks && siteSettings.homepageBlocks.length > 0
+      ? [...siteSettings.homepageBlocks]
+      : [...initialHomepageBlocks];
+
+    const updatedBlocks = currentBlocks.map(b => b.id === id ? { ...b, enabled: !b.enabled } : b);
+    const updatedSettings = {
+      ...siteSettings,
+      homepageBlocks: updatedBlocks
+    };
+    setSiteSettings(updatedSettings);
+    localStorage.setItem('iskra_settings_react', JSON.stringify(updatedSettings));
+    showToast('Видимість блоку оновлено', 'success');
+    if (firebaseConfig.enabled) {
+      pushStoreToFirebase(firebaseConfig, { siteSettings: updatedSettings, lastSyncTimestamp: Date.now() });
+    }
+  };
+
+  const resetHomepageBlocks = () => {
+    const updatedSettings = {
+      ...siteSettings,
+      homepageBlocks: initialHomepageBlocks
+    };
+    setSiteSettings(updatedSettings);
+    localStorage.setItem('iskra_settings_react', JSON.stringify(updatedSettings));
+    showToast('Відновлено стандартний порядок блоків!', 'success');
+    if (firebaseConfig.enabled) {
+      pushStoreToFirebase(firebaseConfig, { siteSettings: updatedSettings, lastSyncTimestamp: Date.now() });
+    }
+  };
+
+  const reorderMainCategory = (mainCatName: string, direction: 'up' | 'down') => {
+    const keys = Object.keys(categoriesTree);
+    const index = keys.indexOf(mainCatName);
+    if (index === -1) return;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= keys.length) return;
+
+    const tempKey = keys[index];
+    keys[index] = keys[targetIndex];
+    keys[targetIndex] = tempKey;
+
+    const newTree: CategoryTree = {};
+    keys.forEach(k => {
+      newTree[k] = categoriesTree[k];
+    });
+
+    setCategoriesTree(newTree);
+    localStorage.setItem('iskra_categories_tree_v2', JSON.stringify(newTree));
+    showToast(`Порядок категорії «${mainCatName}» змінено (${direction === 'up' ? 'вище ↑' : 'нижче ↓'})`, 'info');
+    if (firebaseConfig.enabled) {
+      pushStoreToFirebase(firebaseConfig, { categoriesTree: newTree, lastSyncTimestamp: Date.now() });
+    }
+  };
+
   const updateWeeklyDeal = (dealUpdate: Partial<WeeklyDealConfig>) => {
     setWeeklyDeal(prev => {
       const next = { ...prev, ...dealUpdate };
@@ -3148,6 +3235,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateSiteSettings,
         updateSiteFeatures,
         updateHeaderDesign,
+        moveHomepageBlock,
+        toggleHomepageBlock,
+        resetHomepageBlocks,
+        reorderMainCategory,
         weeklyDeal,
         updateWeeklyDeal,
         promoCodes,

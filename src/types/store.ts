@@ -109,7 +109,15 @@ export interface SiteFeatures {
   showLowStockBadgeToBuyers?: boolean;
 }
 
+export interface HomepageBlock {
+  id: 'hero' | 'weekly_deal' | 'bestsellers' | 'categories' | 'catalog_grid' | 'brands' | 'about' | 'reviews' | 'faq';
+  name: string;
+  description: string;
+  enabled: boolean;
+}
+
 export interface SiteSettings {
+  homepageBlocks?: HomepageBlock[];
   phone: string;
   email?: string;
   viber: string;
