@@ -17,6 +17,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { CatalogMegaMenu } from './CatalogMegaMenu';
+import { VoiceSearchModal } from './VoiceSearchModal';
 import { Product } from '../types/store';
 
 export const Header: React.FC = () => {
@@ -48,87 +49,7 @@ export const Header: React.FC = () => {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
 
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
-
-  // Initialize SpeechRecognition cleanup
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch (e) {}
-      }
-    };
-  }, []);
-
-  const handleToggleVoiceSearch = () => {
-    if (isListening) {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (e) {}
-      }
-      setIsListening(false);
-      return;
-    }
-
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      showToast('Голосовий пошук не підтримується цим браузером. Спробуйте Chrome, Edge або Safari на мобільному.', 'info');
-      return;
-    }
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'uk-UA';
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
-      recognition.continuous = false;
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        showToast('Говоріть назву товару (напр. «пральна машина»)...', 'info');
-      };
-
-      recognition.onresult = (event: any) => {
-        const transcript = Array.from(event.results)
-          .map((res: any) => res[0].transcript)
-          .join('');
-        
-        if (transcript) {
-          // Clean up punctuation sometimes added
-          const clean = transcript.replace(/[.,!?]+$/, '').trim();
-          setSearchQuery(clean);
-          if (activeView !== 'store') setActiveView('store');
-          setIsSearchFocused(true);
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error:', event.error);
-        setIsListening(false);
-        if (event.error === 'not-allowed') {
-          showToast('Доступ до мікрофону заблоковано. Дозвольте доступ у налаштуваннях браузера.', 'error');
-        } else if (event.error === 'no-speech') {
-          showToast('Голос не розпізнано. Спробуйте ще раз.', 'info');
-        } else {
-          showToast('Не вдалося розпізнати голос. Спробуйте ще раз.', 'error');
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (err) {
-      console.error('Speech recognition start error:', err);
-      setIsListening(false);
-      showToast('Помилка активації мікрофону', 'error');
-    }
-  };
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
 
 
   // Close search dropdown on click outside
@@ -250,12 +171,8 @@ export const Header: React.FC = () => {
                     if (activeView !== 'store') setActiveView('store');
                   }}
                   onFocus={() => setIsSearchFocused(true)}
-                  placeholder={isListening ? "Слухаємо... Говоріть..." : "Пошук серед товарів..."}
-                  className={`w-full pl-9 ${searchQuery ? 'pr-16' : 'pr-9'} py-2 rounded-xl text-xs outline-none transition-all border ${
-                    isListening
-                      ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/40 text-slate-900 placeholder:text-red-500 font-medium'
-                      : 'border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/10'
-                  }`}
+                  placeholder="Пошук серед товарів..."
+                  className={`w-full pl-9 ${searchQuery ? 'pr-16' : 'pr-9'} py-2 rounded-xl text-xs outline-none transition-all border border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/10`}
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                   {searchQuery && (
@@ -271,22 +188,12 @@ export const Header: React.FC = () => {
                   )}
                   <button
                     type="button"
-                    onClick={handleToggleVoiceSearch}
-                    className={`relative p-1.5 rounded-full transition-all cursor-pointer ${
-                      isListening
-                        ? 'bg-red-600 text-white shadow-md shadow-red-500/30 ring-2 ring-red-400/50 animate-pulse'
-                        : 'text-slate-400 hover:text-red-600 hover:bg-slate-100'
-                    }`}
-                    title={isListening ? "Зупинити голосовий пошук" : "Голосовий пошук товарів"}
-                    aria-label={isListening ? "Зупинити голосовий пошук" : "Голосовий пошук товарів"}
+                    onClick={() => setIsVoiceModalOpen(true)}
+                    className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all cursor-pointer"
+                    title="Голосовий пошук товарів"
+                    aria-label="Голосовий пошук товарів"
                   >
                     <Mic className="w-3.5 h-3.5" />
-                    {isListening && (
-                      <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
-                      </span>
-                    )}
                   </button>
                 </div>
               </div>
@@ -465,12 +372,8 @@ export const Header: React.FC = () => {
                   if (activeView !== 'store') setActiveView('store');
                 }}
                 onFocus={() => setIsSearchFocused(true)}
-                placeholder={isListening ? "Слухаємо... Говоріть..." : "Пошук серед товарів..."}
-                className={`w-full pl-8 ${searchQuery ? 'pr-16' : 'pr-9'} py-2 rounded-xl text-xs outline-none transition-all border ${
-                  isListening
-                    ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/40 text-slate-900 placeholder:text-red-500 font-medium'
-                    : 'border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/10'
-                }`}
+                placeholder="Пошук серед товарів..."
+                className={`w-full pl-8 ${searchQuery ? 'pr-16' : 'pr-9'} py-2 rounded-xl text-xs outline-none transition-all border border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/10`}
               />
               <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {searchQuery && (
@@ -486,22 +389,12 @@ export const Header: React.FC = () => {
                 )}
                 <button
                   type="button"
-                  onClick={handleToggleVoiceSearch}
-                  className={`relative p-1.5 rounded-full transition-all cursor-pointer ${
-                    isListening
-                      ? 'bg-red-600 text-white shadow-md shadow-red-500/30 ring-2 ring-red-400/50 animate-pulse'
-                      : 'text-slate-400 hover:text-red-600 hover:bg-slate-100'
-                  }`}
-                  title={isListening ? "Зупинити голосовий пошук" : "Голосовий пошук товарів"}
-                  aria-label={isListening ? "Зупинити голосовий пошук" : "Голосовий пошук товарів"}
+                  onClick={() => setIsVoiceModalOpen(true)}
+                  className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all cursor-pointer"
+                  title="Голосовий пошук товарів"
+                  aria-label="Голосовий пошук товарів"
                 >
                   <Mic className="w-3.5 h-3.5" />
-                  {isListening && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
-                    </span>
-                  )}
                 </button>
               </div>
 
@@ -645,6 +538,17 @@ export const Header: React.FC = () => {
       <CatalogMegaMenu 
         isOpen={isCatalogOpen} 
         onClose={() => setIsCatalogOpen(false)} 
+      />
+
+      {/* Comfy-style Voice Search Modal Window */}
+      <VoiceSearchModal
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+        onSearch={(query) => {
+          setSearchQuery(query);
+          if (activeView !== 'store') setActiveView('store');
+          setIsSearchFocused(true);
+        }}
       />
     </>
   );
