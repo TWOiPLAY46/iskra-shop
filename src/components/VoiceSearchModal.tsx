@@ -11,57 +11,67 @@ import {
   ArrowRight,
   Zap,
   Lock,
-  HelpCircle,
-  ShieldAlert,
-  ChevronDown,
-  ChevronUp,
-  Settings
+  Keyboard,
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 
 interface VoiceSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTranscript?: (transcript: string) => void;
   onSearch?: (query: string) => void;
+  onTranscript?: (transcript: string) => void;
 }
+
+type SpeechState =
+  | 'idle'
+  | 'holding'
+  | 'processing'
+  | 'permission_denied'
+  | 'unsupported'
+  | 'error';
 
 export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   isOpen,
   onClose,
-  onTranscript,
   onSearch,
+  onTranscript,
 }) => {
   const { products } = useStore();
-  const [speechState, setSpeechState] = useState<
-    'idle' | 'listening' | 'processing' | 'permission_denied' | 'error' | 'unsupported'
-  >('idle');
+
+  const [speechState, setSpeechState] = useState<SpeechState>('idle');
   const [interimText, setInterimText] = useState('');
   const [manualText, setManualText] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [showHowToUnlock, setShowHowToUnlock] = useState(false);
-  const [volumeMeter, setVolumeMeter] = useState(0);
+  const [volumeMeter, setVolumeMeter] = useState<number>(0);
+  const [isHolding, setIsHolding] = useState(false);
 
+  const isHoldingRef = useRef(false);
+  const isAwaitingFinalRef = useRef(false);
+  const latestTranscriptRef = useRef('');
   const recognitionRef = useRef<any>(null);
-  const finishTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const releaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Quick suggestions from the store catalog
-  const popularHints = useMemo(() => [
-    'Кабель ВВГнг',
-    'Автоматичний вимикач',
-    'Змішувач для кухні',
-    'Болгарка DeWalt',
-    'Реле напруги ZUBR',
-    'Клема WAGO',
-    'Перфоратор',
-    'Труба паяльна',
-  ], []);
+  // Popular quick hints for Ukrainian store
+  const popularHints = useMemo(
+    () => [
+      'Кабель ВВГнг',
+      'Реле напруги ZUBR',
+      'Вимикач Schneider',
+      'Розетка з заземленням',
+      'Автомат 16А',
+      'LED лампа E27',
+      'Змішувач для кухні',
+      'Болгарка DeWalt',
+      'Клема WAGO',
+    ],
+    []
+  );
 
-  // Instant matches from actual store catalog based on current text
+  // Instant catalog search preview based on current spoken/entered text
   const activeQuery = interimText || manualText;
   const matchedProducts = useMemo(() => {
     if (!activeQuery || activeQuery.trim().length < 2) return [];
@@ -77,6 +87,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       .slice(0, 3);
   }, [activeQuery, products]);
 
+  // Cleanup audio analyser
   const stopAudioAnalyser = useCallback(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -97,52 +108,30 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     setVolumeMeter(0);
   }, []);
 
-  const handleEmitResult = useCallback((query: string) => {
-    const cleanText = query.replace(/[.,!?]+$/, '').trim();
-    if (!cleanText) return;
-
-    stopAudioAnalyser();
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.abort();
-      } catch (e) {
-        // ignore
-      }
-    }
-    if (onTranscript) {
-      onTranscript(cleanText);
-    }
-    if (onSearch) {
-      onSearch(cleanText);
-    }
-    onClose();
-  }, [onClose, onSearch, onTranscript, stopAudioAnalyser]);
-
-  /**
-   * Visual sound meter: reads microphone volume directly via AudioContext
-   * so user can visually see that microphone is working and picking up voice!
-   */
+  // Safe start for audio volume meter (does not block speech recognition if denied/busy)
   const startAudioAnalyser = useCallback(async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!isHoldingRef.current) {
+        // Released before stream arrived
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       mediaStreamRef.current = stream;
-
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
-
       const audioCtx = new AudioCtx();
       audioContextRef.current = audioCtx;
       const analyser = audioCtx.createAnalyser();
       analyserRef.current = analyser;
       analyser.fftSize = 64;
-
       const source = audioCtx.createMediaStreamSource(stream);
       source.connect(analyser);
-
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
       const updateVolume = () => {
-        if (!analyserRef.current) return;
+        if (!analyserRef.current || !isHoldingRef.current) return;
         analyserRef.current.getByteFrequencyData(dataArray);
         let sum = 0;
         for (let i = 0; i < dataArray.length; i++) {
@@ -154,22 +143,73 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       };
       updateVolume();
     } catch (e) {
-      console.warn('AudioAnalyser error:', e);
+      // AudioContext failure shouldn't kill speech recognition
+      console.warn('AudioAnalyser harmless note:', e);
     }
   }, []);
 
+  // Submit recognized or selected query
+  const handleEmitResult = useCallback(
+    (query: string) => {
+      const cleanText = query.replace(/[.,!?]+$/, '').trim();
+      if (!cleanText) return;
+
+      if (releaseTimeoutRef.current) {
+        clearTimeout(releaseTimeoutRef.current);
+        releaseTimeoutRef.current = null;
+      }
+      isHoldingRef.current = false;
+      isAwaitingFinalRef.current = false;
+      stopAudioAnalyser();
+
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      if (onTranscript) {
+        onTranscript(cleanText);
+      }
+      if (onSearch) {
+        onSearch(cleanText);
+      }
+      onClose();
+    },
+    [onClose, onSearch, onTranscript, stopAudioAnalyser]
+  );
+
   /**
-   * Main speech recognition runner
+   * PUSH-TO-TALK: START RECORDING (while button / space is pressed)
    */
-  const startRecognition = useCallback(() => {
+  const startRecordingOnPress = useCallback(() => {
+    if (isHoldingRef.current) return; // already active
+
+    if (releaseTimeoutRef.current) {
+      clearTimeout(releaseTimeoutRef.current);
+      releaseTimeoutRef.current = null;
+    }
+
+    isHoldingRef.current = true;
+    isAwaitingFinalRef.current = false;
+    setIsHolding(true);
+    setSpeechState('holding');
+    latestTranscriptRef.current = '';
+    setInterimText('');
+    setErrorMessage('');
+
     const SpeechRecognition =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
+      isHoldingRef.current = false;
+      setIsHolding(false);
       setSpeechState('unsupported');
       setErrorMessage(
-        'Браузер не підтримує нативне розпізнавання мови. Спробуйте Google Chrome або введіть запит вручну.'
+        'Ваш браузер не підтримує розпізнавання голосу. Введіть назву товару вручну нижче.'
       );
       return;
     }
@@ -185,128 +225,166 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
 
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
-
-      recognition.continuous = true; // Stay active even between brief pauses
-      recognition.interimResults = true; // Show words as you speak
-      recognition.lang = 'uk-UA'; // Native Ukrainian
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'uk-UA';
       recognition.maxAlternatives = 3;
 
-      setInterimText('');
-      setErrorMessage('');
-      setSpeechState('listening');
-
       recognition.onstart = () => {
-        setSpeechState('listening');
+        if (isHoldingRef.current) {
+          setSpeechState('holding');
+        }
       };
 
       recognition.onresult = (event: any) => {
         if (!event.results) return;
-
-        // Iterate through all results to build latest full transcript
-        let combinedTranscript = '';
+        let fullTranscript = '';
         for (let i = 0; i < event.results.length; i++) {
           const res = event.results[i];
           if (res && res[0]) {
-            combinedTranscript += res[0].transcript + ' ';
+            fullTranscript += res[0].transcript + ' ';
           }
         }
-
-        const trimmed = combinedTranscript.trim();
+        const trimmed = fullTranscript.trim();
         if (trimmed) {
+          latestTranscriptRef.current = trimmed;
           setInterimText(trimmed);
 
-          // Reset speech auto-complete timeout
-          if (finishTimeoutRef.current) {
-            clearTimeout(finishTimeoutRef.current);
+          // If the user already released the button and was awaiting the final words
+          if (isAwaitingFinalRef.current) {
+            handleEmitResult(trimmed);
           }
-          // After 1.3 seconds of silence, execute search
-          finishTimeoutRef.current = setTimeout(() => {
-            if (trimmed.length > 0) {
-              setSpeechState('processing');
-              setTimeout(() => {
-                handleEmitResult(trimmed);
-              }, 300);
-            }
-          }, 1300);
         }
       };
 
       recognition.onerror = (event: any) => {
         console.warn('SpeechRecognition error:', event.error);
-        if (event.error === 'not-allowed') {
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          isHoldingRef.current = false;
+          setIsHolding(false);
           setSpeechState('permission_denied');
-          setErrorMessage('Доступ до мікрофона заблоковано в браузері або операційній системі.');
-        } else if (event.error === 'service-not-allowed') {
-          setSpeechState('permission_denied');
-          setErrorMessage('Служба розпізнавання заблокована на рівні системи (налаштування Диктовки/Siri).');
+          setErrorMessage('Доступ до мікрофона заблоковано в браузері. Надайте дозвіл або скористайтеся полем нижче.');
         } else if (event.error === 'no-speech') {
-          // Keep listening or idle
-        } else if (event.error === 'network') {
-          setSpeechState('error');
-          setErrorMessage('Помилка мережі сервісу розпізнавання Google/Apple. Перевірте зʼєднання.');
+          // Keep holding, user might pause briefly
         } else if (event.error === 'aborted') {
-          // Stopped normally
+          // Clean cancel
         } else {
-          setSpeechState('error');
-          setErrorMessage(`Помилка: ${event.error || 'не вдалося розпізнати'}.`);
+          setErrorMessage(`Помилка розпізнавання: ${event.error}`);
         }
       };
 
       recognition.onend = () => {
-        // If still marked as listening and no error, restart recognition seamlessly
-        if (speechState === 'listening' && isOpen) {
+        // If still holding, restart to keep recording without interruptions
+        if (isHoldingRef.current) {
           try {
             recognition.start();
           } catch (e) {
             // ignore
           }
+        } else if (isAwaitingFinalRef.current) {
+          // Finalize on engine stop
+          const candidate = (latestTranscriptRef.current || interimText).trim();
+          if (candidate) {
+            handleEmitResult(candidate);
+          } else {
+            setSpeechState('idle');
+            setErrorMessage('Нічого не почуто. Затисніть кнопку, скажіть товар (наприклад «кабель») і відпустіть.');
+          }
+          isAwaitingFinalRef.current = false;
         }
       };
 
       recognition.start();
       startAudioAnalyser();
     } catch (err: any) {
-      console.warn('Recognition start exception:', err);
+      console.warn('Recognition start error:', err);
+      isHoldingRef.current = false;
+      setIsHolding(false);
       if (err.name === 'NotAllowedError') {
         setSpeechState('permission_denied');
       } else {
         setSpeechState('error');
-        setErrorMessage('Не вдалося увімкнути мікрофон.');
+        setErrorMessage('Не вдалося увімкнути мікрофон. Спробуйте ще раз або введіть запит нижче.');
       }
     }
-  }, [handleEmitResult, isOpen, speechState, startAudioAnalyser]);
+  }, [handleEmitResult, interimText, startAudioAnalyser]);
 
-  const handleStartVoice = useCallback(() => {
-    setErrorMessage('');
-    setShowHowToUnlock(false);
-    startRecognition();
-  }, [startRecognition]);
+  /**
+   * PUSH-TO-TALK: STOP RECORDING ON RELEASE (when user lets go of button / space)
+   */
+  const stopRecordingOnRelease = useCallback(() => {
+    if (!isHoldingRef.current) return;
 
-  // When modal opens, auto start
-  useEffect(() => {
-    if (isOpen) {
-      setInterimText('');
-      setManualText('');
-      setErrorMessage('');
-      setShowHowToUnlock(false);
-      handleStartVoice();
+    isHoldingRef.current = false;
+    setIsHolding(false);
+    stopAudioAnalyser();
+
+    const currentText = (latestTranscriptRef.current || interimText).trim();
+
+    // Tell recognition to gracefully stop capturing more audio
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (currentText) {
+      // We already have recognized text: execute search immediately!
+      setSpeechState('processing');
+      releaseTimeoutRef.current = setTimeout(() => {
+        handleEmitResult(currentText);
+      }, 250);
     } else {
+      // User just released right after speaking, give engine up to 600ms to deliver final onresult
+      setSpeechState('processing');
+      isAwaitingFinalRef.current = true;
+
+      releaseTimeoutRef.current = setTimeout(() => {
+        if (isAwaitingFinalRef.current) {
+          isAwaitingFinalRef.current = false;
+          const candidate = (latestTranscriptRef.current || interimText).trim();
+          if (candidate) {
+            handleEmitResult(candidate);
+          } else {
+            setSpeechState('idle');
+            setErrorMessage('Нічого не почуто. Затисніть кнопку, скажіть (наприклад «кабель») і відпустіть.');
+          }
+        }
+      }, 650);
+    }
+  }, [handleEmitResult, interimText, stopAudioAnalyser]);
+
+  // Clean up on modal unmount or close
+  useEffect(() => {
+    if (!isOpen) {
+      isHoldingRef.current = false;
+      isAwaitingFinalRef.current = false;
+      setIsHolding(false);
+      if (releaseTimeoutRef.current) {
+        clearTimeout(releaseTimeoutRef.current);
+        releaseTimeoutRef.current = null;
+      }
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
         } catch (e) {
           // ignore
         }
-      }
-      if (finishTimeoutRef.current) {
-        clearTimeout(finishTimeoutRef.current);
       }
       stopAudioAnalyser();
       setSpeechState('idle');
       setInterimText('');
+      setManualText('');
+      setErrorMessage('');
     }
-
     return () => {
+      isHoldingRef.current = false;
+      isAwaitingFinalRef.current = false;
+      if (releaseTimeoutRef.current) {
+        clearTimeout(releaseTimeoutRef.current);
+      }
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
@@ -314,37 +392,95 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           // ignore
         }
       }
-      if (finishTimeoutRef.current) {
-        clearTimeout(finishTimeoutRef.current);
-      }
       stopAudioAnalyser();
     };
-  }, [handleStartVoice, isOpen, stopAudioAnalyser]);
+  }, [isOpen, stopAudioAnalyser]);
 
-  // Keyboard navigation
+  // Global safety handlers: if pointer/touch releases outside the button
+  useEffect(() => {
+    const handleGlobalRelease = () => {
+      if (isHoldingRef.current) {
+        stopRecordingOnRelease();
+      }
+    };
+
+    window.addEventListener('pointerup', handleGlobalRelease);
+    window.addEventListener('mouseup', handleGlobalRelease);
+    window.addEventListener('touchend', handleGlobalRelease);
+    window.addEventListener('touchcancel', handleGlobalRelease);
+
+    return () => {
+      window.removeEventListener('pointerup', handleGlobalRelease);
+      window.removeEventListener('mouseup', handleGlobalRelease);
+      window.removeEventListener('touchend', handleGlobalRelease);
+      window.removeEventListener('touchcancel', handleGlobalRelease);
+    };
+  }, [stopRecordingOnRelease]);
+
+  // Keyboard navigation & Push-to-Talk with Spacebar on PC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
+
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      const isInputActive = activeTag === 'input' || activeTag === 'textarea';
+
+      // ESC closes modal
       if (e.key === 'Escape') {
         onClose();
+        return;
       }
+
+      // Enter submits active query
       if (e.key === 'Enter') {
         if (interimText.trim()) {
           handleEmitResult(interimText);
         } else if (manualText.trim()) {
           handleEmitResult(manualText);
         }
+        return;
+      }
+
+      // Push-to-Talk via Spacebar (walkie-talkie mode on desktop)
+      if (e.code === 'Space' && !e.repeat && !isInputActive) {
+        e.preventDefault();
+        startRecordingOnPress();
       }
     };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      const isInputActive = activeTag === 'input' || activeTag === 'textarea';
+
+      if (e.code === 'Space' && !isInputActive) {
+        e.preventDefault();
+        stopRecordingOnRelease();
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleEmitResult, isOpen, interimText, manualText, onClose]);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [
+    handleEmitResult,
+    isOpen,
+    interimText,
+    manualText,
+    onClose,
+    startRecordingOnPress,
+    stopRecordingOnRelease,
+  ]);
 
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200 select-none"
       onClick={onClose}
     >
       <div
@@ -376,232 +512,185 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
 
         {/* Scrollable Body Content */}
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col items-center text-center">
-          {/* Animated Microphone Circle Button */}
+          
+          {/* Main Push-to-Talk Instruction Badge */}
+          <div
+            className={`mb-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+              isHolding
+                ? 'bg-rose-50 text-rose-700 border-rose-200 shadow-sm animate-pulse'
+                : 'bg-emerald-50 text-emerald-800 border-emerald-200/70'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isHolding ? 'bg-rose-500 animate-ping' : 'bg-emerald-500'
+              }`}
+            />
+            <span>
+              {isHolding
+                ? 'Запис іде! Говоріть... (відпустіть для пошуку)'
+                : 'Затисніть кнопку, скажіть товар і відпустіть'}
+            </span>
+          </div>
+
+          {/* Large Push-to-Talk Button (Pointer capture enabled) */}
           <div className="my-2 sm:my-3 relative flex items-center justify-center shrink-0">
-            {/* Dynamic Wave Ring based on real volume or pulse */}
-            {speechState === 'listening' && (
+            {/* Dynamic Wave Ring based on real volume while holding */}
+            {isHolding && (
               <>
                 <div
-                  className="absolute rounded-full bg-emerald-400/20 transition-all duration-150 pointer-events-none"
+                  className="absolute rounded-full bg-emerald-500/20 transition-all duration-100 pointer-events-none"
                   style={{
-                    width: `${90 + volumeMeter * 0.8}px`,
-                    height: `${90 + volumeMeter * 0.8}px`,
+                    width: `${100 + volumeMeter * 0.9}px`,
+                    height: `${100 + volumeMeter * 0.9}px`,
                   }}
                 />
-                <div className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-emerald-400/25 animate-ping opacity-75" />
+                <div className="absolute w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-emerald-400/25 animate-ping opacity-75 pointer-events-none" />
+                <div className="absolute w-40 h-40 rounded-full border border-emerald-300/40 pointer-events-none animate-pulse" />
               </>
             )}
 
             <button
               type="button"
-              onClick={() => {
-                if (speechState === 'listening') {
-                  if (interimText.trim()) {
-                    handleEmitResult(interimText);
-                  } else {
-                    handleStartVoice();
-                  }
-                } else {
-                  handleStartVoice();
+              onPointerDown={(e) => {
+                e.preventDefault();
+                try {
+                  (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+                } catch (err) {
+                  // ignore
                 }
+                startRecordingOnPress();
               }}
-              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 flex items-center justify-center transition-all duration-300 relative z-10 cursor-pointer shadow-lg active:scale-95 ${
-                speechState === 'listening'
-                  ? 'border-emerald-100 bg-white shadow-emerald-500/25 ring-4 ring-emerald-500/20'
+              onPointerUp={(e) => {
+                e.preventDefault();
+                try {
+                  (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+                } catch (err) {
+                  // ignore
+                }
+                stopRecordingOnRelease();
+              }}
+              onPointerCancel={(e) => {
+                e.preventDefault();
+                try {
+                  (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+                } catch (err) {
+                  // ignore
+                }
+                stopRecordingOnRelease();
+              }}
+              className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 flex flex-col items-center justify-center transition-all duration-150 relative z-10 cursor-pointer shadow-xl select-none touch-none ${
+                isHolding
+                  ? 'border-rose-400 bg-rose-600 text-white scale-110 shadow-rose-500/40 ring-8 ring-rose-500/20 active:scale-105'
                   : speechState === 'processing'
                   ? 'border-emerald-500 bg-emerald-50 text-emerald-600 shadow-emerald-500/25 scale-105'
                   : speechState === 'permission_denied'
-                  ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-amber-500/20'
-                  : speechState === 'error'
-                  ? 'border-rose-200 bg-rose-50 text-rose-500'
-                  : 'border-emerald-100 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100'
+                  ? 'border-amber-300 bg-amber-50 text-amber-600 shadow-amber-500/20'
+                  : 'border-emerald-200 bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-600/30 hover:scale-105'
               }`}
-              title="Торкніться для запуску або повтору"
+              title="Затисніть для запису, відпустіть для пошуку"
             >
-              {speechState === 'permission_denied' ? (
-                <MicOff className="w-10 h-10 sm:w-11 sm:h-11 text-amber-600" strokeWidth={2.2} />
+              {isHolding ? (
+                <>
+                  <Mic className="w-10 h-10 sm:w-11 sm:h-11 animate-pulse" strokeWidth={2.4} />
+                  <span className="text-[10px] font-black uppercase tracking-wider mt-0.5 text-white">
+                    Запис...
+                  </span>
+                </>
+              ) : speechState === 'processing' ? (
+                <>
+                  <Sparkles className="w-9 h-9 sm:w-10 sm:h-10 animate-spin text-emerald-600" />
+                  <span className="text-[10px] font-bold text-emerald-700 mt-0.5">Шукаємо...</span>
+                </>
+              ) : speechState === 'permission_denied' ? (
+                <>
+                  <MicOff className="w-9 h-9 sm:w-10 sm:h-10 text-amber-600" />
+                  <span className="text-[9px] font-bold text-amber-700 mt-0.5">Блок</span>
+                </>
               ) : (
-                <Mic
-                  className={`w-10 h-10 sm:w-11 sm:h-11 transition-all duration-300 ${
-                    speechState === 'listening'
-                      ? 'text-emerald-500 scale-105'
-                      : speechState === 'processing'
-                      ? 'text-emerald-600 animate-bounce'
-                      : speechState === 'error'
-                      ? 'text-rose-500'
-                      : 'text-emerald-600'
-                  }`}
-                  strokeWidth={2.2}
-                />
+                <>
+                  <Mic className="w-10 h-10 sm:w-11 sm:h-11" strokeWidth={2.4} />
+                  <span className="text-[10px] font-black uppercase tracking-wider mt-0.5 text-emerald-50">
+                    Затисніть
+                  </span>
+                </>
               )}
             </button>
           </div>
 
-          {/* Real Audio Volume Waveform Indicator */}
-          {speechState === 'listening' && (
-            <div className="flex items-center gap-1 mb-2 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100">
-              <span className="text-[10px] font-bold text-emerald-700">Рівень звуку:</span>
-              <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+          {/* Real Audio Volume Waveform Indicator while holding */}
+          {isHolding && (
+            <div className="flex items-center gap-1.5 mb-2 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-200 animate-in fade-in">
+              <span className="text-[10px] font-bold text-emerald-700">Рівень голосу:</span>
+              <div className="w-20 h-2 bg-emerald-200 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-500 transition-all duration-100"
-                  style={{ width: `${Math.max(8, volumeMeter)}%` }}
+                  className="h-full bg-emerald-600 transition-all duration-75"
+                  style={{ width: `${Math.max(12, volumeMeter)}%` }}
                 />
               </div>
             </div>
           )}
 
-          {/* Status & Title Text */}
+          {/* Status & Spoken Text */}
           <div className="w-full flex flex-col items-center justify-center mb-3">
-            {speechState === 'listening' && (
+            {isHolding ? (
               <div className="space-y-1">
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-1.5">
                   <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
                   </span>
                   <span className="text-sm sm:text-base font-bold text-slate-900">
-                    Говоріть, ми слухаємо...
+                    Слухаємо! Говоріть...
                   </span>
                 </div>
-
                 {interimText ? (
-                  <p className="text-base sm:text-lg font-bold text-emerald-600 break-words px-3 py-1 bg-emerald-50/80 rounded-xl border border-emerald-200/50 mt-1">
+                  <p className="text-base sm:text-lg font-bold text-emerald-700 break-words px-3 py-1.5 bg-emerald-50/90 rounded-xl border border-emerald-300 mt-1 shadow-sm animate-in zoom-in-95">
                     «{interimText}»
                   </p>
                 ) : (
-                  <p className="text-xs text-slate-400">
-                    Назвіть товар (наприклад, «кабель», «змішувач», «реле»)
+                  <p className="text-xs text-slate-500 font-medium">
+                    (наприклад, скажіть «кабель» або «реле напруги»)
                   </p>
                 )}
               </div>
-            )}
-
-            {speechState === 'processing' && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-center gap-1.5 text-emerald-600 font-bold text-sm sm:text-base">
-                  <Sparkles className="w-4 h-4 animate-spin text-emerald-500" />
-                  <span>Шукаємо «{interimText}»...</span>
-                </div>
+            ) : speechState === 'processing' ? (
+              <div className="flex items-center justify-center gap-1.5 text-emerald-600 font-bold text-sm sm:text-base">
+                <Sparkles className="w-4 h-4 animate-spin text-emerald-500" />
+                <span>Шукаємо «{interimText || latestTranscriptRef.current}»...</span>
               </div>
-            )}
-
-            {speechState === 'idle' && (
-              <div className="space-y-1">
-                <h3 className="text-sm sm:text-base font-bold text-slate-800">
-                  Торкніться мікрофона
-                </h3>
-                <p className="text-xs text-slate-500 max-w-xs">
-                  {errorMessage || 'Натисніть на зелену іконку та назвіть товар'}
-                </p>
-                <button
-                  type="button"
-                  onClick={handleStartVoice}
-                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition-all cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Натиснути й говорити</span>
-                </button>
-              </div>
-            )}
-
-            {speechState === 'permission_denied' && (
+            ) : speechState === 'permission_denied' ? (
               <div className="w-full flex flex-col items-center">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-semibold mb-1">
                   <Lock className="w-3 h-3" />
                   <span>Потрібен доступ до мікрофона</span>
                 </div>
-                <h4 className="text-sm font-bold text-slate-900">
-                  Браузер або система блокує мікрофон
-                </h4>
-                <p className="mt-0.5 text-xs text-slate-500 max-w-xs leading-relaxed">
-                  Натисніть дозволити вгорі браузера (біля адреси) або введіть назву нижче.
-                </p>
-
-                {/* Compact Action buttons */}
-                <div className="mt-2.5 flex flex-wrap gap-2 justify-center">
-                  <button
-                    type="button"
-                    onClick={handleStartVoice}
-                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Спробувати знову</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowHowToUnlock(!showHowToUnlock)}
-                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                  >
-                    <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Як увімкнути?</span>
-                    {showHowToUnlock ? (
-                      <ChevronUp className="w-3 h-3 text-slate-400" />
-                    ) : (
-                      <ChevronDown className="w-3 h-3 text-slate-400" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Step by step unlock instruction */}
-                {showHowToUnlock && (
-                  <div className="mt-2.5 w-full bg-amber-50/80 border border-amber-200/90 rounded-2xl p-3 text-left text-xs text-slate-700 animate-in fade-in duration-200">
-                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 text-xs">
-                      <Settings className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      <span>Як надати дозвіл:</span>
-                    </div>
-                    <ol className="space-y-1.5 text-[11px] list-decimal list-inside text-slate-600 leading-snug">
-                      <li>
-                        <strong>На ПК (Chrome / Edge / Opera)</strong>: зліва від адреси сайту натисніть значок налаштувань сайту та ввімкніть «Мікрофон».
-                      </li>
-                      <li>
-                        <strong>На iPhone / iPad</strong>: Параметри → Safari → Мікрофон → «Дозволити», а також Параметри → Загальні → Клавіатура → «Диктовка» (On).
-                      </li>
-                      <li>
-                        Оновіть сторінку і натисніть «Спробувати знову».
-                      </li>
-                    </ol>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {speechState === 'error' && (
-              <div className="flex flex-col items-center">
-                <div className="flex items-center gap-1.5 text-rose-600 font-semibold mb-0.5 text-xs sm:text-sm">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>Помилка розпізнавання</span>
-                </div>
                 <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
-                  {errorMessage || 'Не вдалося розпізнати. Спробуйте ще раз.'}
+                  Будь ласка, дозвольте мікрофон у браузері або введіть товар вручну нижче.
                 </p>
-                <button
-                  type="button"
-                  onClick={handleStartVoice}
-                  className="mt-2.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Спробувати ще раз</span>
-                </button>
               </div>
-            )}
-
-            {speechState === 'unsupported' && (
-              <div className="flex flex-col items-center">
-                <div className="flex items-center gap-1.5 text-slate-700 font-semibold mb-0.5 text-xs sm:text-sm">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                  <span>Голосовий пошук обмежено в цьому браузері</span>
-                </div>
-                <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
-                  {errorMessage}
+            ) : (
+              <div className="space-y-0.5">
+                <h3 className="text-sm sm:text-base font-bold text-slate-800">
+                  {interimText ? `Останній запит: «${interimText}»` : 'Затисніть кнопку і говоріть'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {errorMessage || 'Коли закінчите фразу — просто відпустіть палець чи мишку'}
                 </p>
               </div>
             )}
           </div>
 
-          {/* Quick Fallback Text Input inside modal if user prefers typing */}
+          {/* Spacebar Tip for PC */}
+          <div className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-400 mb-2 font-medium">
+            <Keyboard className="w-3 h-3 text-slate-400" />
+            <span>На клавіатурі: затисніть <b>Пробіл (Space)</b> щоб говорити</span>
+          </div>
+
+          {/* Quick Fallback Text Input inside modal */}
           <div className="w-full mb-3 bg-slate-50 rounded-2xl p-2.5 border border-slate-200 text-left">
             <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-              {speechState === 'listening' ? 'Також можна ввести назву вручну:' : 'Або введіть товар вручну:'}
+              Або введіть товар вручну:
             </label>
             <div className="flex items-center gap-1.5">
               <input
@@ -615,7 +704,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
                 type="button"
                 onClick={() => handleEmitResult(manualText)}
                 disabled={!manualText.trim()}
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl cursor-pointer transition-all"
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl cursor-pointer transition-all active:scale-95"
               >
                 Знайти
               </button>
@@ -658,15 +747,15 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
             </div>
           )}
 
-          {/* Action Button: Search Recognized Text Now */}
-          {interimText && (
+          {/* Action Button: Search Recognized Text Now if still idle */}
+          {interimText && !isHolding && speechState !== 'processing' && (
             <button
               type="button"
               onClick={() => handleEmitResult(interimText)}
               className="mb-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/25 transition-all cursor-pointer active:scale-95"
             >
               <Search className="w-3.5 h-3.5" />
-              <span>Знайти «{interimText}»</span>
+              <span>Шукати «{interimText}»</span>
               <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
             </button>
           )}
@@ -675,7 +764,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           <div className="mt-auto pt-3 border-t border-slate-100 w-full text-center">
             <div className="flex items-center justify-center gap-1.5 text-slate-400 text-xs mb-1.5 font-medium">
               <Volume2 className="w-3.5 h-3.5 text-slate-400" />
-              <span>Швидкий вибір товару:</span>
+              <span>Швидкий вибір товару в один клік:</span>
             </div>
             <div className="flex flex-wrap justify-center gap-1.5 max-h-24 overflow-y-auto pr-0.5">
               {popularHints.map((hint, idx) => (
