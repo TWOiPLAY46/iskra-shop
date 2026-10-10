@@ -45,6 +45,11 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   const [isSoundActive, setIsSoundActive] = useState(false);
   const [selectedLang, setSelectedLang] = useState<'uk-UA' | 'ru-RU'>('uk-UA');
 
+  const selectedLangRef = useRef(selectedLang);
+  useEffect(() => {
+    selectedLangRef.current = selectedLang;
+  }, [selectedLang]);
+
   const latestTranscriptRef = useRef('');
   const recognitionRef = useRef<any>(null);
   const autoSearchTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -175,7 +180,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
 
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = selectedLang;
+      recognition.lang = selectedLangRef.current;
       recognition.maxAlternatives = 3;
 
       recognition.onstart = () => {
@@ -259,13 +264,11 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           return;
         }
 
-        // If modal is still open and not manually closed, restart listening automatically
-        if (speechState === 'listening') {
-          try {
-            recognition.start();
-          } catch (e) {
-            // ignore
-          }
+        // If modal is still open, restart listening automatically without flickering
+        try {
+          recognition.start();
+        } catch (e) {
+          // ignore
         }
       };
 
@@ -275,7 +278,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       setSpeechState('error');
       setErrorMessage('Не вдалося запустити мікрофон. Спробуйте ще раз.');
     }
-  }, [cleanupRecognition, handleEmitResult, interimText, scheduleAutoSearch, selectedLang, speechState]);
+  }, [cleanupRecognition, handleEmitResult, interimText, scheduleAutoSearch]);
 
   // Automatically start listening when modal opens
   useEffect(() => {
@@ -286,15 +289,17 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       latestTranscriptRef.current = '';
       setSpeechState('listening');
 
-      // Small delay to let modal render smoothly before starting mic
       const t = setTimeout(() => {
         startRecognitionEngine();
-      }, 200);
+      }, 150);
 
       return () => {
         clearTimeout(t);
         cleanupRecognition();
       };
+    } else {
+      cleanupRecognition();
+      setSpeechState('idle');
     }
   }, [isOpen, startRecognitionEngine, cleanupRecognition]);
 
@@ -357,6 +362,8 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
               type="button"
               onClick={() => {
                 setSelectedLang('uk-UA');
+                selectedLangRef.current = 'uk-UA';
+                cleanupRecognition();
                 setTimeout(startRecognitionEngine, 100);
               }}
               className={`px-2 py-0.5 rounded-full transition-all cursor-pointer ${
@@ -371,6 +378,8 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
               type="button"
               onClick={() => {
                 setSelectedLang('ru-RU');
+                selectedLangRef.current = 'ru-RU';
+                cleanupRecognition();
                 setTimeout(startRecognitionEngine, 100);
               }}
               className={`px-2 py-0.5 rounded-full transition-all cursor-pointer ${
@@ -398,33 +407,39 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           {/* Main Status Instruction Badge */}
           <div
             className={`mb-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
-              isListening
-                ? 'bg-rose-50 text-rose-700 border-rose-200 shadow-xs animate-pulse'
-                : effectiveText
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+              speechState === 'permission_denied'
+                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                : speechState === 'error'
+                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                : isListening
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : 'bg-slate-100 text-slate-700 border-slate-200'
             }`}
           >
             <span
               className={`w-2 h-2 rounded-full ${
-                isListening ? 'bg-rose-500 animate-ping' : effectiveText ? 'bg-emerald-500' : 'bg-slate-400'
+                isListening
+                  ? 'bg-emerald-500 animate-pulse'
+                  : speechState === 'permission_denied'
+                  ? 'bg-rose-500'
+                  : 'bg-slate-400'
               }`}
             />
             <span>
-              {isListening
-                ? '🔴 Мікрофон слухає... Говоріть чітко'
-                : effectiveText
-                ? `Знайдено: «${effectiveText}»`
-                : 'Натисніть мікрофон, щоб почати'}
+              {speechState === 'permission_denied'
+                ? 'Доступ заблоковано'
+                : isListening
+                ? 'Слухаю... Говоріть назву товару'
+                : 'Мікрофон на паузі'}
             </span>
           </div>
 
-          {/* Large Interactive Microphone Button */}
-          <div className="my-2 relative flex items-center justify-center shrink-0">
+          {/* Animated Microphone Icon Pulsing Button */}
+          <div className="relative my-3">
             {isListening && (
               <>
-                <div className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-rose-400/25 animate-ping opacity-75 pointer-events-none" />
-                <div className="absolute w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-rose-500/15 animate-pulse pointer-events-none" />
+                <div className="absolute inset-0 rounded-full bg-emerald-400/20 animate-ping scale-125" />
+                <div className="absolute -inset-3 rounded-full bg-emerald-500/10 animate-pulse" />
               </>
             )}
 
@@ -438,149 +453,81 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
                   startRecognitionEngine();
                 }
               }}
-              className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 flex flex-col items-center justify-center transition-all duration-150 relative z-10 cursor-pointer shadow-xl select-none ${
+              className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all shadow-xl cursor-pointer ${
                 isListening
-                  ? 'border-rose-400 bg-rose-600 text-white scale-105 shadow-rose-500/40 ring-6 ring-rose-500/20 active:scale-95'
-                  : speechState === 'permission_denied'
-                  ? 'border-amber-300 bg-amber-50 text-amber-600 shadow-amber-500/20'
-                  : 'border-emerald-200 bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-600/30 hover:scale-105 active:scale-95'
+                  ? 'bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-emerald-500/30 ring-4 ring-emerald-100'
+                  : 'bg-gradient-to-tr from-slate-800 to-slate-900 text-white shadow-slate-900/20 hover:from-emerald-600 hover:to-teal-500'
               }`}
-              title="Натисніть щоб увімкнути/вимкнути мікрофон"
+              title={isListening ? 'Натисніть, щоб зупинити' : 'Увімкнути мікрофон'}
             >
               {isListening ? (
-                <>
-                  <Mic className="w-9 h-9 sm:w-10 sm:h-10 animate-pulse" strokeWidth={2.4} />
-                  <span className="text-[10px] font-black uppercase tracking-wider mt-0.5 text-white">
-                    Слухаю...
-                  </span>
-                </>
-              ) : speechState === 'permission_denied' ? (
-                <>
-                  <MicOff className="w-8 h-8 sm:w-9 sm:h-9 text-amber-600" />
-                  <span className="text-[9px] font-bold text-amber-700 mt-0.5">Дозвіл</span>
-                </>
+                <Mic className="w-9 h-9 animate-bounce" />
               ) : (
-                <>
-                  <Mic className="w-9 h-9 sm:w-10 sm:h-10" strokeWidth={2.4} />
-                  <span className="text-[10px] font-black uppercase tracking-wider mt-0.5 text-emerald-50">
-                    Увімкнути
-                  </span>
-                </>
+                <MicOff className="w-9 h-9 opacity-75" />
               )}
             </button>
           </div>
 
-          {/* Sound Waves equalizer visualization while listening */}
-          {isListening && (
-            <div className="flex items-center gap-1.5 mb-2 px-3 py-1 bg-rose-50 rounded-full border border-rose-200 animate-in fade-in">
-              <span className="text-[10px] font-bold text-rose-700">Запис активний:</span>
-              <div className="flex items-center gap-0.5 h-3">
-                <span className="w-1 h-3 bg-rose-500 rounded-full animate-pulse" />
-                <span className="w-1 h-4 bg-rose-600 rounded-full animate-bounce" />
-                <span className="w-1 h-2 bg-rose-400 rounded-full animate-pulse" />
-                <span className="w-1 h-3.5 bg-rose-600 rounded-full animate-bounce" />
-                <span className="w-1 h-2 bg-rose-500 rounded-full animate-pulse" />
-              </div>
+          {/* Error Message if any */}
+          {errorMessage && (
+            <div className="w-full mb-3 p-3 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 text-xs font-medium leading-relaxed text-left flex items-start gap-2">
+              <span className="shrink-0 mt-0.5">⚠️</span>
+              <div className="flex-1">{errorMessage}</div>
             </div>
           )}
 
-          {/* Live Recognized Spoken Text Bubble */}
-          <div className="w-full flex flex-col items-center justify-center mb-2.5 min-h-[46px]">
-            {effectiveText ? (
-              <div className="w-full space-y-1">
-                <div className="flex items-center justify-center gap-1.5 text-emerald-800 text-xs font-bold">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Розпізнано:</span>
-                </div>
-                <div className="p-2.5 bg-emerald-50 rounded-2xl border border-emerald-300 shadow-xs">
-                  <p className="text-base sm:text-lg font-black text-emerald-900 break-words">
-                    «{effectiveText}»
-                  </p>
-                </div>
+          {/* Live Recognized Speech Box */}
+          <div className="w-full mb-3">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 text-left flex items-center justify-between">
+              <span>Розпізнаний текст:</span>
+              {effectiveText && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInterimText('');
+                    setManualText('');
+                    latestTranscriptRef.current = '';
+                  }}
+                  className="text-slate-400 hover:text-slate-700 text-[10px] lowercase flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" /> очистити
+                </button>
+              )}
+            </div>
 
-                {/* Instant Search Button for recognized text */}
-                <button
-                  type="button"
-                  onClick={() => handleEmitResult(effectiveText)}
-                  className="w-full mt-1.5 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 animate-in zoom-in-95"
-                >
-                  <Search className="w-4 h-4" />
-                  <span>Шукати «{effectiveText}» зараз</span>
-                  <ArrowRight className="w-4 h-4 ml-0.5" />
-                </button>
-              </div>
-            ) : isListening ? (
-              <div className="space-y-0.5">
-                <p className="text-xs sm:text-sm font-bold text-slate-800">
-                  Говоріть назву товару...
-                </p>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  наприклад: «кабель ВВГ» або «автомат 16 ампер»
-                </p>
-              </div>
-            ) : speechState === 'permission_denied' ? (
-              <div className="w-full flex flex-col items-center p-2.5 bg-amber-50 rounded-2xl border border-amber-200 text-left">
-                <div className="inline-flex items-center gap-1.5 text-amber-800 text-xs font-bold mb-1">
-                  <Lock className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Потрібен дозвіл на мікрофон</span>
-                </div>
-                <p className="text-[11px] text-amber-700 leading-relaxed mb-2">
-                  У спливаючому вікні Safari чи Chrome натисніть <b>«Разрешить» (Дозволити)</b>.
-                </p>
-                <button
-                  type="button"
-                  onClick={startRecognitionEngine}
-                  className="self-center px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
-                >
-                  Спробувати знову
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {errorMessage && (
-                  <p className="text-xs text-rose-600 font-medium mb-1">{errorMessage}</p>
-                )}
-                <button
-                  type="button"
-                  onClick={startRecognitionEngine}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Увімкнути мікрофон знову</span>
-                </button>
-              </div>
-            )}
+            <div className="min-h-[52px] max-h-24 overflow-y-auto w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-slate-900 text-sm font-medium flex items-center justify-center text-center shadow-inner">
+              {effectiveText ? (
+                <span className="text-emerald-700 font-semibold animate-in fade-in duration-150">
+                  {effectiveText}
+                </span>
+              ) : (
+                <span className="text-slate-400 italic text-xs">
+                  «Наприклад: Кабель ВВГнг або Автомат 16А»
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Instant Matches Preview from Store Catalog */}
+          {/* Instant Matched Products Preview */}
           {matchedProducts.length > 0 && (
-            <div className="w-full mb-2.5 text-left bg-slate-50 rounded-2xl p-2.5 border border-slate-100 animate-in fade-in">
-              <div className="text-[10px] uppercase font-bold text-slate-400 px-1 mb-1 tracking-wider">
-                Знайдено в каталозі ISKRA:
+            <div className="w-full mb-3 text-left">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-emerald-500" />
+                <span>Знайдено в каталозі (натисніть для вибору):</span>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 {matchedProducts.map((p) => (
                   <button
                     key={p.id}
                     type="button"
                     onClick={() => handleEmitResult(p.name)}
-                    className="w-full text-left flex items-center justify-between p-1.5 hover:bg-white rounded-lg transition-colors group cursor-pointer"
+                    className="w-full px-3 py-2 rounded-xl bg-emerald-50/60 hover:bg-emerald-100/80 border border-emerald-200/60 text-slate-800 text-xs font-medium flex items-center justify-between transition-colors cursor-pointer group"
                   >
-                    <div className="flex items-center gap-2 truncate">
-                      <img
-                        src={p.image}
-                        alt=""
-                        className="w-6 h-6 object-cover rounded shrink-0 border border-slate-200"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                      <span className="text-xs text-slate-800 font-medium truncate group-hover:text-emerald-600">
-                        {p.name}
-                      </span>
-                    </div>
-                    <span className="text-xs font-bold text-slate-900 shrink-0 ml-2">
-                      {p.price} ₴
+                    <span className="truncate pr-2 font-semibold text-emerald-900">
+                      {p.name}
+                    </span>
+                    <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 group-hover:translate-x-0.5 transition-transform">
+                      {p.price} ₴ <ArrowRight className="w-3 h-3" />
                     </span>
                   </button>
                 ))}
@@ -588,55 +535,79 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
             </div>
           )}
 
-          {/* Quick Fallback Text Input inside modal */}
-          <div className="w-full mb-2.5 bg-slate-50 rounded-2xl p-2.5 border border-slate-200 text-left">
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-              Або введіть товар вручну:
-            </label>
-            <div className="flex items-center gap-1.5">
+          {/* Search Button if query exists */}
+          {effectiveText && (
+            <button
+              type="button"
+              onClick={() => handleEmitResult(effectiveText)}
+              className="w-full mb-3 py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <Search className="w-4 h-4" />
+              <span>Шукати «{effectiveText}»</span>
+            </button>
+          )}
+
+          {/* Manual Text Input Fallback */}
+          <div className="w-full mb-3">
+            <div className="relative">
               <input
                 type="text"
                 value={manualText}
                 onChange={(e) => setManualText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && manualText.trim()) {
-                    handleEmitResult(manualText);
-                  }
-                }}
-                placeholder="Наприклад: кабель ВВГ, вимикач..."
-                className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+                placeholder="Або введіть назву товару вручну..."
+                className="w-full pl-9 pr-9 py-2.5 rounded-2xl bg-slate-100 border border-slate-200 text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
               />
-              <button
-                type="button"
-                onClick={() => handleEmitResult(manualText)}
-                disabled={!manualText.trim()}
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl cursor-pointer transition-all active:scale-95"
-              >
-                Знайти
-              </button>
+              <Keyboard className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+              {manualText && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (manualText.trim()) handleEmitResult(manualText);
+                  }}
+                  className="absolute right-2.5 top-2 p-1 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors cursor-pointer"
+                  title="Знайти"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Popular Hints / Quick 1-click examples at bottom */}
-          <div className="mt-auto pt-2.5 border-t border-slate-100 w-full text-center">
-            <div className="flex items-center justify-center gap-1.5 text-slate-400 text-xs mb-1.5 font-medium">
-              <Volume2 className="w-3.5 h-3.5 text-slate-400" />
-              <span>Швидкий пошук в 1 клік:</span>
+          {/* Popular Search Suggestions (Chips) */}
+          <div className="w-full text-left">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+              <span>Швидкі підказки:</span>
             </div>
-            <div className="flex flex-wrap justify-center gap-1.5 max-h-24 overflow-y-auto pr-0.5">
-              {popularHints.map((hint, idx) => (
+            <div className="flex flex-wrap gap-1.5">
+              {popularHints.slice(0, 6).map((hint, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleEmitResult(hint)}
-                  className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer border border-transparent hover:border-emerald-200 active:scale-95"
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-transparent text-slate-600 text-[11px] font-medium transition-all cursor-pointer"
                 >
                   {hint}
                 </button>
               ))}
             </div>
           </div>
+
         </div>
+
+        {/* Footer info */}
+        <div className="shrink-0 px-4 py-2.5 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
+          <span className="flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Голосовий движок активний
+          </span>
+          <button
+            type="button"
+            onClick={startRecognitionEngine}
+            className="text-emerald-700 font-semibold hover:underline cursor-pointer"
+          >
+            Увімкнути мікрофон знову
+          </button>
+        </div>
+
       </div>
     </div>
   );
