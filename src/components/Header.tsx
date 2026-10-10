@@ -12,12 +12,9 @@ import {
   Flame, 
   Building2,
   RotateCcw,
-  Mic,
-  MicOff,
   Loader2
 } from 'lucide-react';
 import { CatalogMegaMenu } from './CatalogMegaMenu';
-import { VoiceSearchModal } from './VoiceSearchModal';
 import { Product } from '../types/store';
 
 export const Header: React.FC = () => {
@@ -50,9 +47,6 @@ export const Header: React.FC = () => {
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
-
-  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
-
 
   // Close search dropdown on click outside
   useEffect(() => {
@@ -174,10 +168,10 @@ export const Header: React.FC = () => {
                   }}
                   onFocus={() => setIsSearchFocused(true)}
                   placeholder="Пошук серед товарів..."
-                  className={`w-full pl-9 ${searchQuery ? 'pr-16' : 'pr-9'} py-2 rounded-xl text-xs outline-none transition-all border border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/10`}
+                  className={`w-full pl-9 ${searchQuery ? 'pr-9' : 'pr-3'} py-2 rounded-xl text-xs outline-none transition-all border border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/10`}
                 />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  {searchQuery && (
+                {searchQuery && (
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center">
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
@@ -187,20 +181,8 @@ export const Header: React.FC = () => {
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSearchFocused(false);
-                      setIsVoiceModalOpen(true);
-                    }}
-                    className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all cursor-pointer"
-                    title="Голосовий пошук товарів"
-                    aria-label="Голосовий пошук товарів"
-                  >
-                    <Mic className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Instant Search Results Dropdown */}
@@ -378,10 +360,10 @@ export const Header: React.FC = () => {
                 }}
                 onFocus={() => setIsSearchFocused(true)}
                 placeholder="Пошук серед товарів..."
-                className={`w-full pl-8 ${searchQuery ? 'pr-16' : 'pr-9'} py-2 rounded-xl text-xs outline-none transition-all border border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/10`}
+                className={`w-full pl-8 ${searchQuery ? 'pr-8' : 'pr-3'} py-2 rounded-xl text-xs outline-none transition-all border border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/10`}
               />
-              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                {searchQuery && (
+              {searchQuery && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
@@ -391,20 +373,8 @@ export const Header: React.FC = () => {
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSearchFocused(false);
-                    setIsVoiceModalOpen(true);
-                  }}
-                  className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all cursor-pointer"
-                  title="Голосовий пошук товарів"
-                  aria-label="Голосовий пошук товарів"
-                >
-                  <Mic className="w-3.5 h-3.5" />
-                </button>
-              </div>
+                </div>
+              )}
 
               {/* Instant Search Results Dropdown on Mobile */}
               {isSearchFocused && quickSearchResults.length > 0 && (
@@ -546,21 +516,6 @@ export const Header: React.FC = () => {
       <CatalogMegaMenu 
         isOpen={isCatalogOpen} 
         onClose={() => setIsCatalogOpen(false)} 
-      />
-
-      {/* Comfy-style Voice Search Modal Window */}
-      <VoiceSearchModal
-        isOpen={isVoiceModalOpen}
-        onClose={() => setIsVoiceModalOpen(false)}
-        onSearch={(query) => {
-          setSearchQuery(query);
-          setActiveCategory('Усі');
-          setSelectedSubCategory(null);
-          setSelectedLeafTag(null);
-          setShowWishlistOnly(false);
-          if (activeView !== 'store') setActiveView('store');
-          setIsSearchFocused(false);
-        }}
       />
     </>
   );
