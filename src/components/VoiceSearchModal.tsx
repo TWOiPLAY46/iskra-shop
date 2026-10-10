@@ -1,5 +1,21 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { X, Mic, Volume2, AlertCircle, Sparkles, Search, RotateCcw, ArrowRight, Zap } from 'lucide-react';
+import {
+  X,
+  Mic,
+  MicOff,
+  Volume2,
+  AlertCircle,
+  Sparkles,
+  Search,
+  RotateCcw,
+  ArrowRight,
+  Zap,
+  Lock,
+  HelpCircle,
+  CheckCircle2,
+  ChevronRight,
+  ShieldAlert,
+} from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 
 export interface VoiceSearchModalProps {
@@ -9,6 +25,8 @@ export interface VoiceSearchModalProps {
   onSearch?: (query: string) => void;
 }
 
+type SpeechStatus = 'prompt_permission' | 'listening' | 'processing' | 'permission_denied' | 'error' | 'unsupported';
+
 export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   isOpen,
   onClose,
@@ -16,9 +34,10 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   onSearch,
 }) => {
   const { products } = useStore();
-  const [speechState, setSpeechState] = useState<'listening' | 'processing' | 'error' | 'unsupported'>('listening');
+  const [speechState, setSpeechState] = useState<SpeechStatus>('listening');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [interimText, setInterimText] = useState<string>('');
+  const [showHowToUnlock, setShowHowToUnlock] = useState<boolean>(false);
   const recognitionRef = useRef<any>(null);
   const finishTimeoutRef = useRef<any>(null);
 
@@ -43,7 +62,6 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       return curatedDefaults;
     }
 
-    // Grab popular/hit products from actual store database
     const hits = products
       .filter((p) => p.badge === 'Хіт продажу' || p.badge === 'Акція' || (p.stock && p.stock > 0))
       .slice(0, 6)
@@ -57,8 +75,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       })
       .filter((name) => name.length >= 4);
 
-    const merged = Array.from(new Set([...hits, ...curatedDefaults])).slice(0, 8);
-    return merged;
+    return Array.from(new Set([...hits, ...curatedDefaults])).slice(0, 8);
   }, [products]);
 
   // Live matching products while user speaks
@@ -89,6 +106,33 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     onClose();
   };
 
+  /**
+   * Explicitly triggers browser microphone permission prompt
+   */
+  const requestMicrophonePermissionAndStart = async () => {
+    setErrorMessage('');
+    setShowHowToUnlock(false);
+
+    // 1. Explicitly invoke navigator.mediaDevices.getUserMedia to trigger system/browser dialog prompt
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Permission granted by user! Release the temporary track immediately
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (err: any) {
+        console.warn('getUserMedia permission error:', err);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setSpeechState('permission_denied');
+          setShowHowToUnlock(true);
+          return;
+        }
+      }
+    }
+
+    // 2. Start Web Speech recognition
+    startListening();
+  };
+
   const startListening = () => {
     if (finishTimeoutRef.current) {
       clearTimeout(finishTimeoutRef.current);
@@ -101,7 +145,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     if (!SpeechRecognition) {
       setSpeechState('unsupported');
       setErrorMessage(
-        'Голосовий пошук не підтримується вашим поточним браузером. Будь ласка, скористайтеся Google Chrome, Safari, Samsung Internet або Edge.'
+        'Голосовий пошук не підтримується цим браузером. Будь ласка, відкрийте сайт у Google Chrome, Safari, Samsung Internet або Edge.'
       );
       return;
     }
@@ -154,26 +198,29 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('Voice search error:', event.error);
+        console.warn('SpeechRecognition error:', event.error);
         if (event.error === 'no-speech') {
           return;
         }
 
-        setSpeechState('error');
-        if (event.error === 'not-allowed') {
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setSpeechState('permission_denied');
+          setShowHowToUnlock(true);
           setErrorMessage(
-            'Доступ до мікрофона заблоковано в налаштуваннях браузера. Натисніть значок замочка 🔒 або налаштувань біля адреси сайту та надайте дозвіл на використання мікрофона.'
+            'Мікрофон заблоковано в налаштуваннях браузера. Надайте дозвіл для сайту, щоб користуватися швидким голосовим пошуком.'
           );
         } else if (event.error === 'network') {
-          setErrorMessage('Мережева помилка розпізнавання. Перевірте з’єднання з інтернетом.');
+          setSpeechState('error');
+          setErrorMessage('Мережева помилка під час розпізнавання. Перевірте з’єднання з інтернетом.');
         } else {
-          setErrorMessage('Не вдалося розпізнати мову. Будь ласка, повторіть голосніше та чіткіше.');
+          setSpeechState('error');
+          setErrorMessage('Не вдалося чітко розпізнати мову. Спробуйте повторити ще раз.');
         }
       };
 
       recognition.onend = () => {
         setInterimText((prev) => {
-          if (prev.trim() && speechState !== 'error') {
+          if (prev.trim() && speechState !== 'error' && speechState !== 'permission_denied') {
             setSpeechState('processing');
             if (finishTimeoutRef.current) clearTimeout(finishTimeoutRef.current);
             finishTimeoutRef.current = setTimeout(() => {
@@ -189,13 +236,13 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     } catch (err) {
       console.error('Failed to start speech recognition:', err);
       setSpeechState('error');
-      setErrorMessage('Не вдалося активувати мікрофон. Перевірте дозволи вашого браузера.');
+      setErrorMessage('Не вдалося активувати мікрофон. Натисніть кнопку розблокування або дозволу.');
     }
   };
 
   useEffect(() => {
     if (isOpen) {
-      startListening();
+      requestMicrophonePermissionAndStart();
     } else {
       if (recognitionRef.current) {
         try {
@@ -210,6 +257,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       }
       setInterimText('');
       setErrorMessage('');
+      setShowHowToUnlock(false);
     }
 
     return () => {
@@ -245,7 +293,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
@@ -271,7 +319,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         {/* Store Micro-Badge */}
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold mb-2">
           <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
-          <span>Голосовий пошук по складу ISKRA</span>
+          <span>Голосовий пошук ISKRA</span>
         </div>
 
         {/* Large Animated Microphone Circle (Exact Comfy layout & styling) */}
@@ -288,14 +336,16 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (speechState === 'listening') {
+              if (speechState === 'permission_denied') {
+                requestMicrophonePermissionAndStart();
+              } else if (speechState === 'listening') {
                 if (interimText.trim()) {
                   handleEmitResult(interimText);
                 } else {
                   startListening();
                 }
               } else {
-                startListening();
+                requestMicrophonePermissionAndStart();
               }
             }}
             className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 flex items-center justify-center transition-all duration-300 relative z-10 cursor-pointer shadow-xl ${
@@ -303,22 +353,30 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
                 ? 'border-emerald-100 bg-white shadow-emerald-500/20 hover:scale-105'
                 : speechState === 'processing'
                 ? 'border-emerald-500 bg-emerald-50 text-emerald-600 shadow-emerald-500/25 scale-105'
+                : speechState === 'permission_denied'
+                ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-amber-500/20'
+                : speechState === 'error'
+                ? 'border-rose-200 bg-rose-50 text-rose-500'
                 : 'border-slate-100 bg-slate-50 text-slate-400 hover:bg-slate-100'
             }`}
-            title="Натисніть для запуску або підтвердження"
+            title="Натисніть для запуску або запиту дозволу"
           >
-            <Mic
-              className={`w-14 h-14 sm:w-16 sm:h-16 transition-all duration-300 ${
-                speechState === 'listening'
-                  ? 'text-emerald-500 scale-105'
-                  : speechState === 'processing'
-                  ? 'text-emerald-600 animate-bounce'
-                  : speechState === 'error'
-                  ? 'text-rose-500'
-                  : 'text-slate-400'
-              }`}
-              strokeWidth={2.2}
-            />
+            {speechState === 'permission_denied' ? (
+              <MicOff className="w-14 h-14 sm:w-16 sm:h-16 text-amber-600" strokeWidth={2.2} />
+            ) : (
+              <Mic
+                className={`w-14 h-14 sm:w-16 sm:h-16 transition-all duration-300 ${
+                  speechState === 'listening'
+                    ? 'text-emerald-500 scale-105'
+                    : speechState === 'processing'
+                    ? 'text-emerald-600 animate-bounce'
+                    : speechState === 'error'
+                    ? 'text-rose-500'
+                    : 'text-slate-400'
+                }`}
+                strokeWidth={2.2}
+              />
+            )}
           </button>
         </div>
 
@@ -353,7 +411,67 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
             </>
           )}
 
-          {(speechState === 'error' || speechState === 'unsupported') && (
+          {/* PERMISSION DENIED / LOCKED STATE */}
+          {speechState === 'permission_denied' && (
+            <div className="flex flex-col items-center w-full animate-in fade-in">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-xs mb-2">
+                <Lock className="w-3.5 h-3.5" />
+                <span>Мікрофон заблоковано</span>
+              </div>
+              <h4 className="text-base font-bold text-slate-900">
+                Потрібен дозвіл на мікрофон
+              </h4>
+              <p className="mt-1 text-xs text-slate-500 max-w-xs leading-relaxed">
+                Браузер заблокував доступ до мікрофона. Натисніть кнопку нижче або розблокуйте його в рядку адреси сайту.
+              </p>
+
+              {/* Action buttons */}
+              <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={requestMicrophonePermissionAndStart}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Запросити дозвіл знову</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowHowToUnlock(!showHowToUnlock)}
+                  className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Як розблокувати?</span>
+                </button>
+              </div>
+
+              {/* Step by step unlock instruction accordion */}
+              {showHowToUnlock && (
+                <div className="mt-3.5 w-full bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3.5 text-left text-xs text-slate-700 animate-in fade-in duration-200">
+                  <div className="font-bold text-slate-900 mb-2 flex items-center gap-1.5 text-xs">
+                    <ShieldAlert className="w-4 h-4 text-amber-600" />
+                    <span>Інструкція з розблокування за 10 секунд:</span>
+                  </div>
+                  <ol className="space-y-1.5 text-[11px] list-decimal list-inside text-slate-600 leading-snug">
+                    <li>
+                      Угорі браузера біля адреси сайту натисніть на значок <strong>замочка 🔒</strong> чи повзунків налаштувань.
+                    </li>
+                    <li>
+                      Знайдіть пункт <strong>«Мікрофон»</strong> (Microphone).
+                    </li>
+                    <li>
+                      Змініть перемикач на <strong>«Дозволити»</strong> (Allow).
+                    </li>
+                    <li>
+                      Натисніть зелену кнопку <strong>«Запросити дозвіл знову»</strong>!
+                    </li>
+                  </ol>
+                </div>
+              )}
+            </div>
+          )}
+
+          {speechState === 'error' && (
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1.5 text-rose-600 font-semibold mb-1 text-sm">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -364,12 +482,24 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
               </p>
               <button
                 type="button"
-                onClick={startListening}
-                className="mt-3.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                onClick={requestMicrophonePermissionAndStart}
+                className="mt-3 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Спробувати ще раз</span>
               </button>
+            </div>
+          )}
+
+          {speechState === 'unsupported' && (
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1.5 text-slate-700 font-semibold mb-1 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0 text-slate-400" />
+                <span>Браузер не підтримує розпізнавання</span>
+              </div>
+              <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
+                {errorMessage}
+              </p>
             </div>
           )}
         </div>
