@@ -188,7 +188,10 @@ export const Header: React.FC = () => {
                   )}
                   <button
                     type="button"
-                    onClick={() => setIsVoiceModalOpen(true)}
+                    onClick={() => {
+                      setIsSearchFocused(false);
+                      setIsVoiceModalOpen(true);
+                    }}
                     className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all cursor-pointer"
                     title="Голосовий пошук товарів"
                     aria-label="Голосовий пошук товарів"
@@ -389,7 +392,10 @@ export const Header: React.FC = () => {
                 )}
                 <button
                   type="button"
-                  onClick={() => setIsVoiceModalOpen(true)}
+                  onClick={() => {
+                    setIsSearchFocused(false);
+                    setIsVoiceModalOpen(true);
+                  }}
                   className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all cursor-pointer"
                   title="Голосовий пошук товарів"
                   aria-label="Голосовий пошук товарів"
@@ -546,8 +552,9 @@ export const Header: React.FC = () => {
         onClose={() => setIsVoiceModalOpen(false)}
         onSearch={(query) => {
           setSearchQuery(query);
+          setActiveCategory('Усі');
           if (activeView !== 'store') setActiveView('store');
-          setIsSearchFocused(true);
+          setIsSearchFocused(false);
         }}
       />
     </>

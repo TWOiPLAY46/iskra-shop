@@ -10,7 +10,6 @@ import {
   Zap,
   Lock,
   Keyboard,
-  CheckCircle2,
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 
@@ -45,12 +44,10 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   const [isSoundActive, setIsSoundActive] = useState(false);
 
   const isHoldingRef = useRef(false);
-  const pressStartTimeRef = useRef<number>(0);
   const isAwaitingFinalRef = useRef(false);
   const latestTranscriptRef = useRef('');
   const recognitionRef = useRef<any>(null);
   const releaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isTapModeActiveRef = useRef(false);
 
   // Popular Ukrainian store hint chips
   const popularHints = useMemo(
@@ -84,29 +81,45 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       .slice(0, 3);
   }, [activeQuery, products]);
 
+  // Cleanly detach and terminate any active speech recognition instance
+  const cleanupRecognition = useCallback(() => {
+    if (releaseTimeoutRef.current) {
+      clearTimeout(releaseTimeoutRef.current);
+      releaseTimeoutRef.current = null;
+    }
+    if (recognitionRef.current) {
+      try {
+        const r = recognitionRef.current;
+        recognitionRef.current = null;
+        r.onstart = null;
+        r.onaudiostart = null;
+        r.onsoundstart = null;
+        r.onspeechstart = null;
+        r.onspeechend = null;
+        r.onsoundend = null;
+        r.onaudioend = null;
+        r.onresult = null;
+        r.onerror = null;
+        r.onend = null;
+        r.abort();
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, []);
+
   // Submit recognized or selected query
   const handleEmitResult = useCallback(
     (query: string) => {
       const cleanText = query.replace(/[.,!?]+$/, '').trim();
       if (!cleanText) return;
 
-      if (releaseTimeoutRef.current) {
-        clearTimeout(releaseTimeoutRef.current);
-        releaseTimeoutRef.current = null;
-      }
+      cleanupRecognition();
       isHoldingRef.current = false;
-      isTapModeActiveRef.current = false;
       isAwaitingFinalRef.current = false;
+      latestTranscriptRef.current = '';
       setIsHolding(false);
       setIsSoundActive(false);
-
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch (e) {
-          // ignore
-        }
-      }
 
       if (onTranscript) {
         onTranscript(cleanText);
@@ -116,37 +129,30 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       }
       onClose();
     },
-    [onClose, onSearch, onTranscript]
+    [cleanupRecognition, onClose, onSearch, onTranscript]
   );
 
   /**
    * Internal starter for Speech Recognition
    */
   const startRecognitionEngine = useCallback(() => {
+    cleanupRecognition();
+
     const SpeechRecognition =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       isHoldingRef.current = false;
-      isTapModeActiveRef.current = false;
       setIsHolding(false);
       setSpeechState('unsupported');
       setErrorMessage(
-        'Ваш браузер не підтримує розпізнавання голосу. Скористайтеся полем нижче.'
+        'Ваш браузер не підтримує розпізнавання голосу. Скористайтеся пошуковим рядком нижче.'
       );
       return;
     }
 
     try {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch (e) {
-          // ignore
-        }
-      }
-
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
       recognition.continuous = true;
@@ -155,35 +161,33 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       recognition.maxAlternatives = 3;
 
       recognition.onstart = () => {
-        setSpeechState('listening');
-        setErrorMessage('');
+        if (recognitionRef.current === recognition) {
+          setSpeechState('listening');
+          setErrorMessage('');
+        }
       };
 
       recognition.onaudiostart = () => {
-        setIsSoundActive(true);
+        if (recognitionRef.current === recognition) setIsSoundActive(true);
       };
-
       recognition.onsoundstart = () => {
-        setIsSoundActive(true);
+        if (recognitionRef.current === recognition) setIsSoundActive(true);
       };
-
       recognition.onspeechstart = () => {
-        setIsSoundActive(true);
+        if (recognitionRef.current === recognition) setIsSoundActive(true);
       };
-
       recognition.onspeechend = () => {
-        setIsSoundActive(false);
+        if (recognitionRef.current === recognition) setIsSoundActive(false);
       };
-
       recognition.onsoundend = () => {
-        setIsSoundActive(false);
+        if (recognitionRef.current === recognition) setIsSoundActive(false);
       };
-
       recognition.onaudioend = () => {
-        setIsSoundActive(false);
+        if (recognitionRef.current === recognition) setIsSoundActive(false);
       };
 
       recognition.onresult = (event: any) => {
+        if (recognitionRef.current !== recognition) return;
         if (!event.results) return;
         let fullTranscript = '';
         for (let i = 0; i < event.results.length; i++) {
@@ -197,7 +201,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           latestTranscriptRef.current = trimmed;
           setInterimText(trimmed);
 
-          // If the user had released button and was awaiting final transcript
+          // If the user already released button and was awaiting the final result
           if (isAwaitingFinalRef.current) {
             handleEmitResult(trimmed);
           }
@@ -205,16 +209,16 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       };
 
       recognition.onerror = (event: any) => {
+        if (recognitionRef.current !== recognition) return;
         console.warn('SpeechRecognition error:', event.error);
         setIsSoundActive(false);
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           isHoldingRef.current = false;
-          isTapModeActiveRef.current = false;
           setIsHolding(false);
           setSpeechState('permission_denied');
-          setErrorMessage('Доступ до мікрофона заблоковано або очікує дозволу. Натисніть «Разрешить» у вікні.');
+          setErrorMessage('Доступ до мікрофона заблоковано або очікує дозволу. Натисніть «Разрешить» у спливаючому вікні.');
         } else if (event.error === 'no-speech') {
-          // Keep waiting
+          // Keep waiting while held
         } else if (event.error === 'aborted') {
           // Normal abort
         } else {
@@ -223,9 +227,11 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       };
 
       recognition.onend = () => {
+        if (recognitionRef.current !== recognition) return;
         setIsSoundActive(false);
-        // If user is still holding or in continuous tap mode, keep listening
-        if (isHoldingRef.current || isTapModeActiveRef.current) {
+
+        // If user is still holding, restart to continue listening seamlessly
+        if (isHoldingRef.current) {
           try {
             recognition.start();
           } catch (e) {
@@ -237,7 +243,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
             handleEmitResult(candidate);
           } else {
             setSpeechState('idle');
-            setErrorMessage('Нічого не почуто. Затисніть кнопку, чітко скажіть (наприклад «кабель») і відпустіть.');
+            setErrorMessage('Нічого не почуто. Затисніть кнопку, скажіть товар (наприклад «кабель») і відпустіть.');
           }
           isAwaitingFinalRef.current = false;
         }
@@ -246,18 +252,52 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       recognition.start();
     } catch (err: any) {
       console.warn('Recognition start exception:', err);
-      isHoldingRef.current = false;
-      isTapModeActiveRef.current = false;
-      setIsHolding(false);
-      setIsSoundActive(false);
-      if (err.name === 'NotAllowedError') {
-        setSpeechState('permission_denied');
-      } else {
-        setSpeechState('error');
-        setErrorMessage('Не вдалося запустити мікрофон. Надайте дозвіл або введіть запит нижче.');
-      }
+      // If browser was busy stopping prior instance, retry after 150ms
+      setTimeout(() => {
+        if (isHoldingRef.current) {
+          try {
+            const retryRec = new SpeechRecognition();
+            recognitionRef.current = retryRec;
+            retryRec.continuous = true;
+            retryRec.interimResults = true;
+            retryRec.lang = 'uk-UA';
+            retryRec.onstart = () => {
+              if (recognitionRef.current === retryRec) setSpeechState('listening');
+            };
+            retryRec.onresult = (e: any) => {
+              if (recognitionRef.current !== retryRec) return;
+              let full = '';
+              for (let i = 0; i < e.results.length; i++) {
+                if (e.results[i] && e.results[i][0]) full += e.results[i][0].transcript + ' ';
+              }
+              const t = full.trim();
+              if (t) {
+                latestTranscriptRef.current = t;
+                setInterimText(t);
+                if (isAwaitingFinalRef.current) handleEmitResult(t);
+              }
+            };
+            retryRec.onerror = (e: any) => {
+              if (recognitionRef.current !== retryRec) return;
+              if (e.error === 'not-allowed') setSpeechState('permission_denied');
+            };
+            retryRec.onend = () => {
+              if (recognitionRef.current !== retryRec) return;
+              if (isAwaitingFinalRef.current) {
+                const cand = (latestTranscriptRef.current || interimText).trim();
+                if (cand) handleEmitResult(cand);
+                else setSpeechState('idle');
+                isAwaitingFinalRef.current = false;
+              }
+            };
+            retryRec.start();
+          } catch (e2) {
+            console.warn('Retry start failed:', e2);
+          }
+        }
+      }, 150);
     }
-  }, [handleEmitResult, interimText]);
+  }, [cleanupRecognition, handleEmitResult, interimText]);
 
   /**
    * PUSH-TO-TALK / TOUCH START
@@ -268,12 +308,11 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       releaseTimeoutRef.current = null;
     }
 
-    pressStartTimeRef.current = Date.now();
     isHoldingRef.current = true;
     isAwaitingFinalRef.current = false;
+    latestTranscriptRef.current = '';
     setIsHolding(true);
     setSpeechState('listening');
-    latestTranscriptRef.current = '';
     setInterimText('');
     setErrorMessage('');
 
@@ -284,23 +323,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
    * PUSH-TO-TALK / TOUCH END
    */
   const handlePressEnd = useCallback(() => {
-    const pressDuration = Date.now() - pressStartTimeRef.current;
-
-    // Check if user did a quick tap (< 250ms) instead of holding
-    if (pressDuration < 250 && !isTapModeActiveRef.current && speechState === 'listening') {
-      // Toggle into Tap-to-Talk mode so user doesn't lose speech on quick tap
-      isTapModeActiveRef.current = true;
-      setIsHolding(false);
-      isHoldingRef.current = false;
-      return;
-    }
-
-    // If it was already in Tap-to-Talk mode and tapped again: stop and submit
-    if (isTapModeActiveRef.current) {
-      isTapModeActiveRef.current = false;
-    }
-
-    if (!isHoldingRef.current && !isTapModeActiveRef.current) return;
+    if (!isHoldingRef.current) return;
 
     isHoldingRef.current = false;
     setIsHolding(false);
@@ -308,7 +331,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
 
     const currentText = (latestTranscriptRef.current || interimText).trim();
 
-    // Signal engine to stop capturing more speech
+    // Signal recognition engine to finish processing audio
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -318,12 +341,11 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     }
 
     if (currentText) {
+      // We already have recognized speech: submit immediately!
       setSpeechState('processing');
-      releaseTimeoutRef.current = setTimeout(() => {
-        handleEmitResult(currentText);
-      }, 250);
+      handleEmitResult(currentText);
     } else {
-      // Give engine a moment (600ms) to deliver speech buffered right before release
+      // Buffer delay: allow engine up to 500ms to deliver final recognized words
       setSpeechState('processing');
       isAwaitingFinalRef.current = true;
 
@@ -335,53 +357,30 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
             handleEmitResult(candidate);
           } else {
             setSpeechState('idle');
-            setErrorMessage('Нічого не почуто. Затисніть кнопку, скажіть товар (наприклад «кабель») і відпустіть.');
+            setErrorMessage('Нічого не почуто. Затисніть кнопку, чітко скажіть (наприклад «кабель») і відпустіть.');
           }
         }
-      }, 650);
+      }, 550);
     }
-  }, [handleEmitResult, interimText, speechState]);
+  }, [handleEmitResult, interimText]);
 
-  // Clean up on modal close
+  // Clean state whenever modal opens or closes
   useEffect(() => {
-    if (!isOpen) {
-      isHoldingRef.current = false;
-      isTapModeActiveRef.current = false;
-      isAwaitingFinalRef.current = false;
-      setIsHolding(false);
-      setIsSoundActive(false);
-      if (releaseTimeoutRef.current) {
-        clearTimeout(releaseTimeoutRef.current);
-        releaseTimeoutRef.current = null;
-      }
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch (e) {
-          // ignore
-        }
-      }
-      setSpeechState('idle');
-      setInterimText('');
-      setManualText('');
-      setErrorMessage('');
-    }
+    cleanupRecognition();
+    isHoldingRef.current = false;
+    isAwaitingFinalRef.current = false;
+    latestTranscriptRef.current = '';
+    setIsHolding(false);
+    setIsSoundActive(false);
+    setSpeechState('idle');
+    setInterimText('');
+    setManualText('');
+    setErrorMessage('');
+
     return () => {
-      isHoldingRef.current = false;
-      isTapModeActiveRef.current = false;
-      isAwaitingFinalRef.current = false;
-      if (releaseTimeoutRef.current) {
-        clearTimeout(releaseTimeoutRef.current);
-      }
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch (e) {
-          // ignore
-        }
-      }
+      cleanupRecognition();
     };
-  }, [isOpen]);
+  }, [isOpen, cleanupRecognition]);
 
   // Global safety release
   useEffect(() => {
@@ -454,7 +453,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isRecording = isHolding || isTapModeActiveRef.current || speechState === 'listening';
+  const isRecording = isHolding || speechState === 'listening';
 
   return (
     <div
@@ -557,7 +556,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
                   ? 'border-emerald-500 bg-emerald-50 text-emerald-600 shadow-emerald-500/25 scale-105'
                   : speechState === 'permission_denied'
                   ? 'border-amber-300 bg-amber-50 text-amber-600 shadow-amber-500/20'
-                  : 'border-emerald-200 bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-600/30 hover:scale-105'
+                  : 'border-emerald-200 bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-600/30 hover:scale-105 active:scale-95'
               }`}
               title="Затисніть для запису, відпустіть для пошуку"
             >
@@ -643,7 +642,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
                 <button
                   type="button"
                   onClick={handlePressStart}
-                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-sm transition-all"
+                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer"
                 >
                   Спробувати ще раз
                 </button>
