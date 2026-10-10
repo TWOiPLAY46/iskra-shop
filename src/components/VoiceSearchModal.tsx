@@ -12,20 +12,32 @@ import {
   Zap,
   Lock,
   HelpCircle,
-  CheckCircle2,
-  ChevronRight,
   ShieldAlert,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 
-export interface VoiceSearchModalProps {
+interface VoiceSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTranscript?: (query: string) => void;
+  onTranscript?: (transcript: string) => void;
   onSearch?: (query: string) => void;
 }
 
-type SpeechStatus = 'prompt_permission' | 'listening' | 'processing' | 'permission_denied' | 'error' | 'unsupported';
+// Fallback/standard speech recognition types
+interface SpeechRecognitionResultItem {
+  transcript: string;
+}
+
+interface SpeechRecognitionResultList {
+  [index: number]: SpeechRecognitionResultItem[];
+  length: number;
+}
+
+interface SpeechRecognitionEventLike {
+  results: SpeechRecognitionResultList;
+}
 
 export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   isOpen,
@@ -34,54 +46,32 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   onSearch,
 }) => {
   const { products } = useStore();
-  const [speechState, setSpeechState] = useState<SpeechStatus>('listening');
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [interimText, setInterimText] = useState<string>('');
-  const [showHowToUnlock, setShowHowToUnlock] = useState<boolean>(false);
+  const [speechState, setSpeechState] = useState<
+    'idle' | 'listening' | 'processing' | 'permission_denied' | 'error' | 'unsupported'
+  >('idle');
+  const [interimText, setInterimText] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showHowToUnlock, setShowHowToUnlock] = useState(false);
+
   const recognitionRef = useRef<any>(null);
-  const finishTimeoutRef = useRef<any>(null);
+  const finishTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Dynamic curated hints tailored specifically to the store's inventory (electrical & plumbing)
-  const popularHints = useMemo(() => {
-    const curatedDefaults = [
-      'Кабель ВВГнг',
-      'Змішувач для кухні',
-      'Бойлер 80 л',
-      'Шуруповерт 18В',
-      'Радіатор біметалевий',
-      'Реле напруги Зубр',
-      'Клемники WAGO',
-      'Автоматичний вимикач',
-      'Лампа LED',
-      'Фільтр для води',
-      'Труба поліпропіленова',
-      'Зварювальний інвертор',
-    ];
+  // High relevance quick search suggestions from the store catalog
+  const popularHints = useMemo(() => [
+    'Кабель ВВГнг',
+    'Автоматичний вимикач',
+    'Змішувач для кухні',
+    'Болгарка DeWalt',
+    'Реле напруги ZUBR',
+    'Клема WAGO',
+    'Перфоратор',
+    'Труба паяльна',
+  ], []);
 
-    if (!products || products.length === 0) {
-      return curatedDefaults;
-    }
-
-    const hits = products
-      .filter((p) => p.badge === 'Хіт продажу' || p.badge === 'Акція' || (p.stock && p.stock > 0))
-      .slice(0, 6)
-      .map((p) => {
-        const shortName = p.name
-          .replace(/\(.*?\)/g, '')
-          .replace(/\[.*?\]/g, '')
-          .split(',')[0]
-          .trim();
-        return shortName.length > 25 ? shortName.slice(0, 25).trim() : shortName;
-      })
-      .filter((name) => name.length >= 4);
-
-    return Array.from(new Set([...hits, ...curatedDefaults])).slice(0, 8);
-  }, [products]);
-
-  // Live matching products while user speaks
+  // Instant matches from actual store catalog based on current spoken phrase
   const matchedProducts = useMemo(() => {
-    const q = interimText.trim().toLowerCase();
-    if (!q || q.length < 2 || !products) return [];
+    if (!interimText || interimText.trim().length < 2) return [];
+    const q = interimText.toLowerCase().trim();
     return products
       .filter((p) => {
         return (
@@ -96,7 +86,6 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   const handleEmitResult = (query: string) => {
     const cleanText = query.replace(/[.,!?]+$/, '').trim();
     if (!cleanText) return;
-
     if (onTranscript) {
       onTranscript(cleanText);
     }
@@ -123,7 +112,6 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         console.warn('getUserMedia permission error:', err);
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           setSpeechState('permission_denied');
-          setShowHowToUnlock(true);
           return;
         }
       }
@@ -134,114 +122,104 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   };
 
   const startListening = () => {
-    if (finishTimeoutRef.current) {
-      clearTimeout(finishTimeoutRef.current);
-      finishTimeoutRef.current = null;
-    }
-
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       setSpeechState('unsupported');
       setErrorMessage(
-        'Голосовий пошук не підтримується цим браузером. Будь ласка, відкрийте сайт у Google Chrome, Safari, Samsung Internet або Edge.'
+        'Ваш браузер не підтримує розпізнавання мови. Спробуйте Google Chrome, Microsoft Edge або Safari.'
       );
       return;
     }
-
-    setSpeechState('listening');
-    setErrorMessage('');
-    setInterimText('');
 
     try {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
         } catch (e) {
-          // ignore
+          // ignore abort error
         }
       }
 
       const recognition = new SpeechRecognition();
-      recognition.lang = 'uk-UA';
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
+      recognitionRef.current = recognition;
+
       recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'uk-UA'; // Native Ukrainian recognition
+      recognition.maxAlternatives = 1;
+
+      setInterimText('');
+      setErrorMessage('');
+      setSpeechState('listening');
 
       recognition.onstart = () => {
         setSpeechState('listening');
-        setErrorMessage('');
       };
 
-      recognition.onresult = (event: any) => {
-        let transcript = '';
-        let isFinal = false;
+      recognition.onresult = (event: SpeechRecognitionEventLike) => {
+        if (!event.results || event.results.length === 0) return;
+        const currentResult = event.results[0];
+        if (currentResult && currentResult[0]) {
+          const transcript = currentResult[0].transcript;
+          setInterimText(transcript);
 
-        for (let i = 0; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            isFinal = true;
+          // Reset speech auto-complete timeout
+          if (finishTimeoutRef.current) {
+            clearTimeout(finishTimeoutRef.current);
           }
-        }
-
-        const trimmed = transcript.trim();
-        setInterimText(trimmed);
-
-        if (isFinal && trimmed) {
-          setSpeechState('processing');
-          if (finishTimeoutRef.current) clearTimeout(finishTimeoutRef.current);
           finishTimeoutRef.current = setTimeout(() => {
-            handleEmitResult(trimmed);
-          }, 450);
+            if (transcript.trim().length > 0) {
+              setSpeechState('processing');
+              setTimeout(() => {
+                handleEmitResult(transcript);
+              }, 400);
+            }
+          }, 1400);
         }
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('SpeechRecognition error:', event.error);
-        if (event.error === 'no-speech') {
-          return;
-        }
-
+        console.warn('Speech recognition error event:', event.error);
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           setSpeechState('permission_denied');
-          setShowHowToUnlock(true);
-          setErrorMessage(
-            'Мікрофон заблоковано в налаштуваннях браузера. Надайте дозвіл для сайту, щоб користуватися швидким голосовим пошуком.'
-          );
-        } else if (event.error === 'network') {
-          setSpeechState('error');
-          setErrorMessage('Мережева помилка під час розпізнавання. Перевірте з’єднання з інтернетом.');
+          setErrorMessage('Доступ до мікрофона заблоковано в браузері.');
+        } else if (event.error === 'no-speech') {
+          setSpeechState('idle');
+          setErrorMessage('Нічого не почуто. Натисніть на мікрофон і скажіть ще раз.');
+        } else if (event.error === 'aborted') {
+          setSpeechState('idle');
         } else {
           setSpeechState('error');
-          setErrorMessage('Не вдалося чітко розпізнати мову. Спробуйте повторити ще раз.');
+          setErrorMessage('Не вдалося розпізнати. Перевірте зʼєднання або мікрофон.');
         }
       };
 
       recognition.onend = () => {
-        setInterimText((prev) => {
-          if (prev.trim() && speechState !== 'error' && speechState !== 'permission_denied') {
-            setSpeechState('processing');
-            if (finishTimeoutRef.current) clearTimeout(finishTimeoutRef.current);
-            finishTimeoutRef.current = setTimeout(() => {
-              handleEmitResult(prev.trim());
-            }, 500);
-          }
-          return prev;
-        });
+        if (finishTimeoutRef.current) {
+          clearTimeout(finishTimeoutRef.current);
+        }
       };
 
-      recognitionRef.current = recognition;
       recognition.start();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to start speech recognition:', err);
-      setSpeechState('error');
-      setErrorMessage('Не вдалося активувати мікрофон. Натисніть кнопку розблокування або дозволу.');
+      if (err.name === 'NotAllowedError') {
+        setSpeechState('permission_denied');
+      } else {
+        setSpeechState('error');
+        setErrorMessage('Не вдалося запустити мікрофон.');
+      }
     }
   };
 
   useEffect(() => {
     if (isOpen) {
+      setInterimText('');
+      setErrorMessage('');
+      setShowHowToUnlock(false);
       requestMicrophonePermissionAndStart();
     } else {
       if (recognitionRef.current) {
@@ -250,14 +228,12 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         } catch (e) {
           // ignore
         }
-        recognitionRef.current = null;
       }
       if (finishTimeoutRef.current) {
         clearTimeout(finishTimeoutRef.current);
       }
+      setSpeechState('idle');
       setInterimText('');
-      setErrorMessage('');
-      setShowHowToUnlock(false);
     }
 
     return () => {
@@ -293,283 +269,302 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-sm sm:max-w-md bg-white rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col items-center text-center animate-in zoom-in-95 duration-200 border border-slate-100 overflow-hidden"
+        className="relative w-full max-w-sm sm:max-w-md max-h-[92vh] flex flex-col bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label="Голосовий пошук товарів"
       >
         {/* Subtle Decorative Background Glow */}
-        <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-20 -left-20 w-44 h-44 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -right-20 w-44 h-44 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 sm:top-5 sm:right-5 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer z-10"
-          aria-label="Закрити"
-        >
-          <X className="w-5 h-5 sm:w-6 sm:h-6" />
-        </button>
-
-        {/* Store Micro-Badge */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold mb-2">
-          <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
-          <span>Голосовий пошук ISKRA</span>
-        </div>
-
-        {/* Large Animated Microphone Circle (Exact Comfy layout & styling) */}
-        <div className="my-5 relative flex items-center justify-center">
-          {/* Ripple rings while listening */}
-          {speechState === 'listening' && (
-            <>
-              <div className="absolute w-36 h-36 rounded-full bg-emerald-400/25 animate-ping opacity-75" />
-              <div className="absolute w-44 h-44 rounded-full bg-emerald-400/15 animate-pulse" />
-              <div className="absolute w-52 h-52 rounded-full bg-emerald-400/10 animate-pulse duration-1000" />
-            </>
-          )}
+        {/* Compact Header */}
+        <div className="relative shrink-0 pt-4 px-5 pb-1 flex items-center justify-between border-b border-slate-100/80 bg-white/80 backdrop-blur-sm z-10">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold">
+            <Zap className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />
+            <span>Голосовий пошук ISKRA</span>
+          </div>
 
           <button
-            type="button"
-            onClick={() => {
-              if (speechState === 'permission_denied') {
-                requestMicrophonePermissionAndStart();
-              } else if (speechState === 'listening') {
-                if (interimText.trim()) {
-                  handleEmitResult(interimText);
-                } else {
-                  startListening();
-                }
-              } else {
-                requestMicrophonePermissionAndStart();
-              }
-            }}
-            className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 flex items-center justify-center transition-all duration-300 relative z-10 cursor-pointer shadow-xl ${
-              speechState === 'listening'
-                ? 'border-emerald-100 bg-white shadow-emerald-500/20 hover:scale-105'
-                : speechState === 'processing'
-                ? 'border-emerald-500 bg-emerald-50 text-emerald-600 shadow-emerald-500/25 scale-105'
-                : speechState === 'permission_denied'
-                ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-amber-500/20'
-                : speechState === 'error'
-                ? 'border-rose-200 bg-rose-50 text-rose-500'
-                : 'border-slate-100 bg-slate-50 text-slate-400 hover:bg-slate-100'
-            }`}
-            title="Натисніть для запуску або запиту дозволу"
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+            aria-label="Закрити"
           >
-            {speechState === 'permission_denied' ? (
-              <MicOff className="w-14 h-14 sm:w-16 sm:h-16 text-amber-600" strokeWidth={2.2} />
-            ) : (
-              <Mic
-                className={`w-14 h-14 sm:w-16 sm:h-16 transition-all duration-300 ${
-                  speechState === 'listening'
-                    ? 'text-emerald-500 scale-105'
-                    : speechState === 'processing'
-                    ? 'text-emerald-600 animate-bounce'
-                    : speechState === 'error'
-                    ? 'text-rose-500'
-                    : 'text-slate-400'
-                }`}
-                strokeWidth={2.2}
-              />
-            )}
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Status / Title Text */}
-        <div className="min-h-[70px] flex flex-col items-center justify-center mb-3 px-2 w-full">
-          {speechState === 'listening' && (
-            <>
-              <h3 className="text-2xl sm:text-3xl font-medium text-slate-900 tracking-tight">
-                Говоріть
-              </h3>
-              {interimText ? (
-                <p className="mt-2 text-base font-bold text-emerald-600 break-words max-w-xs animate-in fade-in">
-                  «{interimText}»
-                </p>
+        {/* Scrollable Body Content */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col items-center text-center">
+          {/* Animated Microphone Circle Button */}
+          <div className="my-2 sm:my-3 relative flex items-center justify-center shrink-0">
+            {/* Ripple rings while listening */}
+            {speechState === 'listening' && (
+              <>
+                <div className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-emerald-400/25 animate-ping opacity-75" />
+                <div className="absolute w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-emerald-400/15 animate-pulse" />
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (speechState === 'permission_denied') {
+                  requestMicrophonePermissionAndStart();
+                } else if (speechState === 'listening') {
+                  if (interimText.trim()) {
+                    handleEmitResult(interimText);
+                  } else {
+                    startListening();
+                  }
+                } else {
+                  requestMicrophonePermissionAndStart();
+                }
+              }}
+              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 flex items-center justify-center transition-all duration-300 relative z-10 cursor-pointer shadow-lg ${
+                speechState === 'listening'
+                  ? 'border-emerald-100 bg-white shadow-emerald-500/25 hover:scale-105 ring-4 ring-emerald-500/20'
+                  : speechState === 'processing'
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-600 shadow-emerald-500/25 scale-105'
+                  : speechState === 'permission_denied'
+                  ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-amber-500/20'
+                  : speechState === 'error'
+                  ? 'border-rose-200 bg-rose-50 text-rose-500'
+                  : 'border-slate-100 bg-slate-50 text-slate-400 hover:bg-slate-100'
+              }`}
+              title="Натисніть для запуску або запиту дозволу"
+            >
+              {speechState === 'permission_denied' ? (
+                <MicOff className="w-10 h-10 sm:w-11 sm:h-11 text-amber-600" strokeWidth={2.2} />
               ) : (
-                <p className="mt-2 text-xs sm:text-sm text-slate-400">
-                  Назвіть електротовар, сантехніку або інструмент...
-                </p>
+                <Mic
+                  className={`w-10 h-10 sm:w-11 sm:h-11 transition-all duration-300 ${
+                    speechState === 'listening'
+                      ? 'text-emerald-500 scale-105'
+                      : speechState === 'processing'
+                      ? 'text-emerald-600 animate-bounce'
+                      : speechState === 'error'
+                      ? 'text-rose-500'
+                      : 'text-slate-400'
+                  }`}
+                  strokeWidth={2.2}
+                />
               )}
-            </>
-          )}
+            </button>
+          </div>
 
-          {speechState === 'processing' && (
-            <>
-              <h3 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                <span>Шукаємо...</span>
-                <Sparkles className="w-5 h-5 text-amber-500 animate-spin" />
-              </h3>
-              <p className="mt-2 text-sm text-emerald-600 font-semibold break-words max-w-xs">
-                «{interimText}»
-              </p>
-            </>
-          )}
+          {/* Status & Title Text */}
+          <div className="w-full flex flex-col items-center justify-center mb-3">
+            {speechState === 'listening' && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-sm sm:text-base font-bold text-slate-900">
+                    Говоріть, ми слухаємо...
+                  </span>
+                </div>
 
-          {/* PERMISSION DENIED / LOCKED STATE */}
-          {speechState === 'permission_denied' && (
-            <div className="flex flex-col items-center w-full animate-in fade-in">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-xs mb-2">
-                <Lock className="w-3.5 h-3.5" />
-                <span>Мікрофон заблоковано</span>
+                {interimText ? (
+                  <p className="text-base sm:text-lg font-bold text-emerald-600 break-words px-3 py-1 bg-emerald-50/80 rounded-xl border border-emerald-200/50 mt-1">
+                    «{interimText}»
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-400">
+                    Назвіть товар (наприклад, «кабель», «змішувач», «реле»)
+                  </p>
+                )}
               </div>
-              <h4 className="text-base font-bold text-slate-900">
-                Потрібен дозвіл на мікрофон
-              </h4>
-              <p className="mt-1 text-xs text-slate-500 max-w-xs leading-relaxed">
-                Браузер заблокував доступ до мікрофона. Натисніть кнопку нижче або розблокуйте його в рядку адреси сайту.
-              </p>
+            )}
 
-              {/* Action buttons */}
-              <div className="mt-3 flex flex-wrap gap-2 justify-center">
+            {speechState === 'processing' && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-center gap-1.5 text-emerald-600 font-bold text-sm sm:text-base">
+                  <Sparkles className="w-4 h-4 animate-spin text-emerald-500" />
+                  <span>Шукаємо «{interimText}»...</span>
+                </div>
+              </div>
+            )}
+
+            {speechState === 'idle' && (
+              <div className="space-y-1">
+                <h3 className="text-sm sm:text-base font-bold text-slate-800">
+                  Натисніть на мікрофон
+                </h3>
+                <p className="text-xs text-slate-500 max-w-xs">
+                  {errorMessage || 'Скажіть назву будь-якого товару з каталогу'}
+                </p>
+              </div>
+            )}
+
+            {speechState === 'permission_denied' && (
+              <div className="w-full flex flex-col items-center">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-semibold mb-1">
+                  <Lock className="w-3 h-3" />
+                  <span>Мікрофон заблоковано</span>
+                </div>
+                <h4 className="text-sm font-bold text-slate-900">
+                  Потрібен дозвіл на мікрофон
+                </h4>
+                <p className="mt-0.5 text-xs text-slate-500 max-w-xs leading-relaxed">
+                  Браузер не має доступу. Натисніть кнопку або дозвольте в адресному рядку.
+                </p>
+
+                {/* Compact Action buttons */}
+                <div className="mt-2.5 flex flex-wrap gap-2 justify-center">
+                  <button
+                    type="button"
+                    onClick={requestMicrophonePermissionAndStart}
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Запросити дозвіл знову</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowHowToUnlock(!showHowToUnlock)}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Як увімкнути?</span>
+                    {showHowToUnlock ? (
+                      <ChevronUp className="w-3 h-3 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-3 h-3 text-slate-400" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Step by step unlock instruction accordion */}
+                {showHowToUnlock && (
+                  <div className="mt-2.5 w-full bg-amber-50/80 border border-amber-200/90 rounded-2xl p-3 text-left text-xs text-slate-700 animate-in fade-in duration-200">
+                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 text-xs">
+                      <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>Як розблокувати за 3 кроки:</span>
+                    </div>
+                    <ol className="space-y-1 text-[11px] list-decimal list-inside text-slate-600 leading-snug">
+                      <li>
+                        Угорі біля адреси сайту натисніть на значок <strong>замочка 🔒</strong> чи налаштувань.
+                      </li>
+                      <li>
+                        Знайдіть <strong>«Мікрофон»</strong> (Microphone) і виберіть <strong>«Дозволити»</strong>.
+                      </li>
+                      <li>
+                        Натисніть зелену кнопку <strong>«Запросити дозвіл знову»</strong>!
+                      </li>
+                    </ol>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {speechState === 'error' && (
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-1.5 text-rose-600 font-semibold mb-0.5 text-xs sm:text-sm">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Помилка голосового пошуку</span>
+                </div>
+                <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
+                  {errorMessage || 'Не вдалося розпізнати. Спробуйте ще раз.'}
+                </p>
                 <button
                   type="button"
                   onClick={requestMicrophonePermissionAndStart}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="mt-2.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Запросити дозвіл знову</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowHowToUnlock(!showHowToUnlock)}
-                  className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                >
-                  <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Як розблокувати?</span>
+                  <span>Спробувати ще раз</span>
                 </button>
               </div>
+            )}
 
-              {/* Step by step unlock instruction accordion */}
-              {showHowToUnlock && (
-                <div className="mt-3.5 w-full bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3.5 text-left text-xs text-slate-700 animate-in fade-in duration-200">
-                  <div className="font-bold text-slate-900 mb-2 flex items-center gap-1.5 text-xs">
-                    <ShieldAlert className="w-4 h-4 text-amber-600" />
-                    <span>Інструкція з розблокування за 10 секунд:</span>
-                  </div>
-                  <ol className="space-y-1.5 text-[11px] list-decimal list-inside text-slate-600 leading-snug">
-                    <li>
-                      Угорі браузера біля адреси сайту натисніть на значок <strong>замочка 🔒</strong> чи повзунків налаштувань.
-                    </li>
-                    <li>
-                      Знайдіть пункт <strong>«Мікрофон»</strong> (Microphone).
-                    </li>
-                    <li>
-                      Змініть перемикач на <strong>«Дозволити»</strong> (Allow).
-                    </li>
-                    <li>
-                      Натисніть зелену кнопку <strong>«Запросити дозвіл знову»</strong>!
-                    </li>
-                  </ol>
+            {speechState === 'unsupported' && (
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-1.5 text-slate-700 font-semibold mb-0.5 text-xs sm:text-sm">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                  <span>Браузер не підтримує розпізнавання</span>
                 </div>
-              )}
-            </div>
-          )}
-
-          {speechState === 'error' && (
-            <div className="flex flex-col items-center">
-              <div className="flex items-center gap-1.5 text-rose-600 font-semibold mb-1 text-sm">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>Помилка голосового пошуку</span>
+                <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
+                  {errorMessage}
+                </p>
               </div>
-              <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
-                {errorMessage || 'Не вдалося розпізнати. Спробуйте ще раз.'}
-              </p>
-              <button
-                type="button"
-                onClick={requestMicrophonePermissionAndStart}
-                className="mt-3 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Спробувати ще раз</span>
-              </button>
-            </div>
-          )}
+            )}
+          </div>
 
-          {speechState === 'unsupported' && (
-            <div className="flex flex-col items-center">
-              <div className="flex items-center gap-1.5 text-slate-700 font-semibold mb-1 text-sm">
-                <AlertCircle className="w-4 h-4 shrink-0 text-slate-400" />
-                <span>Браузер не підтримує розпізнавання</span>
+          {/* Instant Matches Preview (if speaking recognized a matching product in real time) */}
+          {matchedProducts.length > 0 && speechState === 'listening' && (
+            <div className="w-full mb-3 text-left bg-slate-50 rounded-2xl p-2.5 border border-slate-100 animate-in fade-in">
+              <div className="text-[10px] uppercase font-bold text-slate-400 px-1 mb-1 tracking-wider">
+                Знайдено в каталозі:
               </div>
-              <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
-                {errorMessage}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Instant Matches Preview (if speaking recognized a matching product in real time) */}
-        {matchedProducts.length > 0 && speechState === 'listening' && (
-          <div className="w-full mb-3 text-left bg-slate-50 rounded-2xl p-2.5 border border-slate-100 animate-in fade-in">
-            <div className="text-[10px] uppercase font-bold text-slate-400 px-1 mb-1 tracking-wider">
-              Знайдено серед товарів:
-            </div>
-            <div className="space-y-1">
-              {matchedProducts.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => handleEmitResult(p.name)}
-                  className="w-full text-left flex items-center justify-between p-1.5 hover:bg-white rounded-lg transition-colors group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <img
-                      src={p.image}
-                      alt=""
-                      className="w-6 h-6 object-cover rounded shrink-0 border border-slate-200"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                    <span className="text-xs text-slate-800 font-medium truncate group-hover:text-emerald-600">
-                      {p.name}
+              <div className="space-y-1">
+                {matchedProducts.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleEmitResult(p.name)}
+                    className="w-full text-left flex items-center justify-between p-1.5 hover:bg-white rounded-lg transition-colors group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <img
+                        src={p.image}
+                        alt=""
+                        className="w-6 h-6 object-cover rounded shrink-0 border border-slate-200"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                      <span className="text-xs text-slate-800 font-medium truncate group-hover:text-emerald-600">
+                        {p.name}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-slate-900 shrink-0 ml-2">
+                      {p.price} ₴
                     </span>
-                  </div>
-                  <span className="text-xs font-bold text-slate-900 shrink-0 ml-2">
-                    {p.price} ₴
-                  </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Action Button: Search Recognized Text Now */}
+          {speechState === 'listening' && interimText && (
+            <button
+              type="button"
+              onClick={() => handleEmitResult(interimText)}
+              className="mb-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/25 transition-all cursor-pointer active:scale-95"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span>Знайти «{interimText}»</span>
+              <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+            </button>
+          )}
+
+          {/* Popular Hints / Examples at bottom - Tailored to Store's Actual Goods */}
+          <div className="mt-auto pt-3 border-t border-slate-100 w-full text-center">
+            <div className="flex items-center justify-center gap-1.5 text-slate-400 text-xs mb-1.5 font-medium">
+              <Volume2 className="w-3.5 h-3.5 text-slate-400" />
+              <span>Наприклад:</span>
+            </div>
+            <div className="flex flex-wrap justify-center gap-1.5 max-h-24 overflow-y-auto pr-0.5">
+              {popularHints.map((hint, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleEmitResult(hint)}
+                  className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer border border-transparent hover:border-emerald-200 active:scale-95"
+                >
+                  {hint}
                 </button>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Action Button: Search Recognized Text Now */}
-        {speechState === 'listening' && interimText && (
-          <button
-            type="button"
-            onClick={() => handleEmitResult(interimText)}
-            className="mb-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/25 transition-all cursor-pointer active:scale-95"
-          >
-            <Search className="w-3.5 h-3.5" />
-            <span>Знайти «{interimText}»</span>
-            <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
-          </button>
-        )}
-
-        {/* Comfy-like Hints / Examples at bottom - Tailored to Store's Actual Goods */}
-        <div className="mt-1 pt-3.5 border-t border-slate-100 w-full text-center">
-          <div className="flex items-center justify-center gap-1.5 text-slate-400 text-xs mb-2 font-medium">
-            <Volume2 className="w-3.5 h-3.5 text-slate-400" />
-            <span>Наприклад:</span>
-          </div>
-          <div className="flex flex-wrap justify-center gap-1.5 max-h-28 overflow-y-auto">
-            {popularHints.map((hint, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleEmitResult(hint)}
-                className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer border border-transparent hover:border-emerald-200 active:scale-95"
-              >
-                {hint}
-              </button>
-            ))}
           </div>
         </div>
       </div>
