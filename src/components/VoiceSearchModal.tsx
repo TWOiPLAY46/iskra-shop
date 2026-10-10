@@ -4,14 +4,13 @@ import {
   Mic,
   MicOff,
   Volume2,
-  AlertCircle,
   Sparkles,
   Search,
-  RotateCcw,
   ArrowRight,
   Zap,
   Lock,
   Keyboard,
+  CheckCircle2,
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 
@@ -24,7 +23,7 @@ interface VoiceSearchModalProps {
 
 type SpeechState =
   | 'idle'
-  | 'holding'
+  | 'listening'
   | 'processing'
   | 'permission_denied'
   | 'unsupported'
@@ -42,20 +41,18 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   const [interimText, setInterimText] = useState('');
   const [manualText, setManualText] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [volumeMeter, setVolumeMeter] = useState<number>(0);
   const [isHolding, setIsHolding] = useState(false);
+  const [isSoundActive, setIsSoundActive] = useState(false);
 
   const isHoldingRef = useRef(false);
+  const pressStartTimeRef = useRef<number>(0);
   const isAwaitingFinalRef = useRef(false);
   const latestTranscriptRef = useRef('');
   const recognitionRef = useRef<any>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const animFrameRef = useRef<number | null>(null);
   const releaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTapModeActiveRef = useRef(false);
 
-  // Popular quick hints for Ukrainian store
+  // Popular Ukrainian store hint chips
   const popularHints = useMemo(
     () => [
       'Кабель ВВГнг',
@@ -87,67 +84,6 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       .slice(0, 3);
   }, [activeQuery, products]);
 
-  // Cleanup audio analyser
-  const stopAudioAnalyser = useCallback(() => {
-    if (animFrameRef.current) {
-      cancelAnimationFrame(animFrameRef.current);
-      animFrameRef.current = null;
-    }
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-    }
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      try {
-        audioContextRef.current.close();
-      } catch (e) {
-        // ignore
-      }
-      audioContextRef.current = null;
-    }
-    setVolumeMeter(0);
-  }, []);
-
-  // Safe start for audio volume meter (does not block speech recognition if denied/busy)
-  const startAudioAnalyser = useCallback(async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (!isHoldingRef.current) {
-        // Released before stream arrived
-        stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
-      mediaStreamRef.current = stream;
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const audioCtx = new AudioCtx();
-      audioContextRef.current = audioCtx;
-      const analyser = audioCtx.createAnalyser();
-      analyserRef.current = analyser;
-      analyser.fftSize = 64;
-      const source = audioCtx.createMediaStreamSource(stream);
-      source.connect(analyser);
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-      const updateVolume = () => {
-        if (!analyserRef.current || !isHoldingRef.current) return;
-        analyserRef.current.getByteFrequencyData(dataArray);
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          sum += dataArray[i];
-        }
-        const avg = sum / dataArray.length;
-        setVolumeMeter(Math.min(100, Math.round((avg / 128) * 100)));
-        animFrameRef.current = requestAnimationFrame(updateVolume);
-      };
-      updateVolume();
-    } catch (e) {
-      // AudioContext failure shouldn't kill speech recognition
-      console.warn('AudioAnalyser harmless note:', e);
-    }
-  }, []);
-
   // Submit recognized or selected query
   const handleEmitResult = useCallback(
     (query: string) => {
@@ -159,8 +95,10 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         releaseTimeoutRef.current = null;
       }
       isHoldingRef.current = false;
+      isTapModeActiveRef.current = false;
       isAwaitingFinalRef.current = false;
-      stopAudioAnalyser();
+      setIsHolding(false);
+      setIsSoundActive(false);
 
       if (recognitionRef.current) {
         try {
@@ -178,38 +116,24 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       }
       onClose();
     },
-    [onClose, onSearch, onTranscript, stopAudioAnalyser]
+    [onClose, onSearch, onTranscript]
   );
 
   /**
-   * PUSH-TO-TALK: START RECORDING (while button / space is pressed)
+   * Internal starter for Speech Recognition
    */
-  const startRecordingOnPress = useCallback(() => {
-    if (isHoldingRef.current) return; // already active
-
-    if (releaseTimeoutRef.current) {
-      clearTimeout(releaseTimeoutRef.current);
-      releaseTimeoutRef.current = null;
-    }
-
-    isHoldingRef.current = true;
-    isAwaitingFinalRef.current = false;
-    setIsHolding(true);
-    setSpeechState('holding');
-    latestTranscriptRef.current = '';
-    setInterimText('');
-    setErrorMessage('');
-
+  const startRecognitionEngine = useCallback(() => {
     const SpeechRecognition =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       isHoldingRef.current = false;
+      isTapModeActiveRef.current = false;
       setIsHolding(false);
       setSpeechState('unsupported');
       setErrorMessage(
-        'Ваш браузер не підтримує розпізнавання голосу. Введіть назву товару вручну нижче.'
+        'Ваш браузер не підтримує розпізнавання голосу. Скористайтеся полем нижче.'
       );
       return;
     }
@@ -231,9 +155,32 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       recognition.maxAlternatives = 3;
 
       recognition.onstart = () => {
-        if (isHoldingRef.current) {
-          setSpeechState('holding');
-        }
+        setSpeechState('listening');
+        setErrorMessage('');
+      };
+
+      recognition.onaudiostart = () => {
+        setIsSoundActive(true);
+      };
+
+      recognition.onsoundstart = () => {
+        setIsSoundActive(true);
+      };
+
+      recognition.onspeechstart = () => {
+        setIsSoundActive(true);
+      };
+
+      recognition.onspeechend = () => {
+        setIsSoundActive(false);
+      };
+
+      recognition.onsoundend = () => {
+        setIsSoundActive(false);
+      };
+
+      recognition.onaudioend = () => {
+        setIsSoundActive(false);
       };
 
       recognition.onresult = (event: any) => {
@@ -250,7 +197,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           latestTranscriptRef.current = trimmed;
           setInterimText(trimmed);
 
-          // If the user already released the button and was awaiting the final words
+          // If the user had released button and was awaiting final transcript
           if (isAwaitingFinalRef.current) {
             handleEmitResult(trimmed);
           }
@@ -259,69 +206,109 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
 
       recognition.onerror = (event: any) => {
         console.warn('SpeechRecognition error:', event.error);
+        setIsSoundActive(false);
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           isHoldingRef.current = false;
+          isTapModeActiveRef.current = false;
           setIsHolding(false);
           setSpeechState('permission_denied');
-          setErrorMessage('Доступ до мікрофона заблоковано в браузері. Надайте дозвіл або скористайтеся полем нижче.');
+          setErrorMessage('Доступ до мікрофона заблоковано або очікує дозволу. Натисніть «Разрешить» у вікні.');
         } else if (event.error === 'no-speech') {
-          // Keep holding, user might pause briefly
+          // Keep waiting
         } else if (event.error === 'aborted') {
-          // Clean cancel
+          // Normal abort
         } else {
           setErrorMessage(`Помилка розпізнавання: ${event.error}`);
         }
       };
 
       recognition.onend = () => {
-        // If still holding, restart to keep recording without interruptions
-        if (isHoldingRef.current) {
+        setIsSoundActive(false);
+        // If user is still holding or in continuous tap mode, keep listening
+        if (isHoldingRef.current || isTapModeActiveRef.current) {
           try {
             recognition.start();
           } catch (e) {
             // ignore
           }
         } else if (isAwaitingFinalRef.current) {
-          // Finalize on engine stop
           const candidate = (latestTranscriptRef.current || interimText).trim();
           if (candidate) {
             handleEmitResult(candidate);
           } else {
             setSpeechState('idle');
-            setErrorMessage('Нічого не почуто. Затисніть кнопку, скажіть товар (наприклад «кабель») і відпустіть.');
+            setErrorMessage('Нічого не почуто. Затисніть кнопку, чітко скажіть (наприклад «кабель») і відпустіть.');
           }
           isAwaitingFinalRef.current = false;
         }
       };
 
       recognition.start();
-      startAudioAnalyser();
     } catch (err: any) {
-      console.warn('Recognition start error:', err);
+      console.warn('Recognition start exception:', err);
       isHoldingRef.current = false;
+      isTapModeActiveRef.current = false;
       setIsHolding(false);
+      setIsSoundActive(false);
       if (err.name === 'NotAllowedError') {
         setSpeechState('permission_denied');
       } else {
         setSpeechState('error');
-        setErrorMessage('Не вдалося увімкнути мікрофон. Спробуйте ще раз або введіть запит нижче.');
+        setErrorMessage('Не вдалося запустити мікрофон. Надайте дозвіл або введіть запит нижче.');
       }
     }
-  }, [handleEmitResult, interimText, startAudioAnalyser]);
+  }, [handleEmitResult, interimText]);
 
   /**
-   * PUSH-TO-TALK: STOP RECORDING ON RELEASE (when user lets go of button / space)
+   * PUSH-TO-TALK / TOUCH START
    */
-  const stopRecordingOnRelease = useCallback(() => {
-    if (!isHoldingRef.current) return;
+  const handlePressStart = useCallback(() => {
+    if (releaseTimeoutRef.current) {
+      clearTimeout(releaseTimeoutRef.current);
+      releaseTimeoutRef.current = null;
+    }
+
+    pressStartTimeRef.current = Date.now();
+    isHoldingRef.current = true;
+    isAwaitingFinalRef.current = false;
+    setIsHolding(true);
+    setSpeechState('listening');
+    latestTranscriptRef.current = '';
+    setInterimText('');
+    setErrorMessage('');
+
+    startRecognitionEngine();
+  }, [startRecognitionEngine]);
+
+  /**
+   * PUSH-TO-TALK / TOUCH END
+   */
+  const handlePressEnd = useCallback(() => {
+    const pressDuration = Date.now() - pressStartTimeRef.current;
+
+    // Check if user did a quick tap (< 250ms) instead of holding
+    if (pressDuration < 250 && !isTapModeActiveRef.current && speechState === 'listening') {
+      // Toggle into Tap-to-Talk mode so user doesn't lose speech on quick tap
+      isTapModeActiveRef.current = true;
+      setIsHolding(false);
+      isHoldingRef.current = false;
+      return;
+    }
+
+    // If it was already in Tap-to-Talk mode and tapped again: stop and submit
+    if (isTapModeActiveRef.current) {
+      isTapModeActiveRef.current = false;
+    }
+
+    if (!isHoldingRef.current && !isTapModeActiveRef.current) return;
 
     isHoldingRef.current = false;
     setIsHolding(false);
-    stopAudioAnalyser();
+    setIsSoundActive(false);
 
     const currentText = (latestTranscriptRef.current || interimText).trim();
 
-    // Tell recognition to gracefully stop capturing more audio
+    // Signal engine to stop capturing more speech
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -331,13 +318,12 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     }
 
     if (currentText) {
-      // We already have recognized text: execute search immediately!
       setSpeechState('processing');
       releaseTimeoutRef.current = setTimeout(() => {
         handleEmitResult(currentText);
       }, 250);
     } else {
-      // User just released right after speaking, give engine up to 600ms to deliver final onresult
+      // Give engine a moment (600ms) to deliver speech buffered right before release
       setSpeechState('processing');
       isAwaitingFinalRef.current = true;
 
@@ -349,19 +335,21 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
             handleEmitResult(candidate);
           } else {
             setSpeechState('idle');
-            setErrorMessage('Нічого не почуто. Затисніть кнопку, скажіть (наприклад «кабель») і відпустіть.');
+            setErrorMessage('Нічого не почуто. Затисніть кнопку, скажіть товар (наприклад «кабель») і відпустіть.');
           }
         }
       }, 650);
     }
-  }, [handleEmitResult, interimText, stopAudioAnalyser]);
+  }, [handleEmitResult, interimText, speechState]);
 
-  // Clean up on modal unmount or close
+  // Clean up on modal close
   useEffect(() => {
     if (!isOpen) {
       isHoldingRef.current = false;
+      isTapModeActiveRef.current = false;
       isAwaitingFinalRef.current = false;
       setIsHolding(false);
+      setIsSoundActive(false);
       if (releaseTimeoutRef.current) {
         clearTimeout(releaseTimeoutRef.current);
         releaseTimeoutRef.current = null;
@@ -373,7 +361,6 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           // ignore
         }
       }
-      stopAudioAnalyser();
       setSpeechState('idle');
       setInterimText('');
       setManualText('');
@@ -381,6 +368,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     }
     return () => {
       isHoldingRef.current = false;
+      isTapModeActiveRef.current = false;
       isAwaitingFinalRef.current = false;
       if (releaseTimeoutRef.current) {
         clearTimeout(releaseTimeoutRef.current);
@@ -392,15 +380,14 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           // ignore
         }
       }
-      stopAudioAnalyser();
     };
-  }, [isOpen, stopAudioAnalyser]);
+  }, [isOpen]);
 
-  // Global safety handlers: if pointer/touch releases outside the button
+  // Global safety release
   useEffect(() => {
     const handleGlobalRelease = () => {
       if (isHoldingRef.current) {
-        stopRecordingOnRelease();
+        handlePressEnd();
       }
     };
 
@@ -415,9 +402,9 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       window.removeEventListener('touchend', handleGlobalRelease);
       window.removeEventListener('touchcancel', handleGlobalRelease);
     };
-  }, [stopRecordingOnRelease]);
+  }, [handlePressEnd]);
 
-  // Keyboard navigation & Push-to-Talk with Spacebar on PC
+  // Spacebar push-to-talk on desktop
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
@@ -425,13 +412,11 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       const activeTag = (document.activeElement?.tagName || '').toLowerCase();
       const isInputActive = activeTag === 'input' || activeTag === 'textarea';
 
-      // ESC closes modal
       if (e.key === 'Escape') {
         onClose();
         return;
       }
 
-      // Enter submits active query
       if (e.key === 'Enter') {
         if (interimText.trim()) {
           handleEmitResult(interimText);
@@ -441,10 +426,9 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         return;
       }
 
-      // Push-to-Talk via Spacebar (walkie-talkie mode on desktop)
       if (e.code === 'Space' && !e.repeat && !isInputActive) {
         e.preventDefault();
-        startRecordingOnPress();
+        handlePressStart();
       }
     };
 
@@ -455,7 +439,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
 
       if (e.code === 'Space' && !isInputActive) {
         e.preventDefault();
-        stopRecordingOnRelease();
+        handlePressEnd();
       }
     };
 
@@ -466,17 +450,11 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [
-    handleEmitResult,
-    isOpen,
-    interimText,
-    manualText,
-    onClose,
-    startRecordingOnPress,
-    stopRecordingOnRelease,
-  ]);
+  }, [handleEmitResult, handlePressEnd, handlePressStart, interimText, isOpen, manualText, onClose]);
 
   if (!isOpen) return null;
+
+  const isRecording = isHolding || isTapModeActiveRef.current || speechState === 'listening';
 
   return (
     <div
@@ -516,37 +494,30 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           {/* Main Push-to-Talk Instruction Badge */}
           <div
             className={`mb-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
-              isHolding
+              isRecording
                 ? 'bg-rose-50 text-rose-700 border-rose-200 shadow-sm animate-pulse'
                 : 'bg-emerald-50 text-emerald-800 border-emerald-200/70'
             }`}
           >
             <span
               className={`w-2 h-2 rounded-full ${
-                isHolding ? 'bg-rose-500 animate-ping' : 'bg-emerald-500'
+                isRecording ? 'bg-rose-500 animate-ping' : 'bg-emerald-500'
               }`}
             />
             <span>
-              {isHolding
-                ? 'Запис іде! Говоріть... (відпустіть для пошуку)'
+              {isRecording
+                ? '🔴 Запис іде! Говоріть... (відпустіть для пошуку)'
                 : 'Затисніть кнопку, скажіть товар і відпустіть'}
             </span>
           </div>
 
-          {/* Large Push-to-Talk Button (Pointer capture enabled) */}
+          {/* Large Push-to-Talk Button */}
           <div className="my-2 sm:my-3 relative flex items-center justify-center shrink-0">
-            {/* Dynamic Wave Ring based on real volume while holding */}
-            {isHolding && (
+            {/* Animated Radar Pulse Rings while recording */}
+            {isRecording && (
               <>
-                <div
-                  className="absolute rounded-full bg-emerald-500/20 transition-all duration-100 pointer-events-none"
-                  style={{
-                    width: `${100 + volumeMeter * 0.9}px`,
-                    height: `${100 + volumeMeter * 0.9}px`,
-                  }}
-                />
-                <div className="absolute w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-emerald-400/25 animate-ping opacity-75 pointer-events-none" />
-                <div className="absolute w-40 h-40 rounded-full border border-emerald-300/40 pointer-events-none animate-pulse" />
+                <div className="absolute w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-rose-400/20 animate-ping opacity-75 pointer-events-none" />
+                <div className="absolute w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-rose-500/10 animate-pulse pointer-events-none" />
               </>
             )}
 
@@ -559,7 +530,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
                 } catch (err) {
                   // ignore
                 }
-                startRecordingOnPress();
+                handlePressStart();
               }}
               onPointerUp={(e) => {
                 e.preventDefault();
@@ -568,7 +539,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
                 } catch (err) {
                   // ignore
                 }
-                stopRecordingOnRelease();
+                handlePressEnd();
               }}
               onPointerCancel={(e) => {
                 e.preventDefault();
@@ -577,10 +548,10 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
                 } catch (err) {
                   // ignore
                 }
-                stopRecordingOnRelease();
+                handlePressEnd();
               }}
               className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 flex flex-col items-center justify-center transition-all duration-150 relative z-10 cursor-pointer shadow-xl select-none touch-none ${
-                isHolding
+                isRecording
                   ? 'border-rose-400 bg-rose-600 text-white scale-110 shadow-rose-500/40 ring-8 ring-rose-500/20 active:scale-105'
                   : speechState === 'processing'
                   ? 'border-emerald-500 bg-emerald-50 text-emerald-600 shadow-emerald-500/25 scale-105'
@@ -590,7 +561,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
               }`}
               title="Затисніть для запису, відпустіть для пошуку"
             >
-              {isHolding ? (
+              {isRecording ? (
                 <>
                   <Mic className="w-10 h-10 sm:w-11 sm:h-11 animate-pulse" strokeWidth={2.4} />
                   <span className="text-[10px] font-black uppercase tracking-wider mt-0.5 text-white">
@@ -605,7 +576,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
               ) : speechState === 'permission_denied' ? (
                 <>
                   <MicOff className="w-9 h-9 sm:w-10 sm:h-10 text-amber-600" />
-                  <span className="text-[9px] font-bold text-amber-700 mt-0.5">Блок</span>
+                  <span className="text-[9px] font-bold text-amber-700 mt-0.5">Дозвіл</span>
                 </>
               ) : (
                 <>
@@ -618,22 +589,23 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
             </button>
           </div>
 
-          {/* Real Audio Volume Waveform Indicator while holding */}
-          {isHolding && (
-            <div className="flex items-center gap-1.5 mb-2 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-200 animate-in fade-in">
-              <span className="text-[10px] font-bold text-emerald-700">Рівень голосу:</span>
-              <div className="w-20 h-2 bg-emerald-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-600 transition-all duration-75"
-                  style={{ width: `${Math.max(12, volumeMeter)}%` }}
-                />
+          {/* Sound Waves equalizer visualization while recording */}
+          {isRecording && (
+            <div className="flex items-center gap-1 mb-2 px-3 py-1 bg-rose-50 rounded-full border border-rose-200 animate-in fade-in">
+              <span className="text-[10px] font-bold text-rose-700 mr-1">Мікрофон активний:</span>
+              <div className="flex items-center gap-0.5 h-3">
+                <span className={`w-1 bg-rose-500 rounded-full animate-bounce ${isSoundActive ? 'h-3' : 'h-1.5'}`} style={{ animationDelay: '0ms' }} />
+                <span className={`w-1 bg-rose-500 rounded-full animate-bounce ${isSoundActive ? 'h-4' : 'h-2'}`} style={{ animationDelay: '150ms' }} />
+                <span className={`w-1 bg-rose-500 rounded-full animate-bounce ${isSoundActive ? 'h-2.5' : 'h-1.5'}`} style={{ animationDelay: '75ms' }} />
+                <span className={`w-1 bg-rose-500 rounded-full animate-bounce ${isSoundActive ? 'h-3.5' : 'h-2'}`} style={{ animationDelay: '200ms' }} />
+                <span className={`w-1 bg-rose-500 rounded-full animate-bounce ${isSoundActive ? 'h-2' : 'h-1'}`} style={{ animationDelay: '100ms' }} />
               </div>
             </div>
           )}
 
           {/* Status & Spoken Text */}
           <div className="w-full flex flex-col items-center justify-center mb-3">
-            {isHolding ? (
+            {isRecording ? (
               <div className="space-y-1">
                 <div className="flex items-center justify-center gap-1.5">
                   <span className="relative flex h-2.5 w-2.5">
@@ -660,14 +632,21 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
                 <span>Шукаємо «{interimText || latestTranscriptRef.current}»...</span>
               </div>
             ) : speechState === 'permission_denied' ? (
-              <div className="w-full flex flex-col items-center">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-semibold mb-1">
-                  <Lock className="w-3 h-3" />
-                  <span>Потрібен доступ до мікрофона</span>
+              <div className="w-full flex flex-col items-center p-2.5 bg-amber-50 rounded-2xl border border-amber-200">
+                <div className="inline-flex items-center gap-1.5 text-amber-800 text-xs font-bold mb-1">
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Потрібен дозвіл на мікрофон</span>
                 </div>
-                <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
-                  Будь ласка, дозвольте мікрофон у браузері або введіть товар вручну нижче.
+                <p className="text-[11px] text-amber-700 leading-relaxed mb-2">
+                  Натисніть <b>«Разрешить»</b> у спливаючому вікні Safari/iOS, а потім затисніть кнопку мікрофона знову.
                 </p>
+                <button
+                  type="button"
+                  onClick={handlePressStart}
+                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-sm transition-all"
+                >
+                  Спробувати ще раз
+                </button>
               </div>
             ) : (
               <div className="space-y-0.5">
@@ -684,7 +663,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           {/* Spacebar Tip for PC */}
           <div className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-400 mb-2 font-medium">
             <Keyboard className="w-3 h-3 text-slate-400" />
-            <span>На клавіатурі: затисніть <b>Пробіл (Space)</b> щоб говорити</span>
+            <span>На ПК: можна затиснути <b>Пробіл (Space)</b></span>
           </div>
 
           {/* Quick Fallback Text Input inside modal */}
@@ -748,7 +727,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           )}
 
           {/* Action Button: Search Recognized Text Now if still idle */}
-          {interimText && !isHolding && speechState !== 'processing' && (
+          {interimText && !isRecording && speechState !== 'processing' && (
             <button
               type="button"
               onClick={() => handleEmitResult(interimText)}
