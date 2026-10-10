@@ -284,7 +284,13 @@ export const getProductBrand = (product: Product): string => {
 export const matchProductSearch = (product: Product, searchQuery: string): boolean => {
   if (!searchQuery || searchQuery.trim() === '') return true;
 
-  const rawTokens = searchQuery.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
+  // Clean punctuation from search tokens (e.g. from speech recognition like 'кабель.', 'реле,')
+  const rawTokens = searchQuery
+    .toLowerCase()
+    .replace(/[.,/#!$%^&*;:{}=\-_`~()?]/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(t => t.length > 0);
   if (rawTokens.length === 0) return true;
 
   const pName = (product.name || '').toLowerCase();

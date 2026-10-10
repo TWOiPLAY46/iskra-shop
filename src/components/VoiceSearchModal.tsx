@@ -10,6 +10,8 @@ import {
   Zap,
   Lock,
   Keyboard,
+  CheckCircle2,
+  Globe,
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 
@@ -42,14 +44,19 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [isHolding, setIsHolding] = useState(false);
   const [isSoundActive, setIsSoundActive] = useState(false);
+  const [selectedLang, setSelectedLang] = useState<'uk-UA' | 'ru-RU'>('uk-UA');
+  const [autoSearchCountdown, setAutoSearchCountdown] = useState<number | null>(null);
 
   const isHoldingRef = useRef(false);
+  const pressStartTimeRef = useRef(0);
   const isAwaitingFinalRef = useRef(false);
   const latestTranscriptRef = useRef('');
   const recognitionRef = useRef<any>(null);
   const releaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSearchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Popular Ukrainian store hint chips
+  // Popular Ukrainian electrical & plumbing store search suggestions
   const popularHints = useMemo(
     () => [
       'Кабель ВВГнг',
@@ -59,11 +66,16 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       'Автомат 16А',
       'LED лампа E27',
       'Змішувач для кухні',
-      'Болгарка DeWalt',
       'Клема WAGO',
+      'Тепла підлога',
     ],
     []
   );
+
+  // Clean recognized text from trailing punctuation
+  const sanitizeQuery = (text: string) => {
+    return text.replace(/[.,/#!$%^&*;:{}=\-_`~()?]+$/, '').trim();
+  };
 
   // Instant catalog search preview based on current spoken/entered text
   const activeQuery = interimText || manualText;
@@ -81,12 +93,22 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       .slice(0, 3);
   }, [activeQuery, products]);
 
-  // Cleanly detach and terminate any active speech recognition instance
+  // Cleanly stop any active recognition instance and timers
   const cleanupRecognition = useCallback(() => {
     if (releaseTimeoutRef.current) {
       clearTimeout(releaseTimeoutRef.current);
       releaseTimeoutRef.current = null;
     }
+    if (autoSearchTimerRef.current) {
+      clearTimeout(autoSearchTimerRef.current);
+      autoSearchTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setAutoSearchCountdown(null);
+
     if (recognitionRef.current) {
       try {
         const r = recognitionRef.current;
@@ -111,7 +133,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   // Submit recognized or selected query
   const handleEmitResult = useCallback(
     (query: string) => {
-      const cleanText = query.replace(/[.,!?]+$/, '').trim();
+      const cleanText = sanitizeQuery(query);
       if (!cleanText) return;
 
       cleanupRecognition();
@@ -120,6 +142,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       latestTranscriptRef.current = '';
       setIsHolding(false);
       setIsSoundActive(false);
+      setSpeechState('idle');
 
       if (onTranscript) {
         onTranscript(cleanText);
@@ -130,6 +153,24 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       onClose();
     },
     [cleanupRecognition, onClose, onSearch, onTranscript]
+  );
+
+  // Trigger auto-search countdown when words are recognized
+  const scheduleAutoSearch = useCallback(
+    (detectedQuery: string) => {
+      const clean = sanitizeQuery(detectedQuery);
+      if (!clean) return;
+
+      if (autoSearchTimerRef.current) clearTimeout(autoSearchTimerRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+      setAutoSearchCountdown(1);
+
+      autoSearchTimerRef.current = setTimeout(() => {
+        handleEmitResult(clean);
+      }, 1200);
+    },
+    [handleEmitResult]
   );
 
   /**
@@ -147,17 +188,23 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       setIsHolding(false);
       setSpeechState('unsupported');
       setErrorMessage(
-        'Ваш браузер не підтримує розпізнавання голосу. Скористайтеся пошуковим рядком нижче.'
+        'Ваш браузер не підтримує розпізнавання голосу. Скористайтеся рядком введення нижче.'
       );
       return;
     }
 
     try {
+      const isIOS =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
-      recognition.continuous = true;
+
+      // On iOS WebKit, continuous=false is significantly more reliable for search queries
+      recognition.continuous = !isIOS;
       recognition.interimResults = true;
-      recognition.lang = 'uk-UA';
+      recognition.lang = selectedLang;
       recognition.maxAlternatives = 3;
 
       recognition.onstart = () => {
@@ -177,7 +224,14 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         if (recognitionRef.current === recognition) setIsSoundActive(true);
       };
       recognition.onspeechend = () => {
-        if (recognitionRef.current === recognition) setIsSoundActive(false);
+        if (recognitionRef.current === recognition) {
+          setIsSoundActive(false);
+          // If we already have recognized text and user stopped speaking, auto-search
+          const current = (latestTranscriptRef.current || interimText).trim();
+          if (current) {
+            scheduleAutoSearch(current);
+          }
+        }
       };
       recognition.onsoundend = () => {
         if (recognitionRef.current === recognition) setIsSoundActive(false);
@@ -189,6 +243,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       recognition.onresult = (event: any) => {
         if (recognitionRef.current !== recognition) return;
         if (!event.results) return;
+
         let fullTranscript = '';
         for (let i = 0; i < event.results.length; i++) {
           const res = event.results[i];
@@ -196,15 +251,20 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
             fullTranscript += res[0].transcript + ' ';
           }
         }
+
         const trimmed = fullTranscript.trim();
         if (trimmed) {
           latestTranscriptRef.current = trimmed;
           setInterimText(trimmed);
 
-          // If the user already released button and was awaiting the final result
+          // If the user was holding and already released button
           if (isAwaitingFinalRef.current) {
             handleEmitResult(trimmed);
+            return;
           }
+
+          // In tap mode or while listening: schedule quick auto-search
+          scheduleAutoSearch(trimmed);
         }
       };
 
@@ -212,13 +272,16 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         if (recognitionRef.current !== recognition) return;
         console.warn('SpeechRecognition error:', event.error);
         setIsSoundActive(false);
+
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           isHoldingRef.current = false;
           setIsHolding(false);
           setSpeechState('permission_denied');
-          setErrorMessage('Доступ до мікрофона заблоковано або очікує дозволу. Натисніть «Разрешить» у спливаючому вікні.');
+          setErrorMessage(
+            'Доступ до мікрофона заблоковано або очікує дозволу. Натисніть «Разрешить» у спливаючому вікні Safari/Chrome.'
+          );
         } else if (event.error === 'no-speech') {
-          // Keep waiting while held
+          // Keep listening or idle
         } else if (event.error === 'aborted') {
           // Normal abort
         } else {
@@ -230,37 +293,49 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         if (recognitionRef.current !== recognition) return;
         setIsSoundActive(false);
 
-        // If user is still holding, restart to continue listening seamlessly
+        const candidate = (latestTranscriptRef.current || interimText).trim();
+
+        // If user was awaiting final result after button release:
+        if (isAwaitingFinalRef.current) {
+          isAwaitingFinalRef.current = false;
+          if (candidate) {
+            handleEmitResult(candidate);
+          } else {
+            setSpeechState('idle');
+            setErrorMessage('Нічого не почуто. Спробуйте ще раз або виберіть товар нижче.');
+          }
+          return;
+        }
+
+        // If we already have recognized speech, submit it!
+        if (candidate) {
+          handleEmitResult(candidate);
+          return;
+        }
+
+        // If user is still holding push-to-talk button, keep listening
         if (isHoldingRef.current) {
           try {
             recognition.start();
           } catch (e) {
             // ignore
           }
-        } else if (isAwaitingFinalRef.current) {
-          const candidate = (latestTranscriptRef.current || interimText).trim();
-          if (candidate) {
-            handleEmitResult(candidate);
-          } else {
-            setSpeechState('idle');
-            setErrorMessage('Нічого не почуто. Затисніть кнопку, скажіть товар (наприклад «кабель») і відпустіть.');
-          }
-          isAwaitingFinalRef.current = false;
+        } else {
+          setSpeechState('idle');
         }
       };
 
       recognition.start();
     } catch (err: any) {
       console.warn('Recognition start exception:', err);
-      // If browser was busy stopping prior instance, retry after 150ms
+      // Fast retry if browser was busy stopping prior instance
       setTimeout(() => {
-        if (isHoldingRef.current) {
+        if (speechState === 'listening' || isHoldingRef.current) {
           try {
             const retryRec = new SpeechRecognition();
             recognitionRef.current = retryRec;
-            retryRec.continuous = true;
+            retryRec.lang = selectedLang;
             retryRec.interimResults = true;
-            retryRec.lang = 'uk-UA';
             retryRec.onstart = () => {
               if (recognitionRef.current === retryRec) setSpeechState('listening');
             };
@@ -274,20 +349,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
               if (t) {
                 latestTranscriptRef.current = t;
                 setInterimText(t);
-                if (isAwaitingFinalRef.current) handleEmitResult(t);
-              }
-            };
-            retryRec.onerror = (e: any) => {
-              if (recognitionRef.current !== retryRec) return;
-              if (e.error === 'not-allowed') setSpeechState('permission_denied');
-            };
-            retryRec.onend = () => {
-              if (recognitionRef.current !== retryRec) return;
-              if (isAwaitingFinalRef.current) {
-                const cand = (latestTranscriptRef.current || interimText).trim();
-                if (cand) handleEmitResult(cand);
-                else setSpeechState('idle');
-                isAwaitingFinalRef.current = false;
+                scheduleAutoSearch(t);
               }
             };
             retryRec.start();
@@ -297,17 +359,13 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         }
       }, 150);
     }
-  }, [cleanupRecognition, handleEmitResult, interimText]);
+  }, [cleanupRecognition, handleEmitResult, interimText, scheduleAutoSearch, selectedLang, speechState]);
 
   /**
-   * PUSH-TO-TALK / TOUCH START
+   * PUSH-TO-TALK / TAP BUTTON DOWN
    */
-  const handlePressStart = useCallback(() => {
-    if (releaseTimeoutRef.current) {
-      clearTimeout(releaseTimeoutRef.current);
-      releaseTimeoutRef.current = null;
-    }
-
+  const handlePointerDown = useCallback(() => {
+    pressStartTimeRef.current = Date.now();
     isHoldingRef.current = true;
     isAwaitingFinalRef.current = false;
     latestTranscriptRef.current = '';
@@ -315,23 +373,37 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     setSpeechState('listening');
     setInterimText('');
     setErrorMessage('');
+    setAutoSearchCountdown(null);
 
     startRecognitionEngine();
   }, [startRecognitionEngine]);
 
   /**
-   * PUSH-TO-TALK / TOUCH END
+   * PUSH-TO-TALK / TAP BUTTON UP
    */
-  const handlePressEnd = useCallback(() => {
-    if (!isHoldingRef.current) return;
-
+  const handlePointerUp = useCallback(() => {
+    const pressDuration = Date.now() - pressStartTimeRef.current;
     isHoldingRef.current = false;
     setIsHolding(false);
     setIsSoundActive(false);
 
     const currentText = (latestTranscriptRef.current || interimText).trim();
 
-    // Signal recognition engine to finish processing audio
+    // CASE 1: Quick Tap (< 300ms)
+    // Keep recognition active so user can speak freely without holding!
+    if (pressDuration < 300) {
+      if (currentText) {
+        // If words are already there, search immediately
+        handleEmitResult(currentText);
+      } else {
+        // Stay in listening state! User just tapped to start voice dictation
+        setSpeechState('listening');
+      }
+      return;
+    }
+
+    // CASE 2: Hold & Release (Push-to-talk >= 300ms)
+    // Signal recognition engine to stop
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -341,11 +413,11 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     }
 
     if (currentText) {
-      // We already have recognized speech: submit immediately!
+      // User held, spoke, and released: SUBMIT IMMEDIATELY!
       setSpeechState('processing');
       handleEmitResult(currentText);
     } else {
-      // Buffer delay: allow engine up to 500ms to deliver final recognized words
+      // Allow speech engine up to 1500ms to deliver final recognition
       setSpeechState('processing');
       isAwaitingFinalRef.current = true;
 
@@ -357,10 +429,10 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
             handleEmitResult(candidate);
           } else {
             setSpeechState('idle');
-            setErrorMessage('Нічого не почуто. Затисніть кнопку, чітко скажіть (наприклад «кабель») і відпустіть.');
+            setErrorMessage('Нічого не почуто. Спробуйте ще раз або натисніть товар зі списку.');
           }
         }
-      }, 550);
+      }, 1500);
     }
   }, [handleEmitResult, interimText]);
 
@@ -376,6 +448,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     setInterimText('');
     setManualText('');
     setErrorMessage('');
+    setAutoSearchCountdown(null);
 
     return () => {
       cleanupRecognition();
@@ -386,7 +459,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   useEffect(() => {
     const handleGlobalRelease = () => {
       if (isHoldingRef.current) {
-        handlePressEnd();
+        handlePointerUp();
       }
     };
 
@@ -401,7 +474,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       window.removeEventListener('touchend', handleGlobalRelease);
       window.removeEventListener('touchcancel', handleGlobalRelease);
     };
-  }, [handlePressEnd]);
+  }, [handlePointerUp]);
 
   // Spacebar push-to-talk on desktop
   useEffect(() => {
@@ -417,17 +490,16 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       }
 
       if (e.key === 'Enter') {
-        if (interimText.trim()) {
-          handleEmitResult(interimText);
-        } else if (manualText.trim()) {
-          handleEmitResult(manualText);
+        const query = (interimText || manualText).trim();
+        if (query) {
+          handleEmitResult(query);
         }
         return;
       }
 
       if (e.code === 'Space' && !e.repeat && !isInputActive) {
         e.preventDefault();
-        handlePressStart();
+        handlePointerDown();
       }
     };
 
@@ -438,7 +510,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
 
       if (e.code === 'Space' && !isInputActive) {
         e.preventDefault();
-        handlePressEnd();
+        handlePointerUp();
       }
     };
 
@@ -449,11 +521,12 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [handleEmitResult, handlePressEnd, handlePressStart, interimText, isOpen, manualText, onClose]);
+  }, [handleEmitResult, handlePointerDown, handlePointerUp, interimText, isOpen, manualText, onClose]);
 
   if (!isOpen) return null;
 
   const isRecording = isHolding || speechState === 'listening';
+  const effectiveText = (interimText || manualText).trim();
 
   return (
     <div
@@ -472,10 +545,48 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         <div className="absolute -bottom-20 -right-20 w-44 h-44 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Compact Header */}
-        <div className="relative shrink-0 pt-4 px-5 pb-2 flex items-center justify-between border-b border-slate-100/80 bg-white/80 backdrop-blur-sm z-10">
+        <div className="relative shrink-0 pt-3.5 px-4 sm:px-5 pb-2.5 flex items-center justify-between border-b border-slate-100 bg-white/90 backdrop-blur-sm z-10">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold">
             <Zap className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />
             <span>Голосовий пошук ISKRA</span>
+          </div>
+
+          {/* Language selector toggle */}
+          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-full text-[10px] font-bold">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedLang('uk-UA');
+                if (isRecording) {
+                  cleanupRecognition();
+                  setTimeout(startRecognitionEngine, 100);
+                }
+              }}
+              className={`px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                selectedLang === 'uk-UA'
+                  ? 'bg-white text-emerald-700 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              🇺🇦 UA
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedLang('ru-RU');
+                if (isRecording) {
+                  cleanupRecognition();
+                  setTimeout(startRecognitionEngine, 100);
+                }
+              }}
+              className={`px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                selectedLang === 'ru-RU'
+                  ? 'bg-white text-emerald-700 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              🌐 RU
+            </button>
           </div>
 
           <button
@@ -488,35 +599,39 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         </div>
 
         {/* Scrollable Body Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col items-center text-center">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 flex flex-col items-center text-center">
           
-          {/* Main Push-to-Talk Instruction Badge */}
+          {/* Main Status Instruction Badge */}
           <div
-            className={`mb-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+            className={`mb-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
               isRecording
-                ? 'bg-rose-50 text-rose-700 border-rose-200 shadow-sm animate-pulse'
-                : 'bg-emerald-50 text-emerald-800 border-emerald-200/70'
+                ? 'bg-rose-50 text-rose-700 border-rose-200 shadow-xs animate-pulse'
+                : effectiveText
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                : 'bg-slate-100 text-slate-700 border-slate-200'
             }`}
           >
             <span
               className={`w-2 h-2 rounded-full ${
-                isRecording ? 'bg-rose-500 animate-ping' : 'bg-emerald-500'
+                isRecording ? 'bg-rose-500 animate-ping' : effectiveText ? 'bg-emerald-500' : 'bg-slate-400'
               }`}
             />
             <span>
               {isRecording
-                ? '🔴 Запис іде! Говоріть... (відпустіть для пошуку)'
-                : 'Затисніть кнопку, скажіть товар і відпустіть'}
+                ? '🔴 Говоріть... (пошук почнеться автоматично)'
+                : effectiveText
+                ? `Знайдено: «${effectiveText}»`
+                : 'Натисніть або затисніть кнопку'}
             </span>
           </div>
 
-          {/* Large Push-to-Talk Button */}
-          <div className="my-2 sm:my-3 relative flex items-center justify-center shrink-0">
+          {/* Large Push-to-Talk / Tap-to-Talk Button */}
+          <div className="my-2 relative flex items-center justify-center shrink-0">
             {/* Animated Radar Pulse Rings while recording */}
             {isRecording && (
               <>
-                <div className="absolute w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-rose-400/20 animate-ping opacity-75 pointer-events-none" />
-                <div className="absolute w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-rose-500/10 animate-pulse pointer-events-none" />
+                <div className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-rose-400/25 animate-ping opacity-75 pointer-events-none" />
+                <div className="absolute w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-rose-500/15 animate-pulse pointer-events-none" />
               </>
             )}
 
@@ -526,62 +641,56 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
                 e.preventDefault();
                 try {
                   (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-                } catch (err) {
-                  // ignore
-                }
-                handlePressStart();
+                } catch (err) {}
+                handlePointerDown();
               }}
               onPointerUp={(e) => {
                 e.preventDefault();
                 try {
                   (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
-                } catch (err) {
-                  // ignore
-                }
-                handlePressEnd();
+                } catch (err) {}
+                handlePointerUp();
               }}
               onPointerCancel={(e) => {
                 e.preventDefault();
                 try {
                   (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
-                } catch (err) {
-                  // ignore
-                }
-                handlePressEnd();
+                } catch (err) {}
+                handlePointerUp();
               }}
               className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 flex flex-col items-center justify-center transition-all duration-150 relative z-10 cursor-pointer shadow-xl select-none touch-none ${
                 isRecording
-                  ? 'border-rose-400 bg-rose-600 text-white scale-110 shadow-rose-500/40 ring-8 ring-rose-500/20 active:scale-105'
+                  ? 'border-rose-400 bg-rose-600 text-white scale-105 shadow-rose-500/40 ring-6 ring-rose-500/20 active:scale-95'
                   : speechState === 'processing'
                   ? 'border-emerald-500 bg-emerald-50 text-emerald-600 shadow-emerald-500/25 scale-105'
                   : speechState === 'permission_denied'
                   ? 'border-amber-300 bg-amber-50 text-amber-600 shadow-amber-500/20'
                   : 'border-emerald-200 bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-600/30 hover:scale-105 active:scale-95'
               }`}
-              title="Затисніть для запису, відпустіть для пошуку"
+              title="Натисніть або затисніть для пошуку"
             >
               {isRecording ? (
                 <>
-                  <Mic className="w-10 h-10 sm:w-11 sm:h-11 animate-pulse" strokeWidth={2.4} />
+                  <Mic className="w-9 h-9 sm:w-10 sm:h-10 animate-pulse" strokeWidth={2.4} />
                   <span className="text-[10px] font-black uppercase tracking-wider mt-0.5 text-white">
-                    Запис...
+                    Слухаю...
                   </span>
                 </>
               ) : speechState === 'processing' ? (
                 <>
-                  <Sparkles className="w-9 h-9 sm:w-10 sm:h-10 animate-spin text-emerald-600" />
+                  <Sparkles className="w-8 h-8 sm:w-9 sm:h-9 animate-spin text-emerald-600" />
                   <span className="text-[10px] font-bold text-emerald-700 mt-0.5">Шукаємо...</span>
                 </>
               ) : speechState === 'permission_denied' ? (
                 <>
-                  <MicOff className="w-9 h-9 sm:w-10 sm:h-10 text-amber-600" />
+                  <MicOff className="w-8 h-8 sm:w-9 sm:h-9 text-amber-600" />
                   <span className="text-[9px] font-bold text-amber-700 mt-0.5">Дозвіл</span>
                 </>
               ) : (
                 <>
-                  <Mic className="w-10 h-10 sm:w-11 sm:h-11" strokeWidth={2.4} />
+                  <Mic className="w-9 h-9 sm:w-10 sm:h-10" strokeWidth={2.4} />
                   <span className="text-[10px] font-black uppercase tracking-wider mt-0.5 text-emerald-50">
-                    Затисніть
+                    Говорити
                   </span>
                 </>
               )}
@@ -590,70 +699,80 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
 
           {/* Sound Waves equalizer visualization while recording */}
           {isRecording && (
-            <div className="flex items-center gap-1 mb-2 px-3 py-1 bg-rose-50 rounded-full border border-rose-200 animate-in fade-in">
-              <span className="text-[10px] font-bold text-rose-700 mr-1">Мікрофон активний:</span>
+            <div className="flex items-center gap-1.5 mb-2 px-3 py-1 bg-rose-50 rounded-full border border-rose-200 animate-in fade-in">
+              <span className="text-[10px] font-bold text-rose-700">Мікрофон слухає:</span>
               <div className="flex items-center gap-0.5 h-3">
-                <span className={`w-1 bg-rose-500 rounded-full animate-bounce ${isSoundActive ? 'h-3' : 'h-1.5'}`} style={{ animationDelay: '0ms' }} />
-                <span className={`w-1 bg-rose-500 rounded-full animate-bounce ${isSoundActive ? 'h-4' : 'h-2'}`} style={{ animationDelay: '150ms' }} />
-                <span className={`w-1 bg-rose-500 rounded-full animate-bounce ${isSoundActive ? 'h-2.5' : 'h-1.5'}`} style={{ animationDelay: '75ms' }} />
-                <span className={`w-1 bg-rose-500 rounded-full animate-bounce ${isSoundActive ? 'h-3.5' : 'h-2'}`} style={{ animationDelay: '200ms' }} />
-                <span className={`w-1 bg-rose-500 rounded-full animate-bounce ${isSoundActive ? 'h-2' : 'h-1'}`} style={{ animationDelay: '100ms' }} />
+                <span className="w-1 h-3 bg-rose-500 rounded-full animate-pulse" />
+                <span className="w-1 h-4 bg-rose-600 rounded-full animate-bounce" />
+                <span className="w-1 h-2 bg-rose-400 rounded-full animate-pulse" />
+                <span className="w-1 h-3.5 bg-rose-600 rounded-full animate-bounce" />
+                <span className="w-1 h-2 bg-rose-500 rounded-full animate-pulse" />
               </div>
             </div>
           )}
 
-          {/* Status & Spoken Text */}
-          <div className="w-full flex flex-col items-center justify-center mb-3">
-            {isRecording ? (
-              <div className="space-y-1">
-                <div className="flex items-center justify-center gap-1.5">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
-                  </span>
-                  <span className="text-sm sm:text-base font-bold text-slate-900">
-                    Слухаємо! Говоріть...
-                  </span>
+          {/* Live Recognized Spoken Text Bubble */}
+          <div className="w-full flex flex-col items-center justify-center mb-2.5 min-h-[46px]">
+            {effectiveText ? (
+              <div className="w-full space-y-1">
+                <div className="flex items-center justify-center gap-1.5 text-emerald-800 text-xs font-bold">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Розпізнано:</span>
                 </div>
-                {interimText ? (
-                  <p className="text-base sm:text-lg font-bold text-emerald-700 break-words px-3 py-1.5 bg-emerald-50/90 rounded-xl border border-emerald-300 mt-1 shadow-sm animate-in zoom-in-95">
-                    «{interimText}»
+                <div className="p-2.5 bg-emerald-50 rounded-2xl border border-emerald-300 shadow-xs">
+                  <p className="text-base sm:text-lg font-black text-emerald-900 break-words">
+                    «{effectiveText}»
                   </p>
-                ) : (
-                  <p className="text-xs text-slate-500 font-medium">
-                    (наприклад, скажіть «кабель» або «реле напруги»)
-                  </p>
-                )}
+                </div>
+
+                {/* Instant Search Button for recognized text */}
+                <button
+                  type="button"
+                  onClick={() => handleEmitResult(effectiveText)}
+                  className="w-full mt-1.5 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 animate-in zoom-in-95"
+                >
+                  <Search className="w-4 h-4" />
+                  <span>Шукати «{effectiveText}» зараз</span>
+                  <ArrowRight className="w-4 h-4 ml-0.5" />
+                </button>
               </div>
-            ) : speechState === 'processing' ? (
-              <div className="flex items-center justify-center gap-1.5 text-emerald-600 font-bold text-sm sm:text-base">
-                <Sparkles className="w-4 h-4 animate-spin text-emerald-500" />
-                <span>Шукаємо «{interimText || latestTranscriptRef.current}»...</span>
+            ) : isRecording ? (
+              <div className="space-y-0.5">
+                <p className="text-xs sm:text-sm font-bold text-slate-800">
+                  Говоріть у мікрофон:
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  наприклад: «кабель ВВГ» або «автомат 16 ампер»
+                </p>
               </div>
             ) : speechState === 'permission_denied' ? (
-              <div className="w-full flex flex-col items-center p-2.5 bg-amber-50 rounded-2xl border border-amber-200">
+              <div className="w-full flex flex-col items-center p-2.5 bg-amber-50 rounded-2xl border border-amber-200 text-left">
                 <div className="inline-flex items-center gap-1.5 text-amber-800 text-xs font-bold mb-1">
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Потрібен дозвіл на мікрофон</span>
+                  <Lock className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Потрібен доступ до мікрофона</span>
                 </div>
                 <p className="text-[11px] text-amber-700 leading-relaxed mb-2">
-                  Натисніть <b>«Разрешить»</b> у спливаючому вікні Safari/iOS, а потім затисніть кнопку мікрофона знову.
+                  У спливаючому вікні безпеки Safari чи Chrome натисніть <b>«Разрешить» (Дозволити)</b>.
                 </p>
                 <button
                   type="button"
-                  onClick={handlePressStart}
-                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer"
+                  onClick={handlePointerDown}
+                  className="self-center px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
-                  Спробувати ще раз
+                  Спробувати знову
                 </button>
               </div>
             ) : (
               <div className="space-y-0.5">
-                <h3 className="text-sm sm:text-base font-bold text-slate-800">
-                  {interimText ? `Останній запит: «${interimText}»` : 'Затисніть кнопку і говоріть'}
+                <h3 className="text-xs sm:text-sm font-bold text-slate-800">
+                  {errorMessage ? (
+                    <span className="text-rose-600">{errorMessage}</span>
+                  ) : (
+                    'Натисніть кнопку або затисніть для розмови'
+                  )}
                 </h3>
-                <p className="text-xs text-slate-500">
-                  {errorMessage || 'Коли закінчите фразу — просто відпустіть палець чи мишку'}
+                <p className="text-[11px] text-slate-500">
+                  Працює як рація (затиснув-відпустив) або в один клік
                 </p>
               </div>
             )}
@@ -662,38 +781,14 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
           {/* Spacebar Tip for PC */}
           <div className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-400 mb-2 font-medium">
             <Keyboard className="w-3 h-3 text-slate-400" />
-            <span>На ПК: можна затиснути <b>Пробіл (Space)</b></span>
+            <span>На ПК: можна також натиснути <b>Пробіл (Space)</b></span>
           </div>
 
-          {/* Quick Fallback Text Input inside modal */}
-          <div className="w-full mb-3 bg-slate-50 rounded-2xl p-2.5 border border-slate-200 text-left">
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-              Або введіть товар вручну:
-            </label>
-            <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                value={manualText}
-                onChange={(e) => setManualText(e.target.value)}
-                placeholder="Наприклад: кабель ВВГ, вимикач..."
-                className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
-              />
-              <button
-                type="button"
-                onClick={() => handleEmitResult(manualText)}
-                disabled={!manualText.trim()}
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl cursor-pointer transition-all active:scale-95"
-              >
-                Знайти
-              </button>
-            </div>
-          </div>
-
-          {/* Instant Matches Preview */}
+          {/* Instant Matches Preview from Store Catalog */}
           {matchedProducts.length > 0 && (
-            <div className="w-full mb-3 text-left bg-slate-50 rounded-2xl p-2.5 border border-slate-100 animate-in fade-in">
+            <div className="w-full mb-2.5 text-left bg-slate-50 rounded-2xl p-2.5 border border-slate-100 animate-in fade-in">
               <div className="text-[10px] uppercase font-bold text-slate-400 px-1 mb-1 tracking-wider">
-                Знайдено в каталозі:
+                Знайдено в каталозі ISKRA:
               </div>
               <div className="space-y-1">
                 {matchedProducts.map((p) => (
@@ -725,24 +820,40 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
             </div>
           )}
 
-          {/* Action Button: Search Recognized Text Now if still idle */}
-          {interimText && !isRecording && speechState !== 'processing' && (
-            <button
-              type="button"
-              onClick={() => handleEmitResult(interimText)}
-              className="mb-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/25 transition-all cursor-pointer active:scale-95"
-            >
-              <Search className="w-3.5 h-3.5" />
-              <span>Шукати «{interimText}»</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
-            </button>
-          )}
+          {/* Quick Fallback Text Input inside modal */}
+          <div className="w-full mb-2.5 bg-slate-50 rounded-2xl p-2.5 border border-slate-200 text-left">
+            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+              Або введіть товар вручну:
+            </label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={manualText}
+                onChange={(e) => setManualText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && manualText.trim()) {
+                    handleEmitResult(manualText);
+                  }
+                }}
+                placeholder="Наприклад: кабель ВВГ, вимикач..."
+                className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+              />
+              <button
+                type="button"
+                onClick={() => handleEmitResult(manualText)}
+                disabled={!manualText.trim()}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl cursor-pointer transition-all active:scale-95"
+              >
+                Знайти
+              </button>
+            </div>
+          </div>
 
-          {/* Popular Hints / Examples at bottom */}
-          <div className="mt-auto pt-3 border-t border-slate-100 w-full text-center">
+          {/* Popular Hints / Quick 1-click examples at bottom */}
+          <div className="mt-auto pt-2.5 border-t border-slate-100 w-full text-center">
             <div className="flex items-center justify-center gap-1.5 text-slate-400 text-xs mb-1.5 font-medium">
               <Volume2 className="w-3.5 h-3.5 text-slate-400" />
-              <span>Швидкий вибір товару в один клік:</span>
+              <span>Швидкий пошук в 1 клік:</span>
             </div>
             <div className="flex flex-wrap justify-center gap-1.5 max-h-24 overflow-y-auto pr-0.5">
               {popularHints.map((hint, idx) => (

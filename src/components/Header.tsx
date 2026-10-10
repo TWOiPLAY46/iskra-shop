@@ -30,6 +30,8 @@ export const Header: React.FC = () => {
     headerDesign,
     siteSettings,
     setActiveCategory,
+    setSelectedSubCategory,
+    setSelectedLeafTag,
     searchQuery,
     setSearchQuery,
     products,
@@ -553,6 +555,9 @@ export const Header: React.FC = () => {
         onSearch={(query) => {
           setSearchQuery(query);
           setActiveCategory('Усі');
+          setSelectedSubCategory(null);
+          setSelectedLeafTag(null);
+          setShowWishlistOnly(false);
           if (activeView !== 'store') setActiveView('store');
           setIsSearchFocused(false);
         }}
