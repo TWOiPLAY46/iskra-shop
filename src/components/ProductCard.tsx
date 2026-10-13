@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Product } from '../types/store';
 import { useStore } from '../context/StoreContext';
 import { getProductBrand } from '../utils/brandHelper';
-import { ShoppingBag, Heart, Droplets, Zap, Check, AlertTriangle, Flame, Bell, Wrench, Home, Cog } from 'lucide-react';
+import { ShoppingBag, Heart, Droplets, Zap, Check, AlertTriangle, Flame, Bell, Wrench, Home, Cog, Eye } from 'lucide-react';
 import { getSafeImageUrl } from '../utils/assetImages';
 import { formatUnit, formatPriceUnit } from '../utils/unitFormatter';
 
@@ -97,55 +97,97 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (product?.id) {
-              toggleWishlist(product.id);
-            }
-          }}
-          className={`p-1.5 rounded-full transition-all active:scale-90 ${
-            isFavorited 
-              ? 'text-red-500 bg-red-500/20' 
-              : isPremium
-              ? 'text-slate-400 hover:text-red-400 hover:bg-slate-800'
-              : 'text-slate-400 hover:text-red-500 hover:bg-slate-100'
-          }`}
-          title={isFavorited ? "Видалити з обраного" : "Додати до обраного"}
-          aria-label={isFavorited ? "Видалити з обраного" : "Додати до обраного"}
-        >
-          <Heart className={`w-4 h-4 transition-transform ${isFavorited ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setQuickViewProduct(product);
+            }}
+            className={`p-1.5 rounded-full transition-all active:scale-90 ${
+              isPremium
+                ? 'text-slate-400 hover:text-white hover:bg-slate-800'
+                : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100'
+            }`}
+            title="Огляд товару"
+            aria-label="Огляд товару"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (product?.id) {
+                toggleWishlist(product.id);
+              }
+            }}
+            className={`p-1.5 rounded-full transition-all active:scale-90 ${
+              isFavorited 
+                ? 'text-red-500 bg-red-500/20' 
+                : isPremium
+                ? 'text-slate-400 hover:text-red-400 hover:bg-slate-800'
+                : 'text-slate-400 hover:text-red-500 hover:bg-slate-100'
+            }`}
+            title={isFavorited ? "Видалити з обраного" : "Додати до обраного"}
+            aria-label={isFavorited ? "Видалити з обраного" : "Додати до обраного"}
+          >
+            <Heart className={`w-4 h-4 transition-transform ${isFavorited ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
+          </button>
+        </div>
       </div>
 
-      {/* Visual Image Showcase Area - Borderless Clean Product Photo */}
-      <div className="relative h-48 sm:h-56 md:h-60 lg:h-64 w-full p-1 sm:p-3 flex items-center justify-center mb-3 transition-all duration-300 overflow-hidden rounded-2xl bg-slate-50/60">
-        {!imageError && product.image && product.image.trim() !== '' ? (
-          <img
-            src={getSafeImageUrl(product.image)}
-            alt={product.name}
-            onError={() => setImageError(true)}
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-contain object-center scale-[1.03] sm:scale-100 transition-transform duration-300 ease-out group-hover:scale-[1.05] relative z-10 transform-gpu"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-400 relative z-10">
-            {isPlumbing ? (
-              <Droplets className="w-20 h-20 sm:w-24 sm:h-24 text-slate-400 stroke-[1.5]" />
-            ) : isTool ? (
-              <Wrench className="w-20 h-20 sm:w-24 sm:h-24 text-slate-400 stroke-[1.5]" />
-            ) : isHousehold ? (
-              <Home className="w-20 h-20 sm:w-24 sm:h-24 text-slate-400 stroke-[1.5]" />
-            ) : isOther ? (
-              <Cog className="w-20 h-20 sm:w-24 sm:h-24 text-slate-400 stroke-[1.5]" />
+      {/* Product Photo - Clean with rounded corners without artificial box */}
+      {(() => {
+        const displayImageUrl = getSafeImageUrl(
+          product.image,
+          `${product.name} ${product.category || ''} ${product.mainCategory || ''}`
+        );
+
+        return (
+          <div className="relative h-48 sm:h-56 md:h-60 lg:h-64 w-full flex items-center justify-center mb-3 overflow-hidden rounded-3xl sm:rounded-[26px]">
+            {!imageError && displayImageUrl ? (
+              <img
+                src={displayImageUrl}
+                alt={product.name}
+                onError={() => setImageError(true)}
+                referrerPolicy="no-referrer"
+                loading="lazy"
+                className="w-full h-full object-contain object-center rounded-3xl sm:rounded-[26px] transition-transform duration-300 ease-out group-hover:scale-105"
+              />
             ) : (
-              <Zap className="w-20 h-20 sm:w-24 sm:h-24 text-slate-400 stroke-[1.5]" />
+              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                {isPlumbing ? (
+                  <Droplets className="w-20 h-20 sm:w-24 sm:h-24 stroke-[1.5]" />
+                ) : isTool ? (
+                  <Wrench className="w-20 h-20 sm:w-24 sm:h-24 stroke-[1.5]" />
+                ) : isHousehold ? (
+                  <Home className="w-20 h-20 sm:w-24 sm:h-24 stroke-[1.5]" />
+                ) : isOther ? (
+                  <Cog className="w-20 h-20 sm:w-24 sm:h-24 stroke-[1.5]" />
+                ) : (
+                  <Zap className="w-20 h-20 sm:w-24 sm:h-24 stroke-[1.5]" />
+                )}
+              </div>
             )}
+
+            {/* Quick Preview Pill on hover */}
+            <div className="absolute inset-x-0 bottom-2 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform translate-y-1 group-hover:translate-y-0 z-20">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold shadow-md backdrop-blur-md border ${
+                isPremium
+                  ? 'bg-slate-900/90 text-amber-300 border-amber-400/30'
+                  : 'bg-white/95 text-slate-800 border-slate-200/90 shadow-slate-900/10'
+              }`}>
+                <Eye className="w-3.5 h-3.5 text-red-500" />
+                <span>Огляд товару</span>
+              </span>
+            </div>
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Product Content Body */}
       <div className="flex flex-col flex-1 justify-between">
