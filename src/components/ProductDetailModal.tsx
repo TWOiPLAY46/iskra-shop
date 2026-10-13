@@ -140,12 +140,12 @@ export const ProductDetailModal: React.FC = () => {
               }`}>
                 Деталі товару
               </span>
-              <div className="text-xs text-slate-400 truncate hidden sm:block">
+              <div className={`text-xs truncate ${isPremium ? 'text-slate-300' : 'text-slate-700 font-semibold'}`}>
                 <span>{quickViewProduct.mainCategory || 'Каталог'}</span>
                 {quickViewProduct.category && (
                   <>
-                    <span className="mx-1.5 opacity-50">/</span>
-                    <span className="text-slate-500">{quickViewProduct.category}</span>
+                    <span className="mx-1.5 opacity-60">/</span>
+                    <span className={isPremium ? 'text-white font-bold' : 'text-black font-extrabold'}>{quickViewProduct.category}</span>
                   </>
                 )}
               </div>
@@ -153,15 +153,14 @@ export const ProductDetailModal: React.FC = () => {
 
             <button
               onClick={() => setQuickViewProduct(null)}
-              className={`p-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
+              className={`p-2 rounded-xl transition-colors cursor-pointer flex items-center justify-center ${
                 isPremium 
                   ? 'text-slate-400 hover:text-white hover:bg-slate-800' 
-                  : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/70'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/80'
               }`}
               aria-label="Закрити"
-              title="Закрити (Esc)"
+              title="Закрити"
             >
-              <span className="text-[11px] font-medium hidden sm:inline opacity-70">Esc</span>
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -219,21 +218,45 @@ export const ProductDetailModal: React.FC = () => {
                   )}
                 </div>
 
-                {/* 3 Trust Assurance Features */}
-                <div className={`grid grid-cols-1 gap-2 p-3 rounded-2xl text-xs ${
-                  isPremium ? 'bg-slate-900/40 border border-slate-800' : 'bg-slate-50 border border-slate-200/60'
+                {/* 3 Trust Assurance Features Block */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  isPremium 
+                    ? 'bg-slate-900/90 border-slate-800 shadow-md' 
+                    : 'bg-slate-50/90 border-slate-200/90 shadow-xs'
                 }`}>
-                  <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300">
-                    <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="text-[11px] font-medium leading-tight">Відправка щодня Новою Поштою або самовивіз</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300">
-                    <ShieldCheck className="w-4 h-4 text-red-600 shrink-0" />
-                    <span className="text-[11px] font-medium leading-tight">Офіційна гарантія та 100% перевірка якості</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300">
-                    <RotateCcw className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span className="text-[11px] font-medium leading-tight">14 днів на повернення або обмін товару</span>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                        <Truck className="w-4 h-4 text-emerald-600" />
+                      </div>
+                      <span className={`text-xs font-bold leading-tight ${
+                        isPremium ? 'text-slate-100' : 'text-black'
+                      }`}>
+                        Відправка щодня Новою Поштою або самовивіз
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                        <ShieldCheck className="w-4 h-4 text-red-600" />
+                      </div>
+                      <span className={`text-xs font-bold leading-tight ${
+                        isPremium ? 'text-slate-100' : 'text-black'
+                      }`}>
+                        Офіційна гарантія та 100% перевірка якості
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                        <RotateCcw className="w-4 h-4 text-amber-600" />
+                      </div>
+                      <span className={`text-xs font-bold leading-tight ${
+                        isPremium ? 'text-slate-100' : 'text-black'
+                      }`}>
+                        14 днів на повернення або обмін товару
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -245,9 +268,9 @@ export const ProductDetailModal: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     {brand && brand !== 'Інші виробники' && (
-                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-lg ${
+                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-lg uppercase tracking-wider ${
                         isPremium 
-                          ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300' 
+                          ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300' 
                           : 'bg-red-50 border border-red-200/80 text-red-600 font-extrabold'
                       }`}>
                         {brand}
@@ -261,7 +284,11 @@ export const ProductDetailModal: React.FC = () => {
                     )}
                   </div>
 
-                  <span className="text-xs font-mono font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                  <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded ${
+                    isPremium 
+                      ? 'text-white bg-slate-800 border border-slate-700' 
+                      : 'text-white bg-slate-900 border border-slate-800'
+                  }`}>
                     АРТ: {quickViewProduct.sku}
                   </span>
                 </div>
@@ -275,24 +302,32 @@ export const ProductDetailModal: React.FC = () => {
 
                 {/* Rating & Stock Status */}
                 <div className="flex flex-wrap items-center gap-3 text-xs">
-                  <div className="flex items-center gap-1 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+                  <div className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border ${
+                    isPremium 
+                      ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' 
+                      : 'bg-amber-500/10 border-amber-500/20 text-amber-900 font-bold'
+                  }`}>
                     <div className="flex text-amber-400">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star key={s} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                       ))}
                     </div>
-                    <span className="font-extrabold text-amber-600 dark:text-amber-300 ml-1">4.9</span>
+                    <span className="font-extrabold ml-1">4.9</span>
                   </div>
 
-                  <div className="text-slate-300 dark:text-slate-700">•</div>
+                  <div className={isPremium ? 'text-slate-700' : 'text-slate-300'}>•</div>
 
                   {isOutOfStock ? (
-                    <span className="inline-flex items-center gap-1.5 text-rose-600 font-bold">
+                    <span className="inline-flex items-center gap-1.5 text-rose-500 font-bold">
                       <span className="w-2 h-2 rounded-full bg-rose-500"></span>
                       <span>Немає в наявності</span>
                     </span>
                   ) : showLowStockBadge ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-300 font-bold">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-bold ${
+                      isPremium 
+                        ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' 
+                        : 'bg-amber-500/10 border-amber-500/20 text-amber-950'
+                    }`}>
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
@@ -300,8 +335,10 @@ export const ProductDetailModal: React.FC = () => {
                       <span>Закінчується: лише {quickViewProduct.stock} {formatUnit(quickViewProduct.unit)}</span>
                     </span>
                   ) : (
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span className={`font-bold flex items-center gap-1.5 ${
+                      isPremium ? 'text-emerald-400' : 'text-emerald-800'
+                    }`}>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                       <span>В наявності: {quickViewProduct.stock} {formatUnit(quickViewProduct.unit)}</span>
                     </span>
                   )}
@@ -310,19 +347,23 @@ export const ProductDetailModal: React.FC = () => {
                 {/* Price and Cart Purchase Card */}
                 <div className={`p-4 sm:p-5 rounded-2xl border transition-all ${
                   isPremium 
-                    ? 'bg-slate-900/80 border-slate-800' 
+                    ? 'bg-slate-900/90 border-slate-800' 
                     : 'bg-slate-50/90 border-slate-200/90'
                 }`}>
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <div className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">
+                      <div className={`text-[11px] uppercase tracking-wider font-bold ${
+                        isPremium ? 'text-slate-300' : 'text-slate-600'
+                      }`}>
                         Ціна:
                       </div>
                       <div className="text-2xl sm:text-3xl font-black text-red-600 font-display tabular-nums leading-none mt-1">
                         {quickViewProduct.price}{' '}
                         <span className="text-lg font-bold text-red-600">грн</span>
                       </div>
-                      <div className="text-[10px] text-slate-400 font-medium mt-1">
+                      <div className={`text-xs font-semibold mt-1 ${
+                        isPremium ? 'text-slate-300' : 'text-slate-700'
+                      }`}>
                         {formatPriceUnit(quickViewProduct.unit)} • з ПДВ
                       </div>
                     </div>
@@ -335,17 +376,23 @@ export const ProductDetailModal: React.FC = () => {
                         }`}>
                           <button
                             onClick={() => setQty(Math.max(1, qty - 1))}
-                            className="p-1 rounded text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                            className={`p-1 rounded transition-colors cursor-pointer ${
+                              isPremium ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+                            }`}
                             aria-label="Зменшити"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
-                          <span className="w-8 text-center font-black text-sm font-mono">
+                          <span className={`w-8 text-center font-black text-sm font-mono ${
+                            isPremium ? 'text-white' : 'text-slate-950'
+                          }`}>
                             {qty}
                           </span>
                           <button
                             onClick={() => setQty(Math.min(quickViewProduct.stock || 99, qty + 1))}
-                            className="p-1 rounded text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                            className={`p-1 rounded transition-colors cursor-pointer ${
+                              isPremium ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+                            }`}
                             aria-label="Збільшити"
                           >
                             <Plus className="w-3.5 h-3.5" />
@@ -378,23 +425,29 @@ export const ProductDetailModal: React.FC = () => {
 
                 {/* Tabs: Specifications & Description */}
                 <div className="pt-2">
-                  <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-slate-800 pb-2">
+                  <div className={`flex items-center gap-2 border-b pb-2 ${
+                    isPremium ? 'border-slate-800' : 'border-slate-200/80'
+                  }`}>
                     <button
                       onClick={() => setActiveTab('specs')}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      className={`text-xs font-bold px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
                         activeTab === 'specs'
                           ? 'bg-red-600 text-white shadow-xs'
-                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                          : isPremium 
+                          ? 'text-slate-300 hover:text-white hover:bg-slate-800' 
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                       }`}
                     >
                       Характеристики
                     </button>
                     <button
                       onClick={() => setActiveTab('desc')}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      className={`text-xs font-bold px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
                         activeTab === 'desc'
                           ? 'bg-red-600 text-white shadow-xs'
-                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                          : isPremium 
+                          ? 'text-slate-300 hover:text-white hover:bg-slate-800' 
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                       }`}
                     >
                       Опис товару
@@ -402,32 +455,56 @@ export const ProductDetailModal: React.FC = () => {
                   </div>
 
                   {activeTab === 'specs' ? (
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs pt-2">
-                      <div className="flex justify-between py-1.5">
-                        <span className="text-slate-500">Виробник / Бренд:</span>
-                        <span className="font-bold text-red-600 dark:text-red-400">{brand}</span>
+                    <div className={`divide-y text-xs pt-2 ${
+                      isPremium ? 'divide-slate-800' : 'divide-slate-200/70'
+                    }`}>
+                      <div className="flex justify-between py-2 items-center">
+                        <span className={isPremium ? 'text-slate-400 font-medium' : 'text-slate-600 font-medium'}>
+                          Виробник / Бренд:
+                        </span>
+                        <span className={`font-bold ${isPremium ? 'text-amber-300' : 'text-red-600'}`}>
+                          {brand}
+                        </span>
                       </div>
-                      <div className="flex justify-between py-1.5">
-                        <span className="text-slate-500">Категорія:</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">{quickViewProduct.category}</span>
+                      <div className="flex justify-between py-2 items-center">
+                        <span className={isPremium ? 'text-slate-400 font-medium' : 'text-slate-600 font-medium'}>
+                          Категорія:
+                        </span>
+                        <span className={`font-bold ${isPremium ? 'text-white' : 'text-slate-800'}`}>
+                          {quickViewProduct.category}
+                        </span>
                       </div>
-                      <div className="flex justify-between py-1.5">
-                        <span className="text-slate-500">Артикул (SKU):</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{quickViewProduct.sku}</span>
+                      <div className="flex justify-between py-2 items-center">
+                        <span className={isPremium ? 'text-slate-400 font-medium' : 'text-slate-600 font-medium'}>
+                          Артикул (SKU):
+                        </span>
+                        <span className={`font-mono font-bold ${isPremium ? 'text-white' : 'text-slate-800'}`}>
+                          {quickViewProduct.sku}
+                        </span>
                       </div>
-                      <div className="flex justify-between py-1.5">
-                        <span className="text-slate-500">Одиниця виміру:</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">{quickViewProduct.unit}</span>
+                      <div className="flex justify-between py-2 items-center">
+                        <span className={isPremium ? 'text-slate-400 font-medium' : 'text-slate-600 font-medium'}>
+                          Одиниця виміру:
+                        </span>
+                        <span className={`font-bold ${isPremium ? 'text-white' : 'text-slate-800'}`}>
+                          {quickViewProduct.unit}
+                        </span>
                       </div>
                       {quickViewProduct.specs && Object.entries(quickViewProduct.specs).map(([key, val]) => (
-                        <div key={key} className="flex justify-between py-1.5 gap-2">
-                          <span className="text-slate-500 shrink-0">{key}:</span>
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">{val}</span>
+                        <div key={key} className="flex justify-between py-2 items-center gap-3">
+                          <span className={`shrink-0 ${isPremium ? 'text-slate-400 font-medium' : 'text-slate-600 font-medium'}`}>
+                            {key}:
+                          </span>
+                          <span className={`font-bold text-right ${isPremium ? 'text-white' : 'text-slate-800'}`}>
+                            {val}
+                          </span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="pt-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                    <div className={`pt-3 text-sm leading-relaxed whitespace-pre-line ${
+                      isPremium ? 'text-white font-medium' : 'text-black font-semibold'
+                    }`}>
                       {quickViewProduct.desc || 'Офіційний сертифікований товар із гарантією виробника для надійного монтажу та ремонту.'}
                     </div>
                   )}
@@ -443,9 +520,13 @@ export const ProductDetailModal: React.FC = () => {
                 <div className="flex items-center justify-between gap-2 mb-3.5">
                   <div className="flex items-center gap-2 text-xs font-bold">
                     <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span>З цим товаром також купують:</span>
+                    <span className={isPremium ? 'text-white font-bold' : 'text-slate-900 font-bold'}>
+                      З цим товаром також купують:
+                    </span>
                   </div>
-                  <span className="text-[11px] text-slate-400">Часті комплектуючі</span>
+                  <span className={`text-[11px] font-medium ${isPremium ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Часті комплектуючі
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -458,11 +539,11 @@ export const ProductDetailModal: React.FC = () => {
                         key={item.id}
                         className={`rounded-2xl border p-3 flex flex-col justify-between transition-all group ${
                           isPremium 
-                            ? 'bg-slate-900/60 border-slate-800 hover:border-amber-400/40' 
-                            : 'bg-slate-50 hover:bg-white border-slate-200 hover:border-red-500/30 hover:shadow-md'
+                            ? 'bg-slate-900/80 border-slate-800 hover:border-amber-400/40 text-white' 
+                            : 'bg-slate-50 hover:bg-white border-slate-200 hover:border-red-500/30 hover:shadow-md text-slate-900'
                         }`}
                       >
-                        <div className="aspect-[4/3] rounded-xl flex items-center justify-center p-1.5 mb-2 overflow-hidden">
+                        <div className="aspect-[4/3] rounded-xl flex items-center justify-center p-1.5 mb-2 overflow-hidden bg-white/5">
                           <img
                             src={itemImgUrl}
                             alt={item.name}
@@ -471,11 +552,15 @@ export const ProductDetailModal: React.FC = () => {
                           />
                         </div>
 
-                        <div className="text-[11px] font-bold line-clamp-2 leading-tight mb-2 h-7">
+                        <div className={`text-[11px] font-bold line-clamp-2 leading-tight mb-2 h-7 ${
+                          isPremium ? 'text-slate-100' : 'text-slate-900'
+                        }`}>
                           {item.name}
                         </div>
 
-                        <div className="flex items-center justify-between gap-1 pt-1 mt-auto border-t border-slate-200/50 dark:border-slate-800">
+                        <div className={`flex items-center justify-between gap-1 pt-1 mt-auto border-t ${
+                          isPremium ? 'border-slate-800' : 'border-slate-200/50'
+                        }`}>
                           <span className="text-xs font-black text-red-600 tabular-nums">
                             {item.price} грн
                           </span>
@@ -534,10 +619,10 @@ export const ProductDetailModal: React.FC = () => {
               type="button"
               onClick={() => setIsZoomed(false)}
               className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 text-xs font-semibold"
-              title="Закрити (Esc)"
+              title="Закрити"
             >
               <X className="w-5 h-5" />
-              <span className="hidden sm:inline pr-1">Закрити (Esc)</span>
+              <span className="hidden sm:inline pr-1">Закрити</span>
             </button>
           </div>
 
@@ -555,7 +640,7 @@ export const ProductDetailModal: React.FC = () => {
           </div>
 
           <p className="text-xs text-white/70 mt-3 font-medium">
-            Натисніть на фото або клавішу Esc, щоб закрити перегляд
+            Натисніть на фото або кнопку, щоб закрити перегляд
           </p>
         </div>
       )}
