@@ -72,6 +72,17 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
     setLocalMax(currentMaxPrice === '' ? '' : String(currentMaxPrice));
   }, [currentMaxPrice]);
 
+  // Lock body scroll when mobile drawer is open
+  React.useEffect(() => {
+    if (isMobileDrawerOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [isMobileDrawerOpen]);
+
   const handleApplyPrice = () => {
     const minVal = localMin.trim() === '' ? '' : Math.max(0, Number(localMin) || 0);
     const maxVal = localMax.trim() === '' ? '' : Math.max(0, Number(localMax) || 0);
@@ -440,57 +451,63 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
         {filterContent}
       </aside>
 
-      {/* Mobile Drawer (Bottom sheet modal on < lg screens) */}
+      {/* Mobile Drawer (Modern Slide-Over Sheet on < lg screens) */}
       {isMobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex justify-end">
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-[9999] lg:hidden flex justify-end">
+          {/* Backdrop with dark blur */}
           <div
-            className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
             onClick={() => setIsMobileDrawerOpen(false)}
           />
 
-          {/* Drawer Panel */}
-          <div className={`relative w-full max-w-sm h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-250 ${
-            isPremium ? 'bg-[#0c1220] text-slate-100 border-l border-slate-800' : 'bg-white'
+          {/* Drawer Panel: full width on small mobile, max-w-md on tablet */}
+          <div className={`relative w-full sm:max-w-md h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-250 ${
+            isPremium ? 'bg-[#0c1220] text-slate-100 border-l border-slate-800' : 'bg-white text-slate-900'
           }`}>
             {/* Header */}
-            <div className={`p-4 border-b flex items-center justify-between ${
-              isPremium ? 'bg-[#080c14] border-slate-800' : 'bg-slate-50 border-slate-200'
+            <div className={`px-5 py-4 border-b flex items-center justify-between shrink-0 ${
+              isPremium ? 'bg-[#080c14] border-slate-800' : 'bg-slate-900 text-white border-slate-800'
             }`}>
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-red-600" />
-                <h3 className={`text-sm font-black font-display ${isPremium ? 'text-white' : 'text-slate-900'}`}>
-                  Фільтри сантехніки та товарів
-                </h3>
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-red-600 text-white shadow-xs">
+                  <SlidersHorizontal className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold font-display leading-tight text-white">
+                    Фільтри товарів
+                  </h3>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Знайдено: {totalFilteredCount} позицій
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsMobileDrawerOpen(false)}
-                className={`p-1.5 rounded-xl ${
-                  isPremium ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'
-                }`}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                aria-label="Закрити фільтри"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Scrollable filters body */}
-            <div className="flex-1 overflow-y-auto p-5">
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
               {filterContent}
             </div>
 
             {/* Sticky bottom action buttons */}
-            <div className={`p-4 border-t grid grid-cols-2 gap-3 ${
-              isPremium ? 'bg-[#080c14] border-slate-800' : 'bg-white border-slate-200'
+            <div className={`p-4 border-t grid grid-cols-2 gap-3 shrink-0 ${
+              isPremium ? 'bg-[#080c14] border-slate-800' : 'bg-white border-slate-200 shadow-lg'
             }`}>
               <button
                 type="button"
                 onClick={onResetAll}
                 disabled={!hasActiveFilters}
-                className={`py-2.5 px-3 rounded-xl border text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed text-center transition-colors ${
+                className={`py-3 px-3 rounded-xl border text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed text-center transition-colors cursor-pointer ${
                   isPremium 
                     ? 'border-slate-700 text-slate-300 hover:bg-slate-800' 
-                    : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+                    : 'border-slate-300 text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 Очистити
@@ -499,7 +516,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
               <button
                 type="button"
                 onClick={() => setIsMobileDrawerOpen(false)}
-                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-xs font-bold text-center shadow-md shadow-red-600/30 transition-colors"
+                className="py-3 px-3 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold text-center shadow-md shadow-red-600/30 transition-colors cursor-pointer"
               >
                 Показати ({totalFilteredCount})
               </button>
