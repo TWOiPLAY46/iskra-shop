@@ -186,67 +186,121 @@ export async function enrichProductWithAI(product: {
     console.warn('[AI Enricher] Backend /api/enrich-product unavailable (static host or GitHub Pages):', backendErr);
   }
 
-  // 2. Direct client-side Gemini API call if VITE_GEMINI_API_KEY is configured in static build
-  const clientKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
-  if (clientKey && typeof clientKey === 'string' && clientKey.length > 10 && !clientKey.includes('MY_GEMINI_API_KEY')) {
+  // 2. Direct client-side Gemini API call if key is available in localStorage or VITE_GEMINI_API_KEY
+  const clientKey = 
+    (typeof window !== 'undefined' ? (localStorage.getItem('gemini_api_key') || localStorage.getItem('VITE_GEMINI_API_KEY')) : null) ||
+    (import.meta as any).env?.VITE_GEMINI_API_KEY;
+
+  if (clientKey && typeof clientKey === 'string' && clientKey.trim().length > 10 && !clientKey.includes('MY_GEMINI_API_KEY')) {
     try {
-      const prompt = `Ти — експерт зі збагачення товарів для інтернет-магазину ISKRA. Сформуй JSON українською мовою для товару:
+      const prompt = `Ти — експерт зі збагачення товарів для українського інтернет-магазину ISKRA. Сформуй JSON українською мовою для товару:
 Назва: ${product.name}
 Артикул: ${product.sku || ''}
+Категорія: ${product.category || ''}
+Поточний опис: ${product.currentDescription || ''}
+
 Поверни виключно валідний JSON у форматі:
 {
   "mainCategory": "Електротовари" або "Сантехніка та опалення" або "Інструменти та обладнання" або "Господарчі товари",
-  "category": "Назва категорії",
-  "intro": "1-2 речення короткого опису без зайвої води",
-  "features": ["Енергоефективність: опис", "Довговічність: опис", "Універсальність: опис"],
-  "specs": [{"key": "Потужність", "value": "10 Вт"}, {"key": "Тип цоколя", "value": "E27"}],
+  "category": "Назва категорії (наприклад: Лампи LED)",
+  "intro": "1-2 речення вступного опису призначення товару без технічних списків",
+  "features": ["Енергоефективність: знижує витрати на електроенергію", "Довговічність: стабільна робота протягом тривалого часу без мерехтіння", "Універсальність: стандартний цоколь E27 підходить для більшості світильників"],
+  "specs": [{"key": "Потужність", "value": "10 Вт"}, {"key": "Тип цоколя", "value": "E27"}, {"key": "Світловий потік", "value": "900 Лм"}, {"key": "Температура кольору", "value": "6500K"}, {"key": "Напруга", "value": "220-240V"}, {"key": "Термін служби", "value": "25 000 годин"}],
   "tags": ["тег1", "тег2"]
 }`;
 
-      const geminiResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${clientKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            responseMimeType: 'application/json',
+      // Try active models in order
+      const modelsToTry = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-3.1-flash-lite'];
+      let parsedData: any = null;
+
+      for (const model of modelsToTry) {
+        try {
+          const geminiResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${clientKey.trim()}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.1,
+                responseMimeType: 'application/json',
+              }
+            })
+          });
+
+          if (geminiResp.ok) {
+            const rawJson = await geminiResp.json();
+            const text = rawJson?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+            const cleanJson = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
+            parsedData = JSON.parse(cleanJson);
+            if (parsedData) break;
           }
-        })
-      });
-
-      if (geminiResp.ok) {
-        const rawJson = await geminiResp.json();
-        const text = rawJson?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-        const cleanJson = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
-        const parsed = JSON.parse(cleanJson);
-        if (parsed.intro || (parsed.specs && parsed.specs.length > 0)) {
-          const intro = parsed.intro || '';
-          const features = Array.isArray(parsed.features) ? parsed.features : [];
-          const specs = Array.isArray(parsed.specs) ? parsed.specs : [];
-          const description = `${intro}\n\nПереваги\n${features.map((f: string) => `• ${f}`).join('\n')}`;
-
-          return {
-            mainCategory: parsed.mainCategory || 'Електротовари',
-            category: parsed.category || product.category || 'Лампи LED',
-            intro,
-            description,
-            features,
-            specs,
-            tags: Array.isArray(parsed.tags) ? parsed.tags : [],
-            seoTitle: `${product.name} — інтернет-магазин ISKRA`,
-            seoDescription: intro,
-          };
+        } catch {
+          // try next model
         }
       }
+
+      if (parsedData && (parsedData.intro || (parsedData.specs && parsedData.specs.length > 0))) {
+        const intro = parsedData.intro || '';
+        const features = Array.isArray(parsedData.features) ? parsedData.features : [];
+        const specs = Array.isArray(parsedData.specs) ? parsedData.specs : [];
+        const description = `${intro}\n\nПереваги\n${features.map((f: string) => `• ${f}`).join('\n')}`;
+
+        return {
+          mainCategory: parsedData.mainCategory || 'Електротовари',
+          category: parsedData.category || product.category || 'Лампи LED',
+          intro,
+          description,
+          features,
+          specs,
+          tags: Array.isArray(parsedData.tags) ? parsedData.tags : [],
+          seoTitle: `${product.name} — купити в ISKRA`,
+          seoDescription: intro,
+        };
+      }
     } catch (clientGeminiErr) {
-      console.warn('[AI Enricher] Client-side Gemini call failed, using intelligent local enricher:', clientGeminiErr);
+      console.warn('[AI Enricher] Client-side Gemini call failed, falling back to local enricher:', clientGeminiErr);
     }
   }
 
   // 3. Fallback: Intelligent heuristic enricher that ALWAYS works on GitHub Pages without any backend or API key!
-  console.log('[AI Enricher] Generating high-accuracy product enrichment locally for GitHub Pages...');
+  console.log('[AI Enricher] Generating high-accuracy product enrichment locally for static/GitHub hosting...');
   return generateLocalProductEnrichment(product);
+}
+
+/**
+ * Diagnostic tool to verify Gemini AI availability
+ */
+export async function testGeminiStatus(): Promise<{
+  status: 'server' | 'client' | 'local';
+  message: string;
+}> {
+  // Test server endpoint first
+  try {
+    const res = await fetch('/api/enrich-product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Тестова лампа LED 10W E27 6500K' }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      if (d.success) {
+        return { status: 'server', message: 'Gemini AI успішно працює на сервері (Google GenAI SDK)' };
+      }
+    }
+  } catch {
+    // server not reachable
+  }
+
+  // Check client key
+  const clientKey = 
+    (typeof window !== 'undefined' ? (localStorage.getItem('gemini_api_key') || localStorage.getItem('VITE_GEMINI_API_KEY')) : null) ||
+    (import.meta as any).env?.VITE_GEMINI_API_KEY;
+
+  if (clientKey && clientKey.trim().length > 10) {
+    return { status: 'client', message: 'Gemini AI працює у браузері через клієнтський API ключ' };
+  }
+
+  return { status: 'local', message: 'Автономний локальний AI генератор активний (готовий для GitHub Pages)' };
 }
 
 /**

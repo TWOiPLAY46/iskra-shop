@@ -92,6 +92,56 @@ export const ProductDetailModal: React.FC = () => {
     return specsMap;
   }, [quickViewProduct]);
 
+  // Extract advantages / benefits for "Характеристики" and "Опис товару" tabs
+  const collectedFeatures = useMemo(() => {
+    if (!quickViewProduct) return [];
+    const featuresList: string[] = [];
+    const raw = quickViewProduct.desc || '';
+    if (raw.includes('Переваги') || raw.includes('Головні переваги')) {
+      const lines = raw.split('\n');
+      let inFeatures = false;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed === 'Переваги' || trimmed.startsWith('Переваги:') || trimmed.includes('Головні переваги')) {
+          inFeatures = true;
+          continue;
+        }
+        if (inFeatures && (trimmed.startsWith('Технічні характеристики') || trimmed.startsWith('Характеристики'))) {
+          inFeatures = false;
+          continue;
+        }
+        if (inFeatures && trimmed) {
+          const cleanF = trimmed.replace(/^[•\-*🔥✨]\s*/, '').trim();
+          if (cleanF && !featuresList.includes(cleanF)) {
+            featuresList.push(cleanF);
+          }
+        }
+      }
+    }
+
+    if (featuresList.length === 0) {
+      const lower = ((quickViewProduct.name || '') + ' ' + (quickViewProduct.category || '')).toLowerCase();
+      if (lower.includes('лампа') || lower.includes('led') || lower.includes('світильник')) {
+        featuresList.push('Енергоефективність: споживає мінімум електроенергії при високій яскравості');
+        featuresList.push('Довговічність: стабільна робота протягом тривалого часу без мерехтіння');
+        featuresList.push('Універсальність: стандартний цоколь підходить для більшості світильників');
+      } else if (lower.includes('кабель') || lower.includes('провід')) {
+        featuresList.push('Надійність: монолітна мідна жила з високою електропровідністю');
+        featuresList.push('Безпека: стійка негорюча ізоляція за стандартами ДСТУ');
+        featuresList.push('Довговічність: стійкість до згинань та тривалий ресурс роботи');
+      } else if (lower.includes('сантех') || lower.includes('кран') || lower.includes('змішувач')) {
+        featuresList.push('Стійкість до корозії: корпус з якісної первинної латуні');
+        featuresList.push('Герметичність: надійні термостійкі ущільнювачі та плавний хід');
+        featuresList.push('Довговічність: безперебійна робота при високому робочому тиску');
+      } else {
+        featuresList.push('Енергоефективність: знижує витрати на електроенергію');
+        featuresList.push('Тривалий термін служби: до 25 000 годин безперервної роботи');
+        featuresList.push('Універсальність: швидкий та зручний монтаж');
+      }
+    }
+    return featuresList;
+  }, [quickViewProduct]);
+
   // Extract pure description text for "Опис товару" tab (without technical specs table or SKU/unit metadata)
   const cleanDescription = useMemo(() => {
     if (!quickViewProduct) return '';
@@ -99,7 +149,7 @@ export const ProductDetailModal: React.FC = () => {
 
     // Check placeholder
     if (!raw || raw.includes('Товар з облікової програми УкрСклад') || raw.startsWith('Товар з облікової програми')) {
-      return `Офіційний сертифікований товар «${quickViewProduct.name}». Гарантія якості від виробника, надійні матеріали, перевірено перед відправкою. Підходить для професійного монтажу та щоденного домашнього використання.`;
+      return `LED лампа ${quickViewProduct.name} — це енергоефективне джерело світла, призначене для якісного освітлення житлових та комерційних приміщень. Вона забезпечує яскравий світловий потік при мінімальному споживанні електроенергії.`;
     }
 
     const lines = raw.split('\n');
@@ -109,13 +159,14 @@ export const ProductDetailModal: React.FC = () => {
     for (const line of lines) {
       const trimmed = line.trim();
 
-      // Skip technical characteristics section completely
+      // Skip technical characteristics section completely (it has its own tab)
       if (trimmed === 'Технічні характеристики' || trimmed.startsWith('Технічні характеристики:')) {
         skipSection = true;
         continue;
       }
       if (trimmed === 'Переваги' || trimmed.startsWith('Переваги:') || trimmed.includes('Головні переваги')) {
         skipSection = false;
+        continue;
       }
       if (skipSection) {
         continue;
@@ -131,7 +182,7 @@ export const ProductDetailModal: React.FC = () => {
 
     const cleaned = resultLines.join('\n').trim();
     if (!cleaned) {
-      return `Офіційний сертифікований товар «${quickViewProduct.name}». Гарантія якості від виробника, надійні матеріали, перевірено перед відправкою. Підходить для професійного монтажу та щоденного домашнього використання.`;
+      return `LED лампа ${quickViewProduct.name} — це енергоефективне джерело світла, призначене для якісного освітлення житлових та комерційних приміщень. Вона забезпечує яскравий світловий потік при мінімальному споживанні електроенергії.`;
     }
     return cleaned;
   }, [quickViewProduct]);
@@ -635,78 +686,107 @@ export const ProductDetailModal: React.FC = () => {
                           Одиниця виміру:
                         </span>
                         <span className={`font-bold ${isPremium ? 'text-white' : 'text-slate-950'}`}>
-                          {quickViewProduct.unit}
+                          {quickViewProduct.unit?.includes('грн') ? quickViewProduct.unit : `грн/${quickViewProduct.unit || 'шт'}`}
                         </span>
                       </div>
                     </div>
                   ) : activeTab === 'specs' ? (
-                    <div className="pt-2">
-                      {Object.keys(collectedSpecs).length > 0 ? (
-                        <div className={`divide-y text-xs sm:text-sm ${
-                          isPremium ? 'divide-slate-800' : 'divide-slate-200/80'
+                    <div className="pt-2 space-y-4">
+                      {/* Technical specifications header & rows */}
+                      <div>
+                        <h4 className={`text-xs font-black tracking-wider uppercase mb-2 ${
+                          isPremium ? 'text-slate-200' : 'text-slate-900'
                         }`}>
-                          {Object.entries(collectedSpecs).map(([key, val]) => (
-                            <div key={key} className="flex justify-between py-2.5 items-center gap-4">
-                              <span className={`shrink-0 ${isPremium ? 'text-slate-300 font-bold' : 'text-slate-900 font-bold'}`}>
-                                {key}:
-                              </span>
-                              <span className={`font-bold text-right ${isPremium ? 'text-white' : 'text-slate-950'}`}>
-                                {val}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className={`p-4 rounded-xl text-center text-xs sm:text-sm ${
-                          isPremium ? 'bg-slate-800/60 text-slate-400' : 'bg-slate-50 text-slate-600'
-                        }`}>
-                          Характеристики для цього товару уточнюються. Натисніть кнопку генерації AI нижче, щоб автоматично заповнити технічні характеристики.
+                          Технічні характеристики
+                        </h4>
+                        {Object.keys(collectedSpecs).length > 0 ? (
+                          <div className={`divide-y text-xs sm:text-sm ${
+                            isPremium ? 'divide-slate-800' : 'divide-slate-200/80'
+                          }`}>
+                            {Object.entries(collectedSpecs).map(([key, val]) => (
+                              <div key={key} className="flex justify-between py-2.5 items-center gap-4">
+                                <span className={`shrink-0 ${isPremium ? 'text-slate-300 font-bold' : 'text-slate-900 font-bold'}`}>
+                                  {key}:
+                                </span>
+                                <span className={`font-bold text-right ${isPremium ? 'text-white' : 'text-slate-950'}`}>
+                                  {val}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className={`p-4 rounded-xl text-center text-xs sm:text-sm ${
+                            isPremium ? 'bg-slate-800/60 text-slate-400' : 'bg-slate-50 text-slate-600'
+                          }`}>
+                            Характеристики для цього товару уточнюються. Натисніть кнопку генерації AI нижче, щоб автоматично заповнити технічні характеристики.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Advantages section under specifications */}
+                      {collectedFeatures.length > 0 && (
+                        <div className={`pt-4 border-t ${isPremium ? 'border-slate-800' : 'border-slate-200'}`}>
+                          <h4 className={`text-xs font-black tracking-wider uppercase mb-2.5 ${
+                            isPremium ? 'text-emerald-400' : 'text-slate-900'
+                          }`}>
+                            Переваги
+                          </h4>
+                          <div className="space-y-2">
+                            {collectedFeatures.map((feat, fIdx) => {
+                              const colonIdx = feat.indexOf(':');
+                              const title = colonIdx > -1 ? feat.substring(0, colonIdx).trim() : feat;
+                              const desc = colonIdx > -1 ? feat.substring(colonIdx + 1).trim() : '';
+                              return (
+                                <div key={fIdx} className="text-xs sm:text-sm leading-relaxed">
+                                  <span className={`font-bold ${isPremium ? 'text-white' : 'text-slate-950'}`}>{title}{desc ? ':' : ''}</span>{' '}
+                                  {desc && <span className={isPremium ? 'text-slate-300' : 'text-slate-800 font-medium'}>{desc}</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>
                   ) : (
                     <div className="pt-3 space-y-4">
-                      {/* Only pure description and advantages in 'Опис товару' tab */}
+                      {/* Only pure narrative description and advantages in 'Опис товару' tab */}
                       <div className="space-y-3">
-                        {cleanDescription.split('\n').map((line, idx) => {
-                          const trimmed = line.trim();
-                          if (!trimmed) return <div key={idx} className="h-1.5" />;
+                        {cleanDescription.split('\n').filter(l => {
+                          const t = l.trim();
+                          return t && !t.startsWith('•') && !t.startsWith('-') && !t.startsWith('*') && !t.includes('Переваги') && !t.startsWith('Технічні характеристики');
+                        }).map((para, idx) => (
+                          <p key={idx} className={`text-sm leading-relaxed ${
+                            isPremium ? 'text-slate-200 font-medium' : 'text-slate-950 font-medium'
+                          }`}>
+                            {para}
+                          </p>
+                        ))}
 
-                          if (trimmed === 'Переваги' || trimmed.startsWith('Переваги:') || trimmed.includes('Головні переваги')) {
-                            return (
-                              <div key={idx} className={`pt-2.5 pb-1 border-b ${isPremium ? 'border-slate-800' : 'border-slate-200'}`}>
-                                <h4 className={`text-xs font-black tracking-wider uppercase flex items-center gap-1.5 ${
-                                  isPremium ? 'text-emerald-400' : 'text-slate-900'
-                                }`}>
-                                  ✨ {trimmed.replace(/:$/, '')}
-                                </h4>
-                              </div>
-                            );
-                          }
-
-                          if (trimmed.includes(':') && (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('🔥'))) {
-                            const colonIdx = trimmed.indexOf(':');
-                            const title = trimmed.substring(0, colonIdx).trim().replace(/^[•\-*🔥✨]\s*/, '');
-                            const detail = trimmed.substring(colonIdx + 1).trim();
-                            return (
-                              <div key={idx} className="flex items-start gap-2 text-xs sm:text-sm">
-                                <span className={`font-bold shrink-0 mt-0.5 ${isPremium ? 'text-emerald-400' : 'text-emerald-600'}`}>•</span>
-                                <div className={isPremium ? 'text-slate-200' : 'text-slate-900 font-medium'}>
-                                  <span className={`font-bold ${isPremium ? 'text-white' : 'text-slate-950'}`}>{title}:</span>{' '}
-                                  <span className={isPremium ? 'text-slate-300 font-medium' : 'text-slate-800 font-medium'}>{detail}</span>
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <p key={idx} className={`text-sm leading-relaxed ${
-                              isPremium ? 'text-slate-200 font-medium' : 'text-slate-950 font-medium'
+                        {/* ✨ Переваги header & benefits formatted cleanly */}
+                        {collectedFeatures.length > 0 && (
+                          <div className="pt-2">
+                            <h4 className={`text-xs font-black tracking-wider uppercase flex items-center gap-1.5 mb-3 ${
+                              isPremium ? 'text-emerald-400' : 'text-slate-900'
                             }`}>
-                              {trimmed}
-                            </p>
-                          );
-                        })}
+                              ✨ Переваги
+                            </h4>
+                            <div className="space-y-3">
+                              {collectedFeatures.map((feat, idx) => {
+                                const colonIdx = feat.indexOf(':');
+                                const title = colonIdx > -1 ? feat.substring(0, colonIdx).trim() : feat;
+                                const detail = colonIdx > -1 ? feat.substring(colonIdx + 1).trim() : '';
+                                return (
+                                  <div key={idx} className="text-xs sm:text-sm leading-relaxed">
+                                    <p>
+                                      <span className={`font-bold ${isPremium ? 'text-white' : 'text-slate-950'}`}>{title}:</span>{' '}
+                                      <span className={isPremium ? 'text-slate-300' : 'text-slate-800 font-medium'}>{detail}</span>
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

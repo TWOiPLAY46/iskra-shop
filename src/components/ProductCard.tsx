@@ -97,47 +97,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
 
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setQuickViewProduct(product);
-            }}
-            className={`p-1.5 rounded-full transition-all active:scale-90 ${
-              isPremium
-                ? 'text-slate-400 hover:text-white hover:bg-slate-800'
-                : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100'
-            }`}
-            title="Огляд товару"
-            aria-label="Огляд товару"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (product?.id) {
-                toggleWishlist(product.id);
-              }
-            }}
-            className={`p-1.5 rounded-full transition-all active:scale-90 ${
-              isFavorited 
-                ? 'text-red-500 bg-red-500/20' 
-                : isPremium
-                ? 'text-slate-400 hover:text-red-400 hover:bg-slate-800'
-                : 'text-slate-400 hover:text-red-500 hover:bg-slate-100'
-            }`}
-            title={isFavorited ? "Видалити з обраного" : "Додати до обраного"}
-            aria-label={isFavorited ? "Видалити з обраного" : "Додати до обраного"}
-          >
-            <Heart className={`w-4 h-4 transition-transform ${isFavorited ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
-          </button>
-        </div>
+        {/* Wishlist Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (product?.id) {
+              toggleWishlist(product.id);
+            }
+          }}
+          className={`p-1.5 rounded-full transition-all active:scale-90 ${
+            isFavorited 
+              ? 'text-red-500 bg-red-500/20' 
+              : isPremium
+              ? 'text-slate-400 hover:text-red-400 hover:bg-slate-800'
+              : 'text-slate-400 hover:text-red-500 hover:bg-slate-100'
+          }`}
+          title={isFavorited ? "Видалити з обраного" : "Додати до обраного"}
+          aria-label={isFavorited ? "Видалити з обраного" : "Додати до обраного"}
+        >
+          <Heart className={`w-4 h-4 transition-transform ${isFavorited ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
+        </button>
       </div>
 
       {/* Product Photo - Clean with rounded corners without artificial box */}
