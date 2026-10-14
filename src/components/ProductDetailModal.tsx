@@ -49,13 +49,92 @@ export const ProductDetailModal: React.FC = () => {
   const [imgError, setImgError] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
   const [addedItemIds, setAddedItemIds] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'product' | 'specs' | 'desc'>('product');
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   useEffect(() => {
     setIsZoomed(false);
     setImgError(false);
     setQty(1);
+    setActiveTab('product');
   }, [quickViewProduct?.id]);
+
+  // Collect all specifications for "Характеристики" tab
+  const collectedSpecs = useMemo(() => {
+    if (!quickViewProduct) return {};
+    const specsMap: Record<string, string> = { ...(quickViewProduct.specs || {}) };
+
+    // Also parse any specifications listed under "Технічні характеристики" in rawDesc if present
+    const raw = quickViewProduct.desc || '';
+    if (raw.includes('Технічні характеристики')) {
+      const lines = raw.split('\n');
+      let inSpecs = false;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed === 'Технічні характеристики' || trimmed.startsWith('Технічні характеристики:')) {
+          inSpecs = true;
+          continue;
+        }
+        if (inSpecs && (trimmed === 'Переваги' || trimmed.startsWith('Переваги:') || trimmed.includes('Головні переваги'))) {
+          inSpecs = false;
+          continue;
+        }
+        if (inSpecs && trimmed.includes(':')) {
+          const colonIdx = trimmed.indexOf(':');
+          const k = trimmed.substring(0, colonIdx).trim().replace(/^[•\-*]\s*/, '');
+          const v = trimmed.substring(colonIdx + 1).trim();
+          if (k && v && !specsMap[k]) {
+            specsMap[k] = v;
+          }
+        }
+      }
+    }
+    return specsMap;
+  }, [quickViewProduct]);
+
+  // Extract pure description text for "Опис товару" tab (without technical specs table or SKU/unit metadata)
+  const cleanDescription = useMemo(() => {
+    if (!quickViewProduct) return '';
+    const raw = (quickViewProduct.desc || '').trim();
+
+    // Check placeholder
+    if (!raw || raw.includes('Товар з облікової програми УкрСклад') || raw.startsWith('Товар з облікової програми')) {
+      return `Офіційний сертифікований товар «${quickViewProduct.name}». Гарантія якості від виробника, надійні матеріали, перевірено перед відправкою. Підходить для професійного монтажу та щоденного домашнього використання.`;
+    }
+
+    const lines = raw.split('\n');
+    const resultLines: string[] = [];
+    let skipSection = false;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // Skip technical characteristics section completely
+      if (trimmed === 'Технічні характеристики' || trimmed.startsWith('Технічні характеристики:')) {
+        skipSection = true;
+        continue;
+      }
+      if (trimmed === 'Переваги' || trimmed.startsWith('Переваги:') || trimmed.includes('Головні переваги')) {
+        skipSection = false;
+      }
+      if (skipSection) {
+        continue;
+      }
+
+      // Filter out stray SKU or unit of measure lines
+      if (/^Одиниця виміру\s*:/i.test(trimmed)) continue;
+      if (/^Артикул(\s*\(SKU\))?\s*:/i.test(trimmed)) continue;
+      if (/^Ціна\s*:/i.test(trimmed)) continue;
+
+      resultLines.push(line);
+    }
+
+    const cleaned = resultLines.join('\n').trim();
+    if (!cleaned) {
+      return `Офіційний сертифікований товар «${quickViewProduct.name}». Гарантія якості від виробника, надійні матеріали, перевірено перед відправкою. Підходить для професійного монтажу та щоденного домашнього використання.`;
+    }
+    return cleaned;
+  }, [quickViewProduct]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -123,8 +202,6 @@ export const ProductDetailModal: React.FC = () => {
         price: quickViewProduct.price,
       });
 
-      const finalDesc = enriched.description || '';
-
       // Populate structured specifications table for the "Характеристики" tab
       const newSpecs: Record<string, string> = { ...(quickViewProduct.specs || {}) };
       if (enriched.specs && Array.isArray(enriched.specs)) {
@@ -135,9 +212,22 @@ export const ProductDetailModal: React.FC = () => {
         });
       }
 
+      // Store pure description for "Опис товару" tab
+      let pureDesc = (enriched.intro || '').trim();
+      if (!pureDesc && enriched.description) {
+        const parts = enriched.description.split(/Технічні характеристики/i);
+        pureDesc = parts[0].trim();
+      }
+      if (enriched.features && enriched.features.length > 0) {
+        pureDesc += (pureDesc ? '\n\n' : '') + 'Переваги\n' + enriched.features.map((f: string) => `• ${f}`).join('\n');
+      }
+      if (!pureDesc) {
+        pureDesc = enriched.description || '';
+      }
+
       const updatedProd: Product = {
         ...quickViewProduct,
-        desc: finalDesc,
+        desc: pureDesc,
         specs: newSpecs,
         mainCategory: enriched.mainCategory || quickViewProduct.mainCategory,
         category: enriched.category || quickViewProduct.category,
@@ -466,193 +556,186 @@ export const ProductDetailModal: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Product Description Section */}
+                {/* Tabs: Specifications & Description */}
                 <div className="pt-2">
-                  <div className={`flex items-center justify-between border-b pb-2 ${
+                  <div className={`flex items-center gap-2 border-b pb-2 ${
                     isPremium ? 'border-slate-800' : 'border-slate-200/80'
                   }`}>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-black uppercase tracking-wider px-3.5 py-1.5 rounded-lg bg-red-600 text-white shadow-xs`}>
-                        Опис товару
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('product')}
+                      className={`text-xs sm:text-sm font-bold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all cursor-pointer ${
+                        activeTab === 'product'
+                          ? 'bg-red-600 text-white shadow-sm'
+                          : isPremium 
+                          ? 'text-slate-300 hover:text-white hover:bg-slate-800' 
+                          : 'text-slate-800 hover:text-red-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      Товар
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('specs')}
+                      className={`text-xs sm:text-sm font-bold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all cursor-pointer ${
+                        activeTab === 'specs'
+                          ? 'bg-red-600 text-white shadow-sm'
+                          : isPremium 
+                          ? 'text-slate-300 hover:text-white hover:bg-slate-800' 
+                          : 'text-slate-800 hover:text-red-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      Характеристики
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('desc')}
+                      className={`text-xs sm:text-sm font-bold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all cursor-pointer ${
+                        activeTab === 'desc'
+                          ? 'bg-red-600 text-white shadow-sm'
+                          : isPremium 
+                          ? 'text-slate-300 hover:text-white hover:bg-slate-800' 
+                          : 'text-slate-800 hover:text-red-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      Опис товару
+                    </button>
                   </div>
 
-                  <div className="pt-3 space-y-4">
-                    {(() => {
-                      const rawDesc = quickViewProduct.desc || '';
-                      const isPlaceholder = !rawDesc || 
-                        rawDesc.includes('Товар з облікової програми УкрСклад') ||
-                        rawDesc.startsWith('Товар з облікової програми');
-
-                      if (isPlaceholder) {
-                        return (
-                          <div className="space-y-3">
-                            <p className={`text-sm leading-relaxed ${isPremium ? 'text-white font-medium' : 'text-black font-semibold'}`}>
-                              Офіційний сертифікований товар «{quickViewProduct.name}». Гарантія якості від виробника, надійні матеріали, перевірено перед відправкою. Підходить для професійного монтажу та щоденного домашнього використання.
-                            </p>
-                            {quickViewProduct.specs && Object.keys(quickViewProduct.specs).length > 0 && (
-                              <div className="space-y-2 pt-2">
-                                <div className={`pt-2 pb-1 border-b ${isPremium ? 'border-slate-800' : 'border-slate-200'}`}>
-                                  <h4 className={`text-xs font-black tracking-wider uppercase flex items-center gap-1.5 ${
-                                    isPremium ? 'text-amber-400' : 'text-slate-900'
-                                  }`}>
-                                    ⚙️ Технічні характеристики
-                                  </h4>
-                                </div>
-                                <div className="space-y-1">
-                                  {Object.entries(quickViewProduct.specs).map(([k, v]) => (
-                                    <div key={k} className="flex justify-between items-baseline gap-3 text-xs sm:text-sm py-1 border-b border-dashed border-slate-200/60">
-                                      <span className={isPremium ? 'text-slate-400 font-medium' : 'text-slate-600 font-semibold'}>{k}:</span>
-                                      <span className={`font-bold text-right ${isPremium ? 'text-white' : 'text-black'}`}>{v}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-
-                      const lines = rawDesc.split('\n');
-                      const hasSections = lines.some((l) =>
-                        ['Технічні характеристики', 'Переваги', 'Головні переваги'].some((s) => l.trim().startsWith(s))
-                      );
-
-                      if (!hasSections) {
-                        return (
-                          <div className="space-y-3">
-                            <div className={`text-sm leading-relaxed whitespace-pre-line ${
-                              isPremium ? 'text-white font-medium' : 'text-black font-semibold'
-                            }`}>
-                              {rawDesc}
-                            </div>
-                            {quickViewProduct.specs && Object.keys(quickViewProduct.specs).length > 0 && (
-                              <div className="space-y-2 pt-2">
-                                <div className={`pt-2 pb-1 border-b ${isPremium ? 'border-slate-800' : 'border-slate-200'}`}>
-                                  <h4 className={`text-xs font-black tracking-wider uppercase flex items-center gap-1.5 ${
-                                    isPremium ? 'text-amber-400' : 'text-slate-900'
-                                  }`}>
-                                    ⚙️ Технічні характеристики
-                                  </h4>
-                                </div>
-                                <div className="space-y-1">
-                                  {Object.entries(quickViewProduct.specs).map(([k, v]) => (
-                                    <div key={k} className="flex justify-between items-baseline gap-3 text-xs sm:text-sm py-1 border-b border-dashed border-slate-200/60">
-                                      <span className={isPremium ? 'text-slate-400 font-medium' : 'text-slate-600 font-semibold'}>{k}:</span>
-                                      <span className={`font-bold text-right ${isPremium ? 'text-white' : 'text-black'}`}>{v}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-
-                      let currentSection: 'intro' | 'specs' | 'features' = 'intro';
-
-                      return (
-                        <div className="space-y-3">
-                          {lines.map((line, idx) => {
-                            const trimmed = line.trim();
-                            if (!trimmed) return <div key={idx} className="h-1.5" />;
-
-                            if (trimmed === 'Технічні характеристики' || trimmed.startsWith('Технічні характеристики:')) {
-                              currentSection = 'specs';
-                              return (
-                                <div key={idx} className={`pt-2.5 pb-1 border-b ${isPremium ? 'border-slate-800' : 'border-slate-200'}`}>
-                                  <h4 className={`text-xs font-black tracking-wider uppercase flex items-center gap-1.5 ${
-                                    isPremium ? 'text-amber-400' : 'text-slate-900'
-                                  }`}>
-                                    ⚙️ {trimmed.replace(/:$/, '')}
-                                  </h4>
-                                </div>
-                              );
-                            }
-
-                            if (trimmed === 'Переваги' || trimmed.startsWith('Переваги:') || trimmed.includes('Головні переваги')) {
-                              currentSection = 'features';
-                              return (
-                                <div key={idx} className={`pt-2.5 pb-1 border-b ${isPremium ? 'border-slate-800' : 'border-slate-200'}`}>
-                                  <h4 className={`text-xs font-black tracking-wider uppercase flex items-center gap-1.5 ${
-                                    isPremium ? 'text-emerald-400' : 'text-slate-900'
-                                  }`}>
-                                    ✨ {trimmed.replace(/:$/, '')}
-                                  </h4>
-                                </div>
-                              );
-                            }
-
-                            if (currentSection === 'specs' && trimmed.includes(':')) {
-                              const colonIdx = trimmed.indexOf(':');
-                              const k = trimmed.substring(0, colonIdx).trim();
-                              const v = trimmed.substring(colonIdx + 1).trim();
-                              return (
-                                <div key={idx} className="flex justify-between items-baseline gap-3 text-xs sm:text-sm py-0.5">
-                                  <span className={isPremium ? 'text-slate-400 font-medium' : 'text-slate-600 font-semibold'}>
-                                    {k}:
-                                  </span>
-                                  <span className={`font-bold text-right ${isPremium ? 'text-white' : 'text-black'}`}>
-                                    {v}
-                                  </span>
-                                </div>
-                              );
-                            }
-
-                            if (currentSection === 'features' && trimmed.includes(':')) {
-                              const colonIdx = trimmed.indexOf(':');
-                              const title = trimmed.substring(0, colonIdx).trim().replace(/^[•\-*🔥✨]\s*/, '');
-                              const detail = trimmed.substring(colonIdx + 1).trim();
-                              return (
-                                <div key={idx} className="flex items-start gap-2 text-xs sm:text-sm">
-                                  <span className={`font-bold shrink-0 mt-0.5 ${isPremium ? 'text-emerald-400' : 'text-emerald-600'}`}>•</span>
-                                  <div className={isPremium ? 'text-slate-200' : 'text-black font-semibold'}>
-                                    <span className={`font-bold ${isPremium ? 'text-white' : 'text-slate-950'}`}>{title}:</span>{' '}
-                                    <span className={isPremium ? 'text-slate-300 font-medium' : 'text-slate-800 font-medium'}>{detail}</span>
-                                  </div>
-                                </div>
-                              );
-                            }
-
-                            return (
-                              <p key={idx} className={`text-sm leading-relaxed ${
-                                isPremium ? 'text-slate-200 font-medium' : 'text-black font-semibold'
-                              }`}>
-                                {trimmed}
-                              </p>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
-
-                    {/* AI Description Generation Quick Button */}
-                    <div className={`pt-3 border-t flex flex-wrap items-center justify-between gap-3 ${
-                      isPremium ? 'border-slate-800' : 'border-slate-200/80'
+                  {activeTab === 'product' ? (
+                    <div className={`divide-y text-xs sm:text-sm pt-2 ${
+                      isPremium ? 'divide-slate-800' : 'divide-slate-200/80'
                     }`}>
-                      <div className="text-[11px] text-slate-500 font-medium">
-                        Бажаєте розгорнутий опис з характеристиками?
+                      <div className="flex justify-between py-2.5 items-center">
+                        <span className={isPremium ? 'text-slate-300 font-bold' : 'text-slate-900 font-bold'}>
+                          Виробник / Бренд:
+                        </span>
+                        <span className={`font-extrabold ${isPremium ? 'text-amber-300' : 'text-red-600'}`}>
+                          {brand}
+                        </span>
                       </div>
-                      <button
-                        type="button"
-                        disabled={isAiGenerating}
-                        onClick={handleGenerateAiDescription}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-60"
-                      >
-                        {isAiGenerating ? (
-                          <>
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>Генерація опису AI...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                            <span>⚡ Згенерувати опис через Gemini AI</span>
-                          </>
-                        )}
-                      </button>
+                      <div className="flex justify-between py-2.5 items-center">
+                        <span className={isPremium ? 'text-slate-300 font-bold' : 'text-slate-900 font-bold'}>
+                          Категорія:
+                        </span>
+                        <span className={`font-bold ${isPremium ? 'text-white' : 'text-slate-950'}`}>
+                          {quickViewProduct.category}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-2.5 items-center">
+                        <span className={isPremium ? 'text-slate-300 font-bold' : 'text-slate-900 font-bold'}>
+                          Артикул (SKU):
+                        </span>
+                        <span className={`font-mono font-bold ${isPremium ? 'text-white' : 'text-slate-950'}`}>
+                          {quickViewProduct.sku}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-2.5 items-center">
+                        <span className={isPremium ? 'text-slate-300 font-bold' : 'text-slate-900 font-bold'}>
+                          Одиниця виміру:
+                        </span>
+                        <span className={`font-bold ${isPremium ? 'text-white' : 'text-slate-950'}`}>
+                          {quickViewProduct.unit}
+                        </span>
+                      </div>
                     </div>
+                  ) : activeTab === 'specs' ? (
+                    <div className="pt-2">
+                      {Object.keys(collectedSpecs).length > 0 ? (
+                        <div className={`divide-y text-xs sm:text-sm ${
+                          isPremium ? 'divide-slate-800' : 'divide-slate-200/80'
+                        }`}>
+                          {Object.entries(collectedSpecs).map(([key, val]) => (
+                            <div key={key} className="flex justify-between py-2.5 items-center gap-4">
+                              <span className={`shrink-0 ${isPremium ? 'text-slate-300 font-bold' : 'text-slate-900 font-bold'}`}>
+                                {key}:
+                              </span>
+                              <span className={`font-bold text-right ${isPremium ? 'text-white' : 'text-slate-950'}`}>
+                                {val}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className={`p-4 rounded-xl text-center text-xs sm:text-sm ${
+                          isPremium ? 'bg-slate-800/60 text-slate-400' : 'bg-slate-50 text-slate-600'
+                        }`}>
+                          Характеристики для цього товару уточнюються. Натисніть кнопку генерації AI нижче, щоб автоматично заповнити технічні характеристики.
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="pt-3 space-y-4">
+                      {/* Only pure description and advantages in 'Опис товару' tab */}
+                      <div className="space-y-3">
+                        {cleanDescription.split('\n').map((line, idx) => {
+                          const trimmed = line.trim();
+                          if (!trimmed) return <div key={idx} className="h-1.5" />;
+
+                          if (trimmed === 'Переваги' || trimmed.startsWith('Переваги:') || trimmed.includes('Головні переваги')) {
+                            return (
+                              <div key={idx} className={`pt-2.5 pb-1 border-b ${isPremium ? 'border-slate-800' : 'border-slate-200'}`}>
+                                <h4 className={`text-xs font-black tracking-wider uppercase flex items-center gap-1.5 ${
+                                  isPremium ? 'text-emerald-400' : 'text-slate-900'
+                                }`}>
+                                  ✨ {trimmed.replace(/:$/, '')}
+                                </h4>
+                              </div>
+                            );
+                          }
+
+                          if (trimmed.includes(':') && (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('🔥'))) {
+                            const colonIdx = trimmed.indexOf(':');
+                            const title = trimmed.substring(0, colonIdx).trim().replace(/^[•\-*🔥✨]\s*/, '');
+                            const detail = trimmed.substring(colonIdx + 1).trim();
+                            return (
+                              <div key={idx} className="flex items-start gap-2 text-xs sm:text-sm">
+                                <span className={`font-bold shrink-0 mt-0.5 ${isPremium ? 'text-emerald-400' : 'text-emerald-600'}`}>•</span>
+                                <div className={isPremium ? 'text-slate-200' : 'text-slate-900 font-medium'}>
+                                  <span className={`font-bold ${isPremium ? 'text-white' : 'text-slate-950'}`}>{title}:</span>{' '}
+                                  <span className={isPremium ? 'text-slate-300 font-medium' : 'text-slate-800 font-medium'}>{detail}</span>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <p key={idx} className={`text-sm leading-relaxed ${
+                              isPremium ? 'text-slate-200 font-medium' : 'text-slate-950 font-medium'
+                            }`}>
+                              {trimmed}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Description Generation Quick Button */}
+                  <div className={`mt-4 pt-3 border-t flex flex-wrap items-center justify-between gap-3 ${
+                    isPremium ? 'border-slate-800' : 'border-slate-200/80'
+                  }`}>
+                    <div className="text-[11px] text-slate-500 font-medium">
+                      Бажаєте автоматично збагатити опис та характеристики?
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isAiGenerating}
+                      onClick={handleGenerateAiDescription}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-60"
+                    >
+                      {isAiGenerating ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Генерація опису AI...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          <span>⚡ Згенерувати опис через Gemini AI</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
 

@@ -3,6 +3,7 @@ import { Product } from '../types/store';
 export interface EnrichedProductResult {
   mainCategory: string;
   category: string;
+  intro?: string;
   description: string;
   features: string[];
   specs: Array<{ key: string; value: string }>;
