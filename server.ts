@@ -281,6 +281,14 @@ async function startServer() {
         return;
       }
 
+      const cleanCurrentDesc =
+        currentDescription &&
+        !currentDescription.includes('Товар з облікової програми') &&
+        !currentDescription.includes('УкрСклад') &&
+        currentDescription.trim().length > 15
+          ? currentDescription
+          : 'немає (створи новий повноцінний структурований опис українською мовою з нуля, не згадуй жодних облікових програм)';
+
       const prompt = `Ти — експерт зі збагачення товарних позицій для українського інтернет-магазину сантехніки, електротоварів, інструментів та господарчих товарів "ISKRA".
 Проаналізуй товар та сформуй вичерпні дані для розміщення на сайті.
 
@@ -289,7 +297,7 @@ async function startServer() {
 - Артикул / Код: ${sku || 'не вказано'}
 - Поточна категорія: ${category || 'не визначено'}
 - Ціна: ${price ? price + ' грн' : 'не вказано'}
-- Поточний опис: ${currentDescription || 'немає'}
+- Поточний опис: ${cleanCurrentDesc}
 
 Вимоги:
 1. mainCategory: має бути точно одним із варіантів: "Сантехніка та опалення", "Електротовари", "Інструменти та обладнання", "Господарчі товари", "Інше".
@@ -302,54 +310,82 @@ async function startServer() {
 8. seoDescription: SEO опис до 160 символів (наприклад: "Офіційна лампа LED E27 10W 4000K. Гарантія якості, швидка доставка по Україні від магазину ISKRA. Замовляйте онлайн!").
 `;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          temperature: 0.2,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              mainCategory: { type: Type.STRING },
-              category: { type: Type.STRING },
-              description: { type: Type.STRING },
-              features: { type: Type.ARRAY, items: { type: Type.STRING } },
-              specs: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    key: { type: Type.STRING },
-                    value: { type: Type.STRING }
-                  },
-                  required: ['key', 'value']
-                }
-              },
-              tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-              seoTitle: { type: Type.STRING },
-              seoDescription: { type: Type.STRING }
+      const schemaConfig = {
+        temperature: 0.2,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            mainCategory: { type: Type.STRING },
+            category: { type: Type.STRING },
+            description: { type: Type.STRING },
+            features: { type: Type.ARRAY, items: { type: Type.STRING } },
+            specs: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  key: { type: Type.STRING },
+                  value: { type: Type.STRING }
+                },
+                required: ['key', 'value']
+              }
             },
-            required: [
-              'mainCategory',
-              'category',
-              'description',
-              'features',
-              'specs',
-              'tags',
-              'seoTitle',
-              'seoDescription'
-            ]
-          }
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+            seoTitle: { type: Type.STRING },
+            seoDescription: { type: Type.STRING }
+          },
+          required: [
+            'mainCategory',
+            'category',
+            'description',
+            'features',
+            'specs',
+            'tags',
+            'seoTitle',
+            'seoDescription'
+          ]
         }
-      });
+      };
 
-      const jsonText = response.text ? response.text.trim() : '{}';
-      const enriched = JSON.parse(jsonText);
+      const generateWithModel = async (modelName: string) => {
+        return await ai.models.generateContent({
+          model: modelName,
+          contents: prompt,
+          config: schemaConfig
+        });
+      };
+
+      let response: any;
+      try {
+        // Attempt primary model gemini-3.8-flash with a 4-second timeout race
+        response = await Promise.race([
+          generateWithModel('gemini-3.8-flash'),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('gemini-3.8-flash response timeout')), 4000)
+          )
+        ]);
+      } catch (primaryErr: any) {
+        console.warn(`[AI Enrich] Primary model gemini-3.8-flash unavailable or busy (${primaryErr?.message || primaryErr}), using fast fallback gemini-3.1-flash-lite...`);
+        // Fallback to high-availability gemini-3.1-flash-lite
+        response = await generateWithModel('gemini-3.1-flash-lite');
+      }
+
+      const rawText = response.text ? response.text.trim() : '{}';
+      const cleanJson = rawText
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/```$/i, '')
+        .trim();
+
+      const enriched = JSON.parse(cleanJson);
       res.json({ success: true, enriched });
     } catch (err: any) {
       console.error('API /api/enrich-product error:', err?.message || err);
-      res.status(500).json({ error: 'Failed to enrich product with Gemini AI', details: String(err?.message || err) });
+      res.status(500).json({
+        error: 'Помилка підключення до Gemini AI: ' + (err?.message || 'сервіс тимчасово недоступний'),
+        details: String(err?.message || err)
+      });
     }
   });
 

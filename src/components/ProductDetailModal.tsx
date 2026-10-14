@@ -20,7 +20,8 @@ import {
   Truck,
   RotateCcw,
   Sparkles,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react';
 import { Product } from '../types/store';
 import { getProductBrand } from '../utils/brandHelper';
@@ -28,6 +29,7 @@ import { getSafeImageUrl } from '../utils/assetImages';
 import { ProductReviewsSection } from './ProductReviewsSection';
 import { getSmartRecommendedProducts } from '../utils/recommendationsHelper';
 import { formatUnit, formatPriceUnit } from '../utils/unitFormatter';
+import { enrichProductWithAI } from '../utils/aiEnricher';
 
 export const ProductDetailModal: React.FC = () => {
   const { 
@@ -38,7 +40,8 @@ export const ProductDetailModal: React.FC = () => {
     siteSettings,
     siteTheme,
     showToast,
-    openStockAlertModal 
+    openStockAlertModal,
+    saveProduct
   } = useStore();
 
   const isPremium = siteTheme === 'premium';
@@ -47,6 +50,7 @@ export const ProductDetailModal: React.FC = () => {
   const [isZoomed, setIsZoomed] = useState(false);
   const [addedItemIds, setAddedItemIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'specs' | 'desc'>('specs');
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   useEffect(() => {
     setIsZoomed(false);
@@ -108,6 +112,50 @@ export const ProductDetailModal: React.FC = () => {
     setTimeout(() => {
       setAddedItemIds((prev) => prev.filter((id) => id !== prod.id));
     }, 1500);
+  };
+
+  const handleGenerateAiDescription = async () => {
+    if (!quickViewProduct) return;
+    setIsAiGenerating(true);
+    try {
+      const enriched = await enrichProductWithAI({
+        name: quickViewProduct.name,
+        sku: quickViewProduct.sku,
+        category: quickViewProduct.category,
+        price: quickViewProduct.price,
+      });
+
+      let fullDesc = enriched.description || '';
+      if (enriched.features && enriched.features.length > 0) {
+        fullDesc += '\n\n🔥 Головні переваги:\n' + enriched.features.map((f: string) => `• ${f}`).join('\n');
+      }
+
+      // Populate structured specifications table for the "Характеристики" tab
+      const newSpecs: Record<string, string> = { ...(quickViewProduct.specs || {}) };
+      if (enriched.specs && Array.isArray(enriched.specs)) {
+        enriched.specs.forEach((s: any) => {
+          if (s.key && s.value) {
+            newSpecs[s.key] = s.value;
+          }
+        });
+      }
+
+      const updatedProd: Product = {
+        ...quickViewProduct,
+        desc: fullDesc,
+        specs: newSpecs,
+        mainCategory: enriched.mainCategory || quickViewProduct.mainCategory,
+        category: enriched.category || quickViewProduct.category,
+      };
+
+      saveProduct(updatedProd);
+      setQuickViewProduct(updatedProd);
+      showToast('✨ Опис та характеристики успішно згенеровано через Gemini AI!', 'success');
+    } catch (e: any) {
+      showToast('Помилка генерації опису: ' + (e?.message || e), 'error');
+    } finally {
+      setIsAiGenerating(false);
+    }
   };
 
   const modalImgUrl = getSafeImageUrl(
@@ -502,10 +550,49 @@ export const ProductDetailModal: React.FC = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className={`pt-3 text-sm leading-relaxed whitespace-pre-line ${
-                      isPremium ? 'text-white font-medium' : 'text-black font-semibold'
-                    }`}>
-                      {quickViewProduct.desc || 'Офіційний сертифікований товар із гарантією виробника для надійного монтажу та ремонту.'}
+                    <div className="pt-3 space-y-4">
+                      <div className={`text-sm leading-relaxed whitespace-pre-line ${
+                        isPremium ? 'text-white font-medium' : 'text-black font-semibold'
+                      }`}>
+                        {(() => {
+                          const isPlaceholder = !quickViewProduct.desc || 
+                            quickViewProduct.desc.includes('Товар з облікової програми УкрСклад') ||
+                            quickViewProduct.desc.startsWith('Товар з облікової програми');
+
+                          if (isPlaceholder) {
+                            return `Офіційний сертифікований товар «${quickViewProduct.name}». Гарантія якості від виробника, надійні матеріали, перевірено перед відправкою. Підходить для професійного монтажу та щоденного домашнього використання.`;
+                          }
+
+                          return quickViewProduct.desc;
+                        })()}
+                      </div>
+
+                      {/* AI Description Generation Quick Button */}
+                      <div className={`pt-3 border-t flex flex-wrap items-center justify-between gap-3 ${
+                        isPremium ? 'border-slate-800' : 'border-slate-200/80'
+                      }`}>
+                        <div className="text-[11px] text-slate-500 font-medium">
+                          Бажаєте розгорнутий опис з характеристиками?
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isAiGenerating}
+                          onClick={handleGenerateAiDescription}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-60"
+                        >
+                          {isAiGenerating ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Генерація опису AI...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                              <span>⚡ Згенерувати опис через Gemini AI</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

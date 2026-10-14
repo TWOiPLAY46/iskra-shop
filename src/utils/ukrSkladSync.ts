@@ -236,7 +236,7 @@ export function parseUkrSkladCSV(csvText: string): UkrSkladParsedData {
         price,
         stock,
         unit: normalizeStorageUnit(unit),
-        desc: `Товар з облікової програми УкрСклад (Артикул: ${sku})`,
+        desc: '',
         image: '',
         badge: ''
       });

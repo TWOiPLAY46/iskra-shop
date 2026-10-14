@@ -916,16 +916,28 @@ export const AdminPanel: React.FC = () => {
         setPLeafCat(enriched.category);
       }
 
-      let newDesc = enriched.description || pDesc;
+      let newDesc = enriched.description || (pDesc && !pDesc.includes('Товар з облікової програми') ? pDesc : '');
       if (enriched.features && enriched.features.length > 0) {
         newDesc += '\n\n🔥 Головні переваги:\n' + enriched.features.map((f: string) => `• ${f}`).join('\n');
       }
-      if (enriched.specs && enriched.specs.length > 0) {
-        newDesc += '\n\n⚙️ Технічні характеристики:\n' + enriched.specs.map((s: any) => `${s.key}: ${s.value}`).join('\n');
+
+      if (enriched.specs && Array.isArray(enriched.specs)) {
+        const updatedSpecs: Record<string, string> = { ...(editingProduct?.specs || {}) };
+        enriched.specs.forEach((s: any) => {
+          if (s.key && s.value) {
+            updatedSpecs[s.key] = s.value;
+          }
+        });
+        if (editingProduct) {
+          setEditingProduct({
+            ...editingProduct,
+            specs: updatedSpecs,
+          });
+        }
       }
 
       setPDesc(newDesc);
-      setAiSingleSuccessMsg('✨ Товар успішно збагачено та описано через Gemini 3.8 Flash!');
+      setAiSingleSuccessMsg('✨ Товар успішно збагачено та описано через Gemini AI!');
       showToast('✨ Категорії, опис та характеристики збагачено через Gemini AI!', 'success');
     } catch (err: any) {
       showToast('Помилка збагачення: ' + (err?.message || err), 'error');
@@ -946,7 +958,14 @@ export const AdminPanel: React.FC = () => {
           p.category.includes('Інше')
       );
     } else if (batchAiMode === 'nodesc') {
-      targetList = products.filter((p) => !p.desc || p.desc.trim().length < 20);
+      targetList = products.filter(
+        (p) =>
+          !p.desc ||
+          p.desc.trim().length < 20 ||
+          p.desc.includes('Товар з облікової програми') ||
+          p.desc.includes('УкрСклад') ||
+          p.desc.startsWith('Офіційний сертифікований товар із гарантією')
+      );
     } else {
       targetList = [...products];
     }
@@ -980,12 +999,9 @@ export const AdminPanel: React.FC = () => {
           });
         }
 
-        let newDesc = enriched.description || p.desc;
+        let newDesc = enriched.description || (p.desc && !p.desc.includes('Товар з облікової програми') ? p.desc : '');
         if (enriched.features && enriched.features.length > 0) {
           newDesc += '\n\n🔥 Головні переваги:\n' + enriched.features.map((f: string) => `• ${f}`).join('\n');
-        }
-        if (enriched.specs && enriched.specs.length > 0) {
-          newDesc += '\n\n⚙️ Технічні характеристики:\n' + enriched.specs.map((s: any) => `${s.key}: ${s.value}`).join('\n');
         }
 
         const updated: Product = {
