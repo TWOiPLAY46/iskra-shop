@@ -290,7 +290,7 @@ async function startServer() {
           : 'немає (створи новий повноцінний структурований опис українською мовою з нуля, не згадуй жодних облікових програм)';
 
       const prompt = `Ти — експерт зі збагачення товарних позицій для українського інтернет-магазину сантехніки, електротоварів, інструментів та господарчих товарів "ISKRA".
-Проаналізуй товар та сформуй вичерпні дані для розміщення на сайті.
+Сформуй чіткий, професійний та структурований опис товару за стандартом провідних українських інтернет-магазинів (Rozetka, Епіцентр) без зайвої 'води'.
 
 Товар для аналізу:
 - Назва: ${name}
@@ -299,25 +299,41 @@ async function startServer() {
 - Ціна: ${price ? price + ' грн' : 'не вказано'}
 - Поточний опис: ${cleanCurrentDesc}
 
+ЗРАЗОК БАЖАНОГО ОПИСУ:
+LED лампа Lebron L-A60-10W - це енергоефективне рішення для вашого освітлення. Завдяки потужності 10 Вт та холодному білому світлу 6500K, вона забезпечує яскраве та комфортне освітлення в будь-якому приміщенні.
+
+Технічні характеристики
+Потужність: 10 Вт
+Тип цоколя: E27
+Світловий потік: 900 Лм
+Температура кольору: 6500K
+Напруга: 230V
+
+Переваги
+Енергоефективність: знижує витрати на електроенергію
+Тривалий термін служби: до 25 000 годин
+
 Вимоги:
 1. mainCategory: має бути точно одним із варіантів: "Сантехніка та опалення", "Електротовари", "Інструменти та обладнання", "Господарчі товари", "Інше".
 2. category: точна назва підкатегорії (наприклад: "Лампи LED", "Світильники", "Розетки та вимикачі", "Змішувачі", "Електроінструмент", "Фітинги та труби" тощо).
-3. description: якісний, структурований опис українською мовою (2-3 детальних абзаци про призначення, переваги, сферу застосування та надійність).
-4. features: список із 3-6 головних переваг (наприклад: "Високий коефіцієнт енергоефективності", "Термостійкий корпус із захистом IP44").
-5. specs: масив об'єктів з ключами "key" та "value" (наприклад: Потужність -> 12W, Цоколь -> E27, Колірна температура -> 4000K, Матеріал -> Полікарбонат / Алюміній, Гарантія -> 24 міс, Країна виробник -> Україна/Китай).
-6. tags: 5-8 ключових тегів для внутрішнього пошуку (наприклад: ["лампа led", "e27", "10w", "освітлення", "iskra", "лампочка 4000k"]).
-7. seoTitle: SEO заголовок до 65 символів (наприклад: "Купити Лампа LED E27 10W 4000K ISKRA за вигідною ціною в Україні").
-8. seoDescription: SEO опис до 160 символів (наприклад: "Офіційна лампа LED E27 10W 4000K. Гарантія якості, швидка доставка по Україні від магазину ISKRA. Замовляйте онлайн!").
+3. intro: 1-2 чітких, лаконічних речення про призначення товару та його основну функцію (без 'води').
+4. specs: масив із 4-8 головних технічних характеристик з ключами "key" та "value" (наприклад: Потужність -> 10 Вт, Тип цоколя -> E27, Світловий потік -> 900 Лм, Температура кольору -> 6500K, Напруга -> 230V, Гарантія -> 24 міс тощо).
+5. features: масив із 2-4 головних переваг у форматі 'Назва переваги: коротке пояснення' (наприклад: ["Енергоефективність: знижує витрати на електроенергію", "Тривалий термін служби: до 25 000 годин"]).
+6. description: зібраний текст опису у вказаному зразку: вступний абзац, потім порожній рядок, потім 'Технічні характеристики' і список з нового рядка кожен, потім порожній рядок, потім 'Переваги' і список переваг.
+7. tags: 5-8 ключових тегів для внутрішнього пошуку.
+8. seoTitle: SEO заголовок до 65 символів.
+9. seoDescription: SEO опис до 160 символів.
 `;
 
       const schemaConfig = {
-        temperature: 0.2,
+        temperature: 0.1,
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             mainCategory: { type: Type.STRING },
             category: { type: Type.STRING },
+            intro: { type: Type.STRING },
             description: { type: Type.STRING },
             features: { type: Type.ARRAY, items: { type: Type.STRING } },
             specs: {
@@ -379,6 +395,42 @@ async function startServer() {
         .trim();
 
       const enriched = JSON.parse(cleanJson);
+
+      // Deterministically assemble description in standard Ukrainian e-commerce format
+      const introText = (enriched.intro || '').trim();
+      const specItems: Array<{ key: string; value: string }> = Array.isArray(enriched.specs)
+        ? enriched.specs.filter((s: any) => s && s.key && s.value)
+        : [];
+      const featureItems: string[] = Array.isArray(enriched.features)
+        ? enriched.features.filter((f: any) => typeof f === 'string' && f.trim().length > 0)
+        : [];
+
+      if (introText || specItems.length > 0 || featureItems.length > 0) {
+        const parts: string[] = [];
+        if (introText) {
+          parts.push(introText);
+        } else if (enriched.description) {
+          const firstPara = enriched.description.split(/\n\s*\n/)[0]?.trim();
+          if (firstPara && !firstPara.includes('Технічні характеристики') && !firstPara.includes('Переваги')) {
+            parts.push(firstPara);
+          }
+        }
+
+        if (specItems.length > 0) {
+          parts.push('');
+          parts.push('Технічні характеристики');
+          specItems.forEach((s) => parts.push(`${s.key}: ${s.value}`));
+        }
+
+        if (featureItems.length > 0) {
+          parts.push('');
+          parts.push('Переваги');
+          featureItems.forEach((f) => parts.push(f));
+        }
+
+        enriched.description = parts.join('\n').trim();
+      }
+
       res.json({ success: true, enriched });
     } catch (err: any) {
       console.error('API /api/enrich-product error:', err?.message || err);
