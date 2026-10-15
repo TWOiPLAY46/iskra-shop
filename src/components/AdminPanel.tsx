@@ -3748,7 +3748,7 @@ export const AdminPanel: React.FC = () => {
                     const dayOfWeek = now.getDay();
                     const daysUntilSunday = (7 - dayOfWeek) % 7 || 7;
                     const nextSunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilSunday, 23, 59, 59);
-                    updateWeeklyDeal({ endTimestamp: nextSunday.getTime(), endDateText: 'До кінця неділі 23:59' });
+                    updateWeeklyDeal({ enabled: true, endTimestamp: nextSunday.getTime(), endDateText: 'До кінця неділі 23:59' });
                     showToast('Таймер встановлено: До кінця неділі', 'info');
                   }}
                   className="p-3.5 rounded-2xl border border-red-200 bg-red-50/60 hover:bg-red-100/70 text-left transition-all cursor-pointer group active:scale-95"
@@ -3768,7 +3768,7 @@ export const AdminPanel: React.FC = () => {
                   onClick={() => {
                     const now = new Date();
                     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-                    updateWeeklyDeal({ endTimestamp: endOfToday.getTime(), endDateText: 'До кінця доби 23:59' });
+                    updateWeeklyDeal({ enabled: true, endTimestamp: endOfToday.getTime(), endDateText: 'До кінця доби 23:59' });
                     showToast('Таймер встановлено: До кінця доби', 'info');
                   }}
                   className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
@@ -3786,7 +3786,7 @@ export const AdminPanel: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    updateWeeklyDeal({ endTimestamp: Date.now() + 3 * 86400000 + 12 * 3600000, endDateText: '3 дні 12 год' });
+                    updateWeeklyDeal({ enabled: true, endTimestamp: Date.now() + 3 * 86400000 + 12 * 3600000, endDateText: '3 дні 12 год' });
                     showToast('Таймер встановлено: +3.5 дні', 'info');
                   }}
                   className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
@@ -3804,7 +3804,7 @@ export const AdminPanel: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    updateWeeklyDeal({ endTimestamp: Date.now() + 7 * 86400000, endDateText: '7 днів' });
+                    updateWeeklyDeal({ enabled: true, endTimestamp: Date.now() + 7 * 86400000, endDateText: '7 днів' });
                     showToast('Таймер встановлено: +7 днів', 'info');
                   }}
                   className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all cursor-pointer group active:scale-95"
@@ -3820,12 +3820,18 @@ export const AdminPanel: React.FC = () => {
               </div>
             </div>
 
-            {/* Custom timer description */}
-            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs">
+            {/* Custom timer description & auto-expired indicator */}
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-xs">
               <span className="text-slate-600">Встановлений підпис терміну: <b className="text-slate-900 font-extrabold">{weeklyDeal.endDateText || 'До кінця неділі 23:59'}</b></span>
-              <span className="text-[11px] text-emerald-700 font-extrabold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                ● Таймер відліку активний
-              </span>
+              {weeklyDeal.endTimestamp && Date.now() >= weeklyDeal.endTimestamp ? (
+                <span className="text-[11px] text-amber-800 font-extrabold bg-amber-100/80 px-2.5 py-1 rounded-full border border-amber-300 flex items-center gap-1">
+                  ⏰ 00:00:00 досягнуто — акція вимкнена автоматично
+                </span>
+              ) : (
+                <span className="text-[11px] text-emerald-700 font-extrabold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                  ● Таймер відліку активний (автовимкнення при 00:00:00)
+                </span>
+              )}
             </div>
           </div>
 

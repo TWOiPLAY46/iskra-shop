@@ -233,7 +233,7 @@ interface StoreContextType {
   resetHomepageBlocks: () => void;
   reorderMainCategory: (mainCatName: string, direction: 'up' | 'down') => void;
   weeklyDeal: WeeklyDealConfig;
-  updateWeeklyDeal: (deal: Partial<WeeklyDealConfig>) => void;
+  updateWeeklyDeal: (deal: Partial<WeeklyDealConfig>, silent?: boolean) => void;
 
   // Promo Codes & Discounts
   promoCodes: PromoCode[];
@@ -3052,7 +3052,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const updateWeeklyDeal = (dealUpdate: Partial<WeeklyDealConfig>) => {
+  const updateWeeklyDeal = (dealUpdate: Partial<WeeklyDealConfig>, silent: boolean = false) => {
     setWeeklyDeal(prev => {
       const next = { ...prev, ...dealUpdate };
       localStorage.setItem('iskra_weekly_deal_react', JSON.stringify(next));
@@ -3061,7 +3061,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       return next;
     });
-    showToast('Налаштування «Акції тижня» оновлено!', 'success');
+    if (!silent) {
+      showToast('Налаштування «Акції тижня» оновлено!', 'success');
+    }
   };
 
   // Admin Auth strictly via Firebase Authentication (signInWithEmailAndPassword)

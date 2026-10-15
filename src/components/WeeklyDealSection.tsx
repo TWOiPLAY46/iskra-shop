@@ -24,28 +24,51 @@ export const WeeklyDealSection: React.FC = () => {
     addToCart, 
     setIsCartDrawerOpen, 
     setQuickViewProduct,
-    openStockAlertModal 
+    openStockAlertModal,
+    updateWeeklyDeal
   } = useStore();
 
+  // Check if promo has already reached 00:00:00:00
+  const [isExpired, setIsExpired] = useState(() => {
+    if (!weeklyDeal.enabled) return true;
+    if (weeklyDeal.endTimestamp && Date.now() >= weeklyDeal.endTimestamp) return true;
+    return false;
+  });
+
   const [timeLeft, setTimeLeft] = useState({
-    days: 3,
-    hours: 14,
-    minutes: 42,
-    seconds: 18
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
   });
 
   const [isAddedRecently, setIsAddedRecently] = useState(false);
 
-  // Live countdown timer calculation
+  // Live countdown timer calculation & automatic shutoff
   useEffect(() => {
-    if (!weeklyDeal.enabled) return;
+    if (!weeklyDeal.enabled) {
+      setIsExpired(true);
+      return;
+    }
 
     const targetTime = weeklyDeal.endTimestamp || (Date.now() + 3 * 86400000 + 14 * 3600000);
+
+    // If time already expired on initial load
+    if (Date.now() >= targetTime) {
+      setIsExpired(true);
+      updateWeeklyDeal({ enabled: false }, true);
+      return;
+    }
+
+    setIsExpired(false);
 
     const updateTimer = () => {
       const difference = targetTime - Date.now();
       if (difference <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        setIsExpired(true);
+        // Automatically turn off and save disabled state when 00:00:00 is reached
+        updateWeeklyDeal({ enabled: false }, true);
         return;
       }
 
@@ -60,10 +83,10 @@ export const WeeklyDealSection: React.FC = () => {
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [weeklyDeal.enabled, weeklyDeal.endTimestamp]);
+  }, [weeklyDeal.enabled, weeklyDeal.endTimestamp, updateWeeklyDeal]);
 
-  // If disabled in admin panel, do not render
-  if (!weeklyDeal.enabled) {
+  // If disabled in admin panel or timer reached 00:00:00:00, automatically turn off and hide
+  if (!weeklyDeal.enabled || isExpired) {
     return null;
   }
 
