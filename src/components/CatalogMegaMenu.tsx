@@ -73,17 +73,23 @@ export const CatalogMegaMenu: React.FC<CatalogMegaMenuProps> = ({ isOpen, onClos
 
   if (!isOpen) return null;
 
+  const scrollToCatalog = () => {
+    const el = document.getElementById('catalog-products-section') || document.getElementById('subcategory-gallery-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 600, behavior: 'smooth' });
+    }
+  };
+
   const handleSelectCategory = (catName: string) => {
     selectCategoryLeaf(catName);
     setSearchQuery('');
     setActiveView('store');
     onClose();
-    setTimeout(() => {
-      const el = document.getElementById('catalog-products-section') || document.getElementById('subcategory-gallery-section');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
+    setTimeout(scrollToCatalog, 60);
+    setTimeout(scrollToCatalog, 180);
+    setTimeout(scrollToCatalog, 350);
   };
 
   const handleShowAll = () => {
@@ -91,6 +97,9 @@ export const CatalogMegaMenu: React.FC<CatalogMegaMenuProps> = ({ isOpen, onClos
     setSearchQuery('');
     setActiveView('store');
     onClose();
+    setTimeout(scrollToCatalog, 60);
+    setTimeout(scrollToCatalog, 180);
+    setTimeout(scrollToCatalog, 350);
   };
 
   const getCategoryTheme = (name: string) => {

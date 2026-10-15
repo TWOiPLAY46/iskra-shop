@@ -788,7 +788,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [weeklyDeal, setWeeklyDeal] = useState<WeeklyDealConfig>(() => {
     const saved = localStorage.getItem('iskra_weekly_deal_react');
     if (saved) {
-      try { return { ...initialWeeklyDeal, ...JSON.parse(saved) }; } catch (e) { console.error(e); }
+      try {
+        const parsed = JSON.parse(saved);
+        // If endTimestamp exists and already in the past, disable deal
+        if (parsed.endTimestamp && Date.now() >= parsed.endTimestamp) {
+          parsed.enabled = false;
+        }
+        return { ...initialWeeklyDeal, ...parsed };
+      } catch (e) { console.error(e); }
     }
     return initialWeeklyDeal;
   });
@@ -805,6 +812,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     return defaultFirebaseConfig;
   });
+
+  // Global automatic shutoff when countdown reaches 00:00:00:00
+  useEffect(() => {
+    if (!weeklyDeal.enabled || !weeklyDeal.endTimestamp) return;
+
+    const checkExpiration = () => {
+      if (Date.now() >= weeklyDeal.endTimestamp!) {
+        setWeeklyDeal((prev) => {
+          if (!prev.enabled) return prev;
+          const next = { ...prev, enabled: false };
+          localStorage.setItem('iskra_weekly_deal_react', JSON.stringify(next));
+          if (firebaseConfig.enabled) {
+            pushStoreToFirebase(firebaseConfig, { weeklyDeal: next, lastSyncTimestamp: Date.now() });
+          }
+          return next;
+        });
+      }
+    };
+
+    checkExpiration();
+    const interval = setInterval(checkExpiration, 1000);
+    return () => clearInterval(interval);
+  }, [weeklyDeal.enabled, weeklyDeal.endTimestamp, firebaseConfig]);
 
   const [dbStatus, setDbStatus] = useState<'connected' | 'offline' | 'error' | 'syncing'>('offline');
 

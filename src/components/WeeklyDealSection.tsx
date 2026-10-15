@@ -11,8 +11,7 @@ import {
   Truck, 
   Sparkles,
   ArrowRight,
-  Bell,
-  Eye
+  Bell
 } from 'lucide-react';
 import { getSafeImageUrl, ASSET_IMAGES } from '../utils/assetImages';
 import { formatPriceUnit } from '../utils/unitFormatter';
@@ -28,12 +27,17 @@ export const WeeklyDealSection: React.FC = () => {
     updateWeeklyDeal
   } = useStore();
 
+  // Immediate synchronous expiration check
+  const isTimePassed = Boolean(weeklyDeal.endTimestamp && Date.now() >= weeklyDeal.endTimestamp);
+
   // Check if promo has already reached 00:00:00:00
   const [isExpired, setIsExpired] = useState(() => {
     if (!weeklyDeal.enabled) return true;
     if (weeklyDeal.endTimestamp && Date.now() >= weeklyDeal.endTimestamp) return true;
     return false;
   });
+
+  const [isFinishing, setIsFinishing] = useState(false);
 
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -61,14 +65,18 @@ export const WeeklyDealSection: React.FC = () => {
     }
 
     setIsExpired(false);
+    setIsFinishing(false);
 
     const updateTimer = () => {
       const difference = targetTime - Date.now();
       if (difference <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        setIsExpired(true);
-        // Automatically turn off and save disabled state when 00:00:00 is reached
+        setIsFinishing(true);
+        // Automatically turn off and save disabled state when 00:00:00:00 is reached
         updateWeeklyDeal({ enabled: false }, true);
+        setTimeout(() => {
+          setIsExpired(true);
+        }, 1200);
         return;
       }
 
@@ -86,7 +94,7 @@ export const WeeklyDealSection: React.FC = () => {
   }, [weeklyDeal.enabled, weeklyDeal.endTimestamp, updateWeeklyDeal]);
 
   // If disabled in admin panel or timer reached 00:00:00:00, automatically turn off and hide
-  if (!weeklyDeal.enabled || isExpired) {
+  if (!weeklyDeal.enabled || isExpired || isTimePassed) {
     return null;
   }
 
@@ -215,7 +223,7 @@ export const WeeklyDealSection: React.FC = () => {
 
               {/* Interactive hint on hover */}
               <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-slate-950/90 backdrop-blur-md text-white text-[11px] font-semibold px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 shadow-lg z-10">
-                <Eye className="w-3.5 h-3.5 text-red-400" />
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 <span>Швидкий огляд</span>
               </div>
             </div>

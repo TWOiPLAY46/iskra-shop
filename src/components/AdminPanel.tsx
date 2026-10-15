@@ -3346,8 +3346,17 @@ export const AdminPanel: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    updateWeeklyDeal({ enabled: !weeklyDeal.enabled });
-                    showToast(weeklyDeal.enabled ? 'Акцію тижня вимкнено з сайту' : 'Акцію тижня увімкнено на сайті!', 'info');
+                    const willEnable = !weeklyDeal.enabled;
+                    if (willEnable && (!weeklyDeal.endTimestamp || Date.now() >= weeklyDeal.endTimestamp)) {
+                      updateWeeklyDeal({ 
+                        enabled: true, 
+                        endTimestamp: Date.now() + 3 * 86400000 + 12 * 3600000, 
+                        endDateText: '3 дні 12 год' 
+                      });
+                    } else {
+                      updateWeeklyDeal({ enabled: willEnable });
+                    }
+                    showToast(!weeklyDeal.enabled ? 'Акцію тижня увімкнено на сайті!' : 'Акцію тижня вимкнено з сайту', 'info');
                   }}
                   className={`px-6 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all flex items-center gap-2.5 cursor-pointer shadow-lg active:scale-95 ${
                     weeklyDeal.enabled
@@ -3739,7 +3748,26 @@ export const AdminPanel: React.FC = () => {
                 Швидке встановлення терміну дії акції в 1 клік:
               </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {/* 15s Test */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const testEnd = Date.now() + 15000;
+                    updateWeeklyDeal({ enabled: true, endTimestamp: testEnd, endDateText: '15 сек (тест)' });
+                    showToast('Таймер встановлено: 15 секунд! Перейдіть на сайт та спостерігайте, як при 00:00:00:00 акція автоматично вимикається.', 'info');
+                  }}
+                  className="p-3.5 rounded-2xl border-2 border-amber-400 bg-amber-50 hover:bg-amber-100/90 text-left transition-all cursor-pointer group active:scale-95 shadow-xs"
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-black text-amber-900 group-hover:text-amber-950">
+                    <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500 animate-pulse" />
+                    <span>⚡ 15 сек (Тест)</span>
+                  </div>
+                  <div className="text-[10px] text-amber-800 mt-1 font-semibold leading-tight">
+                    Тест автовимкнення при 00:00:00
+                  </div>
+                </button>
+
                 {/* Sunday 23:59 */}
                 <button
                   type="button"
@@ -3820,16 +3848,44 @@ export const AdminPanel: React.FC = () => {
               </div>
             </div>
 
+            {/* Custom Exact Datetime Picker */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2">
+              <label className="block text-xs font-bold text-slate-800">
+                Вказати точний день та час завершення акції вручну:
+              </label>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="datetime-local"
+                  value={weeklyDeal.endTimestamp ? new Date(weeklyDeal.endTimestamp - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const selectedMs = new Date(e.target.value).getTime();
+                      const d = new Date(selectedMs);
+                      const formatted = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')} о ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                      updateWeeklyDeal({ enabled: true, endTimestamp: selectedMs, endDateText: formatted });
+                      showToast(`Дедлайн акції встановлено: ${formatted}`, 'info');
+                    }
+                  }}
+                  className="px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-800 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20 shadow-xs cursor-pointer"
+                />
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Коли таймер дійде до 00:00:00:00, акція вимкнеться на сайті автоматично!
+                </span>
+              </div>
+            </div>
+
             {/* Custom timer description & auto-expired indicator */}
             <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-xs">
               <span className="text-slate-600">Встановлений підпис терміну: <b className="text-slate-900 font-extrabold">{weeklyDeal.endDateText || 'До кінця неділі 23:59'}</b></span>
               {weeklyDeal.endTimestamp && Date.now() >= weeklyDeal.endTimestamp ? (
-                <span className="text-[11px] text-amber-800 font-extrabold bg-amber-100/80 px-2.5 py-1 rounded-full border border-amber-300 flex items-center gap-1">
-                  ⏰ 00:00:00 досягнуто — акція вимкнена автоматично
+                <span className="text-[11px] text-amber-900 font-extrabold bg-amber-100 px-3 py-1 rounded-full border border-amber-300 flex items-center gap-1.5 shadow-2xs">
+                  <span>⏰</span>
+                  <span>00:00:00:00 досягнуто — акцію вимкнено автоматично</span>
                 </span>
               ) : (
-                <span className="text-[11px] text-emerald-700 font-extrabold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                  ● Таймер відліку активний (автовимкнення при 00:00:00)
+                <span className="text-[11px] text-emerald-800 font-extrabold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Таймер зворотного відліку активний (автовимкнення при 00:00:00)</span>
                 </span>
               )}
             </div>
