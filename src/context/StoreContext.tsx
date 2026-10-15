@@ -280,11 +280,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     })();
     const deletedSet = new Set(deletedList);
 
-    const saved = localStorage.getItem('iskra_products_react_v4') || localStorage.getItem('iskra_products_react_v3') || localStorage.getItem('iskra_products_react');
     let parsed: Product[] = [];
-    if (saved) {
+    if (typeof window !== 'undefined') {
       try {
-        parsed = JSON.parse(saved);
+        const v4 = localStorage.getItem('iskra_products_react_v4');
+        const v3 = localStorage.getItem('iskra_products_react_v3');
+        const vOld = localStorage.getItem('iskra_products_react');
+        const backupKey = localStorage.getItem('iskra_products_backup_v1');
+        const candidates = [v4, v3, vOld, backupKey].filter(Boolean);
+        for (const raw of candidates) {
+          try {
+            const arr = JSON.parse(raw!);
+            if (Array.isArray(arr) && arr.length > parsed.length) {
+              parsed = arr;
+            }
+          } catch {}
+        }
       } catch (e) {
         console.error(e);
       }
@@ -861,12 +872,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const toggleSiteTheme = () => {
     handleSetSiteTheme('standard');
   };
+
   // When the user closes the site completely and enters anew, always load the main home page ('store').
   const [activeView, setActiveView] = useState<'store' | 'account' | 'admin' | 'about' | 'returns'>(() => {
     if (typeof window !== 'undefined') {
       const isNewSession = !sessionStorage.getItem('iskra_session_active');
       localStorage.removeItem('iskra_active_view');
       localStorage.removeItem('iskra_show_wishlist');
+      localStorage.removeItem('iskra_hide_premium_tab');
 
       if (isNewSession) {
         sessionStorage.setItem('iskra_session_active', '1');
@@ -1053,8 +1066,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 image: p.image !== undefined && p.image !== null ? p.image : '',
                 stock: p.stock !== undefined && p.stock !== null ? p.stock : 0
               }));
-            setProducts(cleanCloudProds);
-            localStorage.setItem('iskra_products_react_v4', JSON.stringify(cleanCloudProds));
+
+            setProducts((prevLocal) => {
+              const productMap = new Map<string, Product>();
+              cleanCloudProds.forEach(p => productMap.set(p.id, p));
+
+              // Preserve any locally imported products that are not in the cloud
+              if (prevLocal && prevLocal.length > 0) {
+                prevLocal.forEach(p => {
+                  if (p && p.id && !deletedSet.has(p.id) && !productMap.has(p.id)) {
+                    productMap.set(p.id, p);
+                  }
+                });
+              }
+
+              const merged = Array.from(productMap.values());
+              localStorage.setItem('iskra_products_react_v4', JSON.stringify(merged));
+
+              // If local had extra items (e.g. 400 vs 153), push the full merged catalog to cloud
+              if (merged.length > cleanCloudProds.length && firebaseConfig.enabled) {
+                pushStoreToFirebase(firebaseConfig, {
+                  products: merged,
+                  lastSyncTimestamp: Date.now()
+                }).catch(() => {});
+              }
+
+              return merged;
+            });
           }
           
           // Normalize and load categories tree
@@ -1177,8 +1215,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               image: p.image !== undefined && p.image !== null ? p.image : '',
               stock: p.stock !== undefined && p.stock !== null ? p.stock : 0
             }));
-          setProducts(cleanLive);
-          localStorage.setItem('iskra_products_react_v4', JSON.stringify(cleanLive));
+
+          setProducts((prevLocal) => {
+            const productMap = new Map<string, Product>();
+            cleanLive.forEach(p => productMap.set(p.id, p));
+
+            if (prevLocal && prevLocal.length > 0) {
+              prevLocal.forEach(p => {
+                if (p && p.id && !deletedSet.has(p.id) && !productMap.has(p.id)) {
+                  productMap.set(p.id, p);
+                }
+              });
+            }
+
+            const merged = Array.from(productMap.values());
+            localStorage.setItem('iskra_products_react_v4', JSON.stringify(merged));
+            return merged;
+          });
         }
         if (data.categoriesTree && typeof data.categoriesTree === 'object') {
           const mergedCategories = normalizeCategoriesTree(data.categoriesTree);

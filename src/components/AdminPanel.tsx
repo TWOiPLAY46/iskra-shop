@@ -11672,6 +11672,7 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
+
           {/* Section 0: Homepage Block Reordering & Positioning Constructor */}
           <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-3xl border border-indigo-500/30 p-5 sm:p-7 shadow-xl text-white space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">

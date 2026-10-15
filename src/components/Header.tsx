@@ -217,7 +217,8 @@ export const Header: React.FC = () => {
 
             {/* Right Action Icons Group */}
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              
+
+
               {/* About Seller Button (Про нас / Реквізити) */}
               <button
                 onClick={() => {
@@ -421,6 +422,7 @@ export const Header: React.FC = () => {
               <LayoutGrid className="w-4 h-4 text-red-500" />
               <span>Відкрити Каталог товарів</span>
             </button>
+
 
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
