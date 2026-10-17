@@ -88,6 +88,7 @@ export const Header: React.FC = () => {
   return (
     <>
       <header className="sticky top-0 z-40 backdrop-blur-2xl transition-all w-full relative bg-white/95 border-b border-slate-200/80 shadow-xs text-slate-800">
+
         {/* Dynamic Slim Promo Banner */}
         {headerDesign.promoActive && headerDesign.promoText && !promoDismissed && (
           <div className="text-xs font-medium py-1.5 px-4 bg-gradient-to-r from-red-600 via-orange-600 to-red-700 text-white">
@@ -217,7 +218,6 @@ export const Header: React.FC = () => {
 
             {/* Right Action Icons Group */}
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-
 
               {/* About Seller Button (Про нас / Реквізити) */}
               <button
@@ -422,7 +422,6 @@ export const Header: React.FC = () => {
               <LayoutGrid className="w-4 h-4 text-red-500" />
               <span>Відкрити Каталог товарів</span>
             </button>
-
 
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button

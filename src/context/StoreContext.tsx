@@ -879,7 +879,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const isNewSession = !sessionStorage.getItem('iskra_session_active');
       localStorage.removeItem('iskra_active_view');
       localStorage.removeItem('iskra_show_wishlist');
-      localStorage.removeItem('iskra_hide_premium_tab');
 
       if (isNewSession) {
         sessionStorage.setItem('iskra_session_active', '1');

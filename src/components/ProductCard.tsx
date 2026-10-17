@@ -70,8 +70,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       onClick={() => setQuickViewProduct(product)}
       className={`group cursor-pointer relative flex flex-col justify-between transition-all duration-300 ${
         isPremium
-          ? 'bg-[#0c1220]/95 hover:bg-[#11192e] backdrop-blur-md rounded-3xl border border-white/10 hover:border-amber-400/50 shadow-xl hover:shadow-[0_16px_36px_rgba(234,88,12,0.18)] hover:-translate-y-1.5 p-4 sm:p-5 overflow-hidden'
-          : 'bg-white hover:bg-slate-50/90 rounded-3xl border border-slate-200/90 hover:border-slate-300 shadow-xs hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)] hover:-translate-y-1.5 p-3.5 sm:p-4.5 overflow-hidden ring-1 ring-transparent'
+          ? 'bg-[#0c1220]/95 hover:bg-[#11192e] backdrop-blur-md rounded-3xl border border-white/10 hover:border-amber-400/50 shadow-xl hover:shadow-[0_16px_36px_rgba(234,88,12,0.18)] hover:-translate-y-1.5 p-3 sm:p-5 overflow-hidden'
+          : 'bg-white hover:bg-slate-50/90 rounded-3xl border border-slate-200/90 hover:border-slate-300 shadow-xs hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)] hover:-translate-y-1.5 p-2.5 sm:p-4.5 overflow-hidden ring-1 ring-transparent'
       }`}
     >
       {/* Top Hover Accent Glow Beam */}
@@ -82,10 +82,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       }`} />
 
       {/* Top Section: Badge & Favorite Button */}
-      <div className="flex items-center justify-between w-full mb-2 z-10">
+      <div className="flex items-center justify-between w-full mb-1.5 z-10">
         <div>
           {product.badge ? (
-            <span className={`text-[10px] sm:text-[11px] font-black px-3 py-1 rounded-lg uppercase tracking-wider ${
+            <span className={`text-[9px] sm:text-[11px] font-black px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg uppercase tracking-wider ${
               product.badge === 'Хіт продажу' || product.badge === 'Акція'
                 ? 'bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 text-white shadow-md shadow-red-600/30 ring-1 ring-white/20' 
                 : 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
@@ -93,7 +93,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               {product.badge}
             </span>
           ) : (
-            <div className="h-4" />
+            <div className="h-3 sm:h-4" />
           )}
         </div>
 
@@ -117,7 +117,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           title={isFavorited ? "Видалити з обраного" : "Додати до обраного"}
           aria-label={isFavorited ? "Видалити з обраного" : "Додати до обраного"}
         >
-          <Heart className={`w-4 h-4 transition-transform ${isFavorited ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
+          <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${isFavorited ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-400'}`} />
         </button>
       </div>
 
@@ -129,7 +129,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         );
 
         return (
-          <div className="relative h-48 sm:h-56 md:h-60 lg:h-64 w-full flex items-center justify-center mb-3 overflow-hidden rounded-3xl sm:rounded-[26px]">
+          <div className="relative h-36 sm:h-48 md:h-60 lg:h-64 w-full flex items-center justify-center mb-2.5 overflow-hidden rounded-2xl sm:rounded-[26px]">
             {!imageError && displayImageUrl ? (
               <img
                 src={displayImageUrl}
@@ -137,20 +137,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 onError={() => setImageError(true)}
                 referrerPolicy="no-referrer"
                 loading="lazy"
-                className="w-full h-full object-contain object-center rounded-3xl sm:rounded-[26px] transition-transform duration-300 ease-out group-hover:scale-105"
+                className="w-full h-full object-contain object-center rounded-2xl sm:rounded-[26px] transition-transform duration-300 ease-out group-hover:scale-105"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-400">
                 {isPlumbing ? (
-                  <Droplets className="w-20 h-20 sm:w-24 sm:h-24 stroke-[1.5]" />
+                  <Droplets className="w-16 h-16 sm:w-24 sm:h-24 stroke-[1.5]" />
                 ) : isTool ? (
-                  <Wrench className="w-20 h-20 sm:w-24 sm:h-24 stroke-[1.5]" />
+                  <Wrench className="w-16 h-16 sm:w-24 sm:h-24 stroke-[1.5]" />
                 ) : isHousehold ? (
-                  <Home className="w-20 h-20 sm:w-24 sm:h-24 stroke-[1.5]" />
+                  <Home className="w-16 h-16 sm:w-24 sm:h-24 stroke-[1.5]" />
                 ) : isOther ? (
-                  <Cog className="w-20 h-20 sm:w-24 sm:h-24 stroke-[1.5]" />
+                  <Cog className="w-16 h-16 sm:w-24 sm:h-24 stroke-[1.5]" />
                 ) : (
-                  <Zap className="w-20 h-20 sm:w-24 sm:h-24 stroke-[1.5]" />
+                  <Zap className="w-16 h-16 sm:w-24 sm:h-24 stroke-[1.5]" />
                 )}
               </div>
             )}
@@ -174,14 +174,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <div className="flex flex-col flex-1 justify-between">
         <div>
           {/* SKU & Brand */}
-          <div className="flex items-center justify-between gap-1 mb-1.5">
-            <span className={`text-[10px] sm:text-[11px] font-mono font-medium truncate ${
+          <div className="flex items-center justify-between gap-1 mb-1">
+            <span className={`text-[9px] sm:text-[11px] font-mono font-medium truncate ${
               isPremium ? 'text-slate-400' : 'text-slate-500'
             }`}>
               {product.sku}
             </span>
             {brand && brand !== 'Інші виробники' && (
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+              <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded shrink-0 ${
                 isPremium 
                   ? 'text-amber-300 bg-amber-500/15 border border-amber-500/30' 
                   : 'text-red-600 bg-red-50 border border-red-200/80'
@@ -192,7 +192,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </div>
 
           {/* Product Title */}
-          <h3 className={`text-xs sm:text-sm font-bold line-clamp-2 leading-snug mb-2 transition-colors ${
+          <h3 className={`text-xs sm:text-sm font-bold line-clamp-2 leading-snug mb-1.5 transition-colors ${
             isPremium 
               ? 'text-white group-hover:text-red-400' 
               : 'text-slate-900 group-hover:text-red-600'
@@ -201,47 +201,47 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </h3>
 
           {/* Stock Status */}
-          <div className="text-[11px] font-semibold mb-3">
+          <div className="text-[10px] sm:text-[11px] font-semibold mb-2.5">
             {isOutOfStock ? (
-              <span className={`inline-flex items-center gap-1.5 font-semibold text-[11px] ${
+              <span className={`inline-flex items-center gap-1 font-semibold ${
                 isPremium ? 'text-rose-400' : 'text-rose-600'
               }`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                <span>Немає в наявності</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                <span className="truncate">Немає в наявності</span>
               </span>
             ) : showLowStockBadge ? (
-              <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold ${
+              <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-bold ${
                 isPremium 
                   ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300' 
                   : 'bg-amber-500/10 border border-amber-500/20 text-amber-900'
               }`}>
-                <span className="relative flex h-2 w-2">
+                <span className="relative flex h-2 w-2 shrink-0">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                 </span>
-                <span className="tracking-tight">
-                  Закінчується: <span className="font-extrabold font-mono">лише {product.stock} {formatUnit(product.unit)}</span>
+                <span className="tracking-tight truncate">
+                  Лише {product.stock} {formatUnit(product.unit)}
                 </span>
               </div>
             ) : (
-              <span className={`inline-flex items-center gap-1.5 font-semibold text-[11px] ${
+              <span className={`inline-flex items-center gap-1 font-semibold ${
                 isPremium ? 'text-emerald-400' : 'text-emerald-700'
               }`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>В наявності ({product.stock} {formatUnit(product.unit)})</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                <span className="truncate">В наявності ({product.stock} {formatUnit(product.unit)})</span>
               </span>
             )}
           </div>
         </div>
 
         {/* Pricing & Cart Button Row */}
-        <div className={`flex items-center justify-between gap-1.5 sm:gap-2 pt-2.5 border-t mt-auto min-w-0 ${
+        <div className={`flex items-center justify-between gap-1.5 pt-2 border-t mt-auto min-w-0 ${
           isPremium ? 'border-slate-800/90' : 'border-slate-200/60'
         }`}>
-          <div className="shrink-0">
+          <div className="shrink-0 min-w-0">
             <div className={`font-black tabular-nums leading-none ${
               isPremium 
-                ? 'text-base sm:text-xl font-display tracking-tight text-white' 
+                ? 'text-sm sm:text-xl font-display tracking-tight text-white' 
                 : 'text-sm sm:text-lg font-display font-black tracking-tight text-slate-950'
             }`}>
               {product.price}{' '}
@@ -249,7 +249,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 грн
               </span>
             </div>
-            <div className={`text-[9px] sm:text-[10px] font-medium mt-0.5 ${
+            <div className={`text-[9px] sm:text-[10px] font-medium mt-0.5 truncate ${
               isPremium ? 'text-slate-400' : 'text-slate-400'
             }`}>
               {formatPriceUnit(product.unit)}
@@ -264,24 +264,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   e.stopPropagation();
                   openStockAlertModal(product);
                 }}
-                className="relative px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black transition-all active:scale-95 flex items-center gap-1 shadow-sm shadow-orange-600/30 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 hover:brightness-110 text-white cursor-pointer shrink-0"
+                className="relative px-2.5 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold transition-all active:scale-95 flex items-center gap-1 shadow-sm shadow-orange-600/30 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 hover:brightness-110 text-white cursor-pointer shrink-0 whitespace-nowrap"
                 title="Повідомити, коли з'явиться"
                 aria-label="Повідомити про наявність"
               >
-                <Bell className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-white stroke-[2.2] shrink-0" />
-                <span className="truncate">Повідомити</span>
+                <Bell className="w-3 h-3 text-white stroke-[2.2] shrink-0" />
+                <span>Повідомити</span>
               </button>
             ) : (
               <button
                 onClick={handleAddToCart}
-                className={`relative font-black transition-all active:scale-95 flex items-center gap-1 sm:gap-1.5 cursor-pointer shrink-0 ${
+                className={`relative font-bold transition-all active:scale-95 flex items-center gap-1 cursor-pointer shrink-0 whitespace-nowrap ${
                   isPremium
-                    ? `px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs shadow-lg ${
+                    ? `px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs shadow-lg ${
                         isAddedRecently
                           ? 'bg-emerald-600 text-white shadow-emerald-600/40'
                           : 'bg-gradient-to-r from-red-600 via-orange-600 to-red-600 hover:brightness-110 text-white shadow-red-600/40 hover:scale-105'
                       }`
-                    : `px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs shadow-md transition-all ${
+                    : `px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs shadow-md transition-all ${
                         isAddedRecently
                           ? 'bg-emerald-600 text-white shadow-emerald-600/30'
                           : 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-red-600/30 hover:scale-105'
@@ -293,7 +293,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 {isAddedRecently ? (
                   <>
                     <Check className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
-                    <span className="text-[11px] sm:text-xs">В кошику</span>
+                    <span>В кошику</span>
                   </>
                 ) : (
                   <>

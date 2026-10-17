@@ -93,7 +93,8 @@ export const StoreFront: React.FC = () => {
     sortOption, 
     setSortOption,
     siteSettings,
-    siteTheme
+    siteTheme,
+    setActiveView
   } = useStore();
 
   const isPremium = siteTheme === 'premium';

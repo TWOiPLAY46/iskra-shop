@@ -28,6 +28,7 @@ import {
   AlertTriangle, 
   Send, 
   ArrowLeft,
+  ArrowRight,
   ArrowUp,
   ArrowDown,
   DollarSign,
